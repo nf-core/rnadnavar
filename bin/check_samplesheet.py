@@ -30,12 +30,17 @@ class RowChecker:
         ".fastq.gz",
     )
 
+    VALID_FORMAT_BAM = (
+        ".bam"
+    )
+
     def __init__(
         self,
         sample_col="sample",
         first_col="fastq_1",
         second_col="fastq_2",
         single_col="single_end",
+        six_col="bam",
         **kwargs,
     ):
         """
@@ -58,6 +63,7 @@ class RowChecker:
         self._first_col = first_col
         self._second_col = second_col
         self._single_col = single_col
+        self._sixth_col = six_col
         self._seen = set()
         self.modified = []
 
@@ -85,8 +91,16 @@ class RowChecker:
 
     def _validate_first(self, row):
         """Assert that the first FASTQ entry is non-empty and has the right format."""
-        assert len(row[self._first_col]) > 0, "At least the first FASTQ file is required."
-        self._validate_fastq_format(row[self._first_col])
+        fastqs = len(row[self._first_col])
+        bams = len(row[self._sixth_col])
+        assert fastqs > 0 or bams > 0, "At least the first FASTQ file or BAM is required."
+        if fastqs > 0:
+            self._validate_fastq_format(row[self._first_col])
+        elif bams > 0:
+            self._validate_bam_format(row[self._sixth_col])
+        else:
+            logger.critical(f"The given samplesheet sheet does not appear to contain a BAM or a FASTQ.")
+            sys.exit(1)
 
     def _validate_second(self, row):
         """Assert that the second FASTQ entry has the right format if it exists."""
@@ -108,6 +122,13 @@ class RowChecker:
         assert any(filename.endswith(extension) for extension in self.VALID_FORMATS), (
             f"The FASTQ file has an unrecognized extension: {filename}\n"
             f"It should be one of: {', '.join(self.VALID_FORMATS)}"
+        )
+
+    def _validate_bam_format(self, filename):
+        """Assert that a given filename has one of the expected BAM extensions."""
+        assert any(filename.endswith(extension) for extension in self.VALID_FORMAT_BAM), (
+            f"The BAM file has an unrecognized extension: {filename}\n"
+            f"It should be one of: {', '.join(self.VALID_FORMAT_BAM)}"
         )
 
     def validate_unique_samples(self):
@@ -154,13 +175,13 @@ def sniff_format(handle):
         https://docs.python.org/3/glossary.html#term-text-file
 
     """
-    peek = read_head(handle)
+    peek = read_head(handle, num_lines=1)  # too many lines can lead to error when guessing delimiter
     handle.seek(0)
     sniffer = csv.Sniffer()
     if not sniffer.has_header(peek):
         logger.critical(f"The given sample sheet does not appear to contain a header.")
         sys.exit(1)
-    dialect = sniffer.sniff(peek)
+    dialect = sniffer.sniff(sample=peek)
     return dialect
 
 
@@ -191,16 +212,20 @@ def check_samplesheet(file_in, file_out):
 
     """
     required_columns = {"sample", "fastq_1", "fastq_2"}
+    required_columns_opt2 = {"sample", "bam", "bai"}
     # See https://docs.python.org/3.9/library/csv.html#id3 to read up on `newline=""`.
     with file_in.open(newline="") as in_handle:
         reader = csv.DictReader(in_handle, dialect=sniff_format(in_handle))
         # Validate the existence of the expected header columns.
         if not required_columns.issubset(reader.fieldnames):
-            logger.critical(f"The sample sheet **must** contain the column headers: {', '.join(required_columns)}.")
-            sys.exit(1)
+            if not required_columns_opt2.issubset(reader.fieldnames):
+                logger.critical(f"The sample sheet **must** contain the column headers: "
+                                f"{', '.join(required_columns_opt2)} OR {', '.join(required_columns)}")
+                sys.exit(1)
         # Validate each row.
         checker = RowChecker()
         for i, row in enumerate(reader):
+            print(row)
             try:
                 checker.validate_and_transform(row)
             except AssertionError as error:
