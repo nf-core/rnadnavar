@@ -32,7 +32,11 @@ def checkPathParamList = [
     Check mandatory parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-for (param in checkPathParamList) { if (param) { file(param, checkIfExists: true) } }
+for (param in checkPathParamList) {
+    if (param) {
+        file(param, checkIfExists: true)
+        }
+    }
 
 // Set input, can either be from --input or from automatic retrieval in lib/WorkflowRnadnavar.groovy
 ch_input_sample = extract_csv(file(params.input, checkIfExists: true))
@@ -287,7 +291,7 @@ def extract_csv(csv_file) {
 
             if (params.step == 'mapping') return [meta, [fastq_1, fastq_2]]
             else {
-                log.error "Samplesheet contains fastq files but step is `$params.step`. Please check your samplesheet or adjust the step parameter.\nhttps://nf-co.re/sarek/usage#input-samplesheet-configurations"
+                log.error "Samplesheet contains fastq files but step is `$params.step`. Please check your samplesheet or adjust the step parameter.\nhttps://nf-co.re/rnadnavar/usage#input-samplesheet-configurations"
                 System.exit(1)
             }
 
