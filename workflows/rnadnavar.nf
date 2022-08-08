@@ -86,12 +86,45 @@ include { ANNOTATE } from '../subworkflows/local/annotate'
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-//
-// MODULE: Installed directly from nf-core/modules
-//
+// Basic QC
 include { FASTQC                      } from '../modules/nf-core/modules/fastqc/main'
 include { MULTIQC                     } from '../modules/nf-core/modules/multiqc/main'
+// Variant Calling: GATK
+include { GATK4_BASERECALIBRATOR        } from '../modules/nf-core/modules/gatk4/baserecalibrator/main'
+include { GATK4_BEDTOINTERVALLIST       } from '../modules/nf-core/modules/gatk4/bedtointervallist/main'
+include { GATK4_INTERVALLISTTOOLS       } from '../modules/nf-core/modules/gatk4/intervallisttools/main'
+include { GATK4_HAPLOTYPECALLER         } from '../modules/nf-core/modules/gatk4/haplotypecaller/main'
+include { GATK4_MERGEVCFS               } from '../modules/nf-core/modules/gatk4/mergevcfs/main'
+include { GATK4_INDEXFEATUREFILE        } from '../modules/nf-core/modules/gatk4/indexfeaturefile/main'
+include { GATK4_VARIANTFILTRATION       } from '../modules/nf-core/modules/gatk4/variantfiltration/main'
+include { SAMTOOLS_INDEX                } from '../modules/nf-core/modules/samtools/index/main'
+include { TABIX_TABIX as TABIX          } from '../modules/nf-core/modules/tabix/tabix/main'
+
+// Software track
 include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/modules/custom/dumpsoftwareversions/main'
+
+/*
+========================================================================================
+    IMPORT NF-CORE SUBWORKFLOWS
+========================================================================================
+*/
+
+include { ALIGN_STAR                    } from '../subworkflows/nf-core/align_star'         // Align reads to genome and sort and index the alignment file
+include { MARKDUPLICATES                } from '../subworkflows/nf-core/markduplicates'     // Mark duplicates in the BAM file
+include { SPLITNCIGAR                   } from '../subworkflows/nf-core/splitncigar'        // Splits reads that contain Ns in their cigar string
+include { RECALIBRATE                   } from '../subworkflows/nf-core/recalibrate'        // Estimate and correct systematic bias
+
+/*
+========================================================================================
+    VARIABLES
+========================================================================================
+*/
+
+// Check STAR alignment parameters
+def prepareToolIndices  = params.aligner
+def seq_platform        = params.seq_platform ? params.seq_platform : []
+def seq_center          = params.seq_center ? params.seq_center : []
+
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -104,7 +137,19 @@ def multiqc_report = []
 
 workflow RNADNAVAR {
 
+    // To gather all QC reports for MultiQC
+    ch_reports  = Channel.empty()
+    // To gather used softwares versions for MultiQC
     ch_versions = Channel.empty()
+
+    //
+    // SUBWORKFLOW: Uncompress and prepare reference genome files
+    //
+    PREPARE_GENOME (
+        prepareToolIndices
+    )
+    ch_genome_bed = Channel.from([id:'genome.bed']).combine(PREPARE_GENOME.out.exon_bed)
+    ch_versions = ch_versions.mix(PREPARE_GENOME.out.versions)
 
     //
     // SUBWORKFLOW: Read in samplesheet, validate and stage input files
@@ -117,6 +162,7 @@ workflow RNADNAVAR {
     //
     // MODULE: Run FastQC
     //
+    // QC TODO Can I do this for BAM - for now only returning version and not running
     FASTQC (
         INPUT_CHECK.out.reads
     )
@@ -125,7 +171,7 @@ workflow RNADNAVAR {
     CUSTOM_DUMPSOFTWAREVERSIONS (
         ch_versions.unique().collectFile(name: 'collated_versions.yml')
     )
-
+    // TODO Concat fastq files if necessary - not added because at the moment I am using bams
     //
     // MODULE: MultiQC
     //
@@ -144,6 +190,56 @@ workflow RNADNAVAR {
     )
     multiqc_report = MULTIQC.out.report.toList()
     ch_versions    = ch_versions.mix(MULTIQC.out.versions)
+
+    //
+    // MODULE: Prepare the interval list from the GTF file using GATK4 BedToIntervalList
+    //
+    ch_interval_list = Channel.empty()
+    GATK4_BEDTOINTERVALLIST(
+        ch_genome_bed,
+        PREPARE_GENOME.out.dict
+    )
+    ch_interval_list = GATK4_BEDTOINTERVALLIST.out.interval_list
+    ch_versions = ch_versions.mix(GATK4_BEDTOINTERVALLIST.out.versions.first().ifEmpty(null))
+
+    //
+    // MODULE: Scatter one interval-list into many interval-files using GATK4 IntervalListTools
+    //
+    ch_interval_list_split = Channel.empty()
+    if (!params.skip_intervallisttools) {
+        GATK4_INTERVALLISTTOOLS(
+            ch_interval_list
+        )
+        ch_interval_list_split = GATK4_INTERVALLISTTOOLS.out.interval_list.map{ meta, bed -> [bed] }.flatten()
+    }
+    else ch_interval_list_split = ch_interval_list
+
+    //
+    // SUBWORKFLOW: Perform read alignment using STAR aligner
+    //
+    ch_genome_bam                 = Channel.empty()
+    ch_genome_bam_index           = Channel.empty()
+    ch_samtools_stats             = Channel.empty()
+    ch_samtools_flagstat          = Channel.empty()
+    ch_samtools_idxstats          = Channel.empty()
+    ch_star_multiqc               = Channel.empty()
+    ch_aligner_pca_multiqc        = Channel.empty()
+    ch_aligner_clustering_multiqc = Channel.empty()
+
+    // TODO: MISSING ALIGNMENT HERE
+
+    // SUBWORKFLOW: Mark duplicates with GATK4
+    //
+    ch_genome_bam = INPUT_CHECK.out.reads  // TODO: temporary solution to BAM/FASTQ inputs
+    MARKDUPLICATES (
+        ch_genome_bam
+    )
+    ch_genome_bam             = MARKDUPLICATES.out.bam_bai
+
+    //Gather QC reports
+    ch_reports                = ch_reports.mix(MARKDUPLICATES.out.stats.collect{it[1]}.ifEmpty([]))
+    ch_reports                = ch_reports.mix(MARKDUPLICATES.out.metrics.collect{it[1]}.ifEmpty([]))
+    ch_versions               = ch_versions.mix(MARKDUPLICATES.out.versions.first().ifEmpty(null))
 }
 
 /*
