@@ -6,3 +6,7 @@ results/
 testing/
 testing*
 *.pyc
+.idea/
+null/
+test/
+res-test

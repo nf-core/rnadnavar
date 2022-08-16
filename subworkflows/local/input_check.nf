@@ -37,7 +37,8 @@ def create_fastq_channel(LinkedHashMap row) {
          exit 1, "ERROR: Please check input samplesheet -> Read 1 BAM file do not exist!\n${row.bam}"
         }
         file_meta = [ meta, [ file(row.bam) ] ]
-        file_meta = [ meta, [ file(row.bam), file(row.bai) ] ]
+//        file_meta = [ meta, [ file(row.bam), file(row.bai) ] ] TODO: do we need this somewhere else apart from fastqc?
+        meta.single_end = row.single_end.toBoolean()
         }
     else {
     if (!file(row.fastq_1).exists())

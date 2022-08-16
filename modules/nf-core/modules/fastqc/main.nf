@@ -24,8 +24,8 @@ process FASTQC {
     def prefix = task.ext.prefix ?: "${meta.id}"
     if (meta.single_end) {
         """
-        [ ! -f  ${prefix}.fastq.gz ] && ln -s $reads ${prefix}.fastq.gz
-        fastqc $args --threads $task.cpus ${prefix}.fastq.gz
+        [ ! -f  ${prefix}.bam.gz ] && ln -s $reads ${prefix}.bam.gz
+        fastqc -f bam $args --threads $task.cpus ${prefix}.bam.gz
 
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
@@ -44,4 +44,16 @@ process FASTQC {
         END_VERSIONS
         """
     }
+
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}.html
+    touch ${prefix}.zip
+
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        fastqc: \$( fastqc --version | sed -e "s/FastQC v//g" )
+    END_VERSIONS
+    """
 }
