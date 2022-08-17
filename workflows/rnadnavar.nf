@@ -91,7 +91,7 @@ if (params.joint_germline && (!params.dbsnp || !params.known_indels || !params.k
 
 // Fails when missing tools for variant_calling or annotate
 if ((params.step == 'variant_calling' || params.step == 'annotate') && !params.tools) {
-    log.error "Please specify at least one tool when using `--step ${params.step}`.\nhttps://nf-co.re/sarek/parameters#tools"
+    log.error "Please specify at least one tool when using `--step ${params.step}`.\nhttps://nf-co.re/rnadnavar/parameters#tools"
     exit 1
 }
 
@@ -415,16 +415,72 @@ workflow RNADNAVAR {
         // Logic to separate DNA from RNA samples, DNA samples will be aligned with bwa, and RNA samples with star
         //
         ch_reads_to_map.branch{
-            normal: it[0].status == 0
-            tumor:  it[0].status == 1
-            rna:  it[0].status == 2
+            dna: it[0].status < 2
+            rna: it[0].status == 2
         }.set{ch_reads_to_map_status}
 
 
+// DNA will be aligned with star with the GATK4_MAPPING
+        ch_reads_to_map_dna = ch_reads_to_map_status.dna.map{ meta, reads -> [meta, reads] }
+        // bwa
+        sort_bam = true
+        GATK4_MAPPING(ch_reads_to_map_dna, ch_map_index, sort_bam)
 
+        // Grouping the bams from the same samples not to stall the workflow
+        ch_bam_mapped = GATK4_MAPPING.out.bam.map{ meta, bam ->
+            numLanes = meta.numLanes ?: 1
+            size     = meta.size     ?: 1
 
+            // update ID to be based on the sample name
+            // update data_type
+            // remove no longer necessary fields:
+            //   read_group: Now in the BAM header
+            //     numLanes: Was only needed for mapping
+            //         size: Was only needed for mapping
+            new_meta = [
+                        id:meta.sample,
+                        data_type:"bam",
+                        patient:meta.patient,
+                        sample:meta.sample,
+                        sex:meta.sex,
+                        status:meta.status,
+                    ]
 
+            // Use groupKey to make sure that the correct group can advance as soon as it is complete
+            // and not stall the workflow until all reads from all channels are mapped
+            [ groupKey(new_meta, numLanes * size), bam]
+        }.groupTuple()
+
+        // gatk4 markduplicates can handle multiple bams as input, so no need to merge/index here
+        // Except if and only if skipping markduplicates or saving mapped bams
+        if (params.save_bam_mapped || (params.skip_tools && params.skip_tools.split(',').contains('markduplicates'))) {
+
+            // bams are merged (when multiple lanes from the same sample), indexed and then converted to cram
+            MERGE_INDEX_BAM(ch_bam_mapped)
+
+            // Create CSV to restart from this step
+            MAPPING_CSV(MERGE_INDEX_BAM.out.bam_bai)
+
+            // Gather used softwares versions
+            ch_versions = ch_versions.mix(MERGE_INDEX_BAM.out.versions)
         }
+
+        // Gather used softwares versions
+        ch_versions = ch_versions.mix(ALIGNMENT_TO_FASTQ_INPUT.out.versions)
+        ch_versions = ch_versions.mix(GATK4_MAPPING.out.versions)
+
+// RNA will be aligned with STAR
+        ch_reads_to_map_rna = ch_reads_to_map_status.rna.map{ meta, reads -> [meta, reads] }
+        // STAR
+        ALIGN_STAR (
+            ch_reads_to_map_rna,
+            PREPARE_GENOME.out.star_index,
+            PREPARE_GENOME.out.gtf,
+            params.star_ignore_sjdbgtf,
+            seq_platform,
+            seq_center
+        )
+    }
 
 }
 
@@ -600,7 +656,7 @@ def extract_csv(csv_file) {
 
             if (params.step != 'annotate') return [meta, bam, bai]
             else {
-                log.error "Samplesheet contains bam files but step is `annotate`. The pipeline is expecting vcf files for the annotation. Please check your samplesheet or adjust the step parameter.\nhttps://nf-co.re/sarek/usage#input-samplesheet-configurations"
+                log.error "Samplesheet contains bam files but step is `annotate`. The pipeline is expecting vcf files for the annotation. Please check your samplesheet or adjust the step parameter.\nhttps://nf-co.re/rnadnavar/usage#input-samplesheet-configurations"
                 System.exit(1)
             }
 
@@ -615,7 +671,7 @@ def extract_csv(csv_file) {
 
             if (!(params.step == 'mapping' || params.step == 'annotate')) return [meta, cram, crai, table]
             else {
-                log.error "Samplesheet contains cram files but step is `$params.step`. Please check your samplesheet or adjust the step parameter.\nhttps://nf-co.re/sarek/usage#input-samplesheet-configurations"
+                log.error "Samplesheet contains cram files but step is `$params.step`. Please check your samplesheet or adjust the step parameter.\nhttps://nf-co.re/rnadnavar/usage#input-samplesheet-configurations"
                 System.exit(1)
             }
 
@@ -630,7 +686,7 @@ def extract_csv(csv_file) {
 
             if (!(params.step == 'mapping' || params.step == 'annotate')) return [meta, bam, bai, table]
             else {
-                log.error "Samplesheet contains bam files but step is `$params.step`. Please check your samplesheet or adjust the step parameter.\nhttps://nf-co.re/sarek/usage#input-samplesheet-configurations"
+                log.error "Samplesheet contains bam files but step is `$params.step`. Please check your samplesheet or adjust the step parameter.\nhttps://nf-co.re/rnadnavar/usage#input-samplesheet-configurations"
                 System.exit(1)
             }
 
@@ -644,7 +700,7 @@ def extract_csv(csv_file) {
 
             if (!(params.step == 'mapping' || params.step == 'annotate')) return [meta, cram, crai]
             else {
-                log.error "Samplesheet contains cram files but step is `$params.step`. Please check your samplesheet or adjust the step parameter.\nhttps://nf-co.re/sarek/usage#input-samplesheet-configurations"
+                log.error "Samplesheet contains cram files but step is `$params.step`. Please check your samplesheet or adjust the step parameter.\nhttps://nf-co.re/rnadnavar/usage#input-samplesheet-configurations"
                 System.exit(1)
             }
 
@@ -658,7 +714,7 @@ def extract_csv(csv_file) {
 
             if (!(params.step == 'mapping' || params.step == 'annotate')) return [meta, bam, bai]
             else {
-                log.error "Samplesheet contains bam files but step is `$params.step`. Please check your samplesheet or adjust the step parameter.\nhttps://nf-co.re/sarek/usage#input-samplesheet-configurations"
+                log.error "Samplesheet contains bam files but step is `$params.step`. Please check your samplesheet or adjust the step parameter.\nhttps://nf-co.re/rnadnavar/usage#input-samplesheet-configurations"
                 System.exit(1)
             }
 
@@ -672,7 +728,7 @@ def extract_csv(csv_file) {
 
             if (params.step == 'annotate') return [meta, vcf]
             else {
-                log.error "Samplesheet contains vcf files but step is `$params.step`. Please check your samplesheet or adjust the step parameter.\nhttps://nf-co.re/sarek/usage#input-samplesheet-configurations"
+                log.error "Samplesheet contains vcf files but step is `$params.step`. Please check your samplesheet or adjust the step parameter.\nhttps://nf-co.re/rnadnavar/usage#input-samplesheet-configurations"
                 System.exit(1)
             }
         } else {

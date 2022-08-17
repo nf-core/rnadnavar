@@ -61,6 +61,25 @@
                 "save_merged_fastq": {
                     "type": "boolean",
                     "description": "Save FastQ files after merging re-sequenced libraries in the results directory."
+                },
+                "skip_tools": {
+                    "type": "string",
+                    "fa_icon": "fas fa-forward",
+                    "description": "Disable specified tools.",
+                    "help_text": "Multiple tools can be specified, separated by commas.\n\n> **NB** `--skip_tools baserecalibrator_report` is actually just not saving the reports.\n> **NB** `--skip_tools markduplicates_report` does not skip `MarkDuplicates` but prevent the collection of duplicate metrics that slows down performance.",
+                    "pattern": "^((baserecalibrator|baserecalibrator_report|bcftools|documentation|fastqc|markduplicates|markduplicates_report|mosdepth|multiqc|samtools|vcftools|versions)*(,)*)*$"
+                },
+                "wes": {
+                    "type": "boolean",
+                    "fa_icon": "fas fa-dna",
+                    "description": "Enable when exome or panel data is provided.",
+                    "help_text": "With this parameter flags in various tools are set for targeted sequencing data. It is recommended to enable for whole-exome and panel data analysis."
+                },
+                "save_bam_mapped": {
+                    "type": "boolean",
+                    "fa_icon": "fas fa-download",
+                    "description": "Save mapped BAMs.",
+                    "help_text": "If the parameter `--split-fastq` is used, the sharded bam files are merged before saving them."
                 }
             }
         },
