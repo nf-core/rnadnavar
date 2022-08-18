@@ -24,9 +24,9 @@ process GATK4_MARKDUPLICATES {
     def prefix = task.ext.prefix ?: "${meta.id}"
     def input_list = bam.collect{"--INPUT $it"}.join(' ')
 
-    def avail_mem = 3
+    def avail_mem = 4
     if (!task.memory) {
-        log.info '[GATK MarkDuplicates] Available memory not known - defaulting to 3GB. Specify process memory requirements to change this.'
+        log.info '[GATK MarkDuplicates] Available memory not known - defaulting to 4GB. Specify process memory requirements to change this.'
     } else {
         avail_mem = task.memory.giga
     }
