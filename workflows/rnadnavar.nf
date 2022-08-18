@@ -316,7 +316,7 @@ workflow RNADNAVAR {
         // Or if we really want users to be able to do that
         ch_input_fastq = ch_input_sample_type.fastq.mix(ALIGNMENT_TO_FASTQ_INPUT.out.reads)
 
-        // STEP 0: QC & TRIM
+// STEP 0: QC & TRIM
         // `--skip_tools fastqc` to skip fastqc
         // trim only with `--trim_fastq`
         // additional options to be set up
@@ -391,7 +391,7 @@ workflow RNADNAVAR {
             ch_reads_to_map = ch_reads_fastp
         }
 
-        // STEP 1: MAPPING READS TO REFERENCE GENOME
+// STEP 1: MAPPING READS TO REFERENCE GENOME
         // reads will be sorted
         ch_reads_to_map = ch_reads_to_map.map{ meta, reads ->
             // update ID when no multiple lanes or splitted fastqs
@@ -420,14 +420,14 @@ workflow RNADNAVAR {
         }.set{ch_reads_to_map_status}
 
 
-// DNA will be aligned with star with the GATK4_MAPPING
+  // DNA will be aligned with star with the GATK4_MAPPING
         ch_reads_to_map_dna = ch_reads_to_map_status.dna.map{ meta, reads -> [meta, reads] }
         // bwa
         sort_bam = true
         GATK4_MAPPING(ch_reads_to_map_dna, ch_map_index, sort_bam)
 
         // Grouping the bams from the same samples not to stall the workflow
-        ch_bam_mapped = GATK4_MAPPING.out.bam.map{ meta, bam ->
+        ch_bam_mapped_dna = GATK4_MAPPING.out.bam.map{ meta, bam ->
             numLanes = meta.numLanes ?: 1
             size     = meta.size     ?: 1
 
@@ -456,7 +456,7 @@ workflow RNADNAVAR {
         if (params.save_bam_mapped || (params.skip_tools && params.skip_tools.split(',').contains('markduplicates'))) {
 
             // bams are merged (when multiple lanes from the same sample), indexed and then converted to cram
-            MERGE_INDEX_BAM(ch_bam_mapped)
+            MERGE_INDEX_BAM(ch_bam_mapped_dna)
 
             // Create CSV to restart from this step
             MAPPING_CSV(MERGE_INDEX_BAM.out.bam_bai)
@@ -469,7 +469,7 @@ workflow RNADNAVAR {
         ch_versions = ch_versions.mix(ALIGNMENT_TO_FASTQ_INPUT.out.versions)
         ch_versions = ch_versions.mix(GATK4_MAPPING.out.versions)
 
-// RNA will be aligned with STAR
+  // RNA will be aligned with STAR
         ch_reads_to_map_rna = ch_reads_to_map_status.rna.map{ meta, reads -> [meta, reads] }
         // STAR
         ALIGN_STAR (
@@ -480,7 +480,226 @@ workflow RNADNAVAR {
             seq_platform,
             seq_center
         )
+        ch_bam_mapped_rna        = ALIGN_STAR.out.bam
+        ch_bam_mapped_rna_index  = ALIGN_STAR.out.bai
+        ch_bam_mapped_transcriptome_rna = ALIGN_STAR.out.bam_transcript // TODO: is this necessary?
+
+        // Gather QC reports
+        ch_reports           = ch_reports.mix(ALIGN_STAR.out.stats.collect{it[1]}.ifEmpty([]))
+        ch_reports           = ch_reports.mix(ALIGN_STAR.out.log_final.collect{it[1]}.ifEmpty([]))
+        ch_versions          = ch_versions.mix(ALIGN_STAR.out.versions.first().ifEmpty(null))
+
     }
+    if (params.step in ['mapping', 'markduplicates']) {
+
+        // 1. SAMTOOLS_CRAMTOBAM ( to speed up computation)
+        // 2. Need fasta for cram compression (maybe just using --fasta, because this reference will be used elsewhere)
+        ch_cram_no_markduplicates_restart = Channel.empty()
+        ch_cram_markduplicates_no_spark   = Channel.empty()
+        ch_cram_markduplicates_spark      = Channel.empty()
+
+// STEP 2: markduplicates (+QC) + convert to CRAM
+
+        // ch_bam_for_markduplicates will countain bam mapped with GATK4_MAPPING when step is mapping
+        // Or bams that are specified in the samplesheet.csv when step is prepare_recalibration
+        // ch_bam_for_markduplicates = params.step == 'mapping'? ch_bam_mapped : ch_input_sample.map{ meta, input, index -> [meta, input] }
+
+        ch_bam_for_markduplicates = Channel.empty()
+        ch_input_cram_indexed     = Channel.empty()
+
+        if (params.step == 'mapping') {
+            // put together DNA and RNA for MARKDUPLICATES if coming from alignment
+            ch_bam_for_markduplicates = ch_bam_for_markduplicates.mix(
+                                        ch_bam_mapped_dna,
+                                        ch_bam_mapped_rna)
+            ch_bam_for_markduplicates.view()
+//            ch_bam_mapped_dna
+//                .join(ch_bam_mapped_rna)
+//                .set { ch_bam_for_markduplicates }
+            }
+        else {
+        // input was a BAM and there is no need for alignment
+            ch_input_sample.branch{
+                bam:  it[0].data_type == "bam"
+                cram: it[0].data_type == "cram"
+            }.set{ch_convert}
+
+            ch_bam_for_markduplicates = ch_convert.bam.map{ meta, bam, bai -> [meta, bam]}
+
+            //In case Markduplicates is run convert CRAM files to BAM, because the tool only runs on BAM files. MD_SPARK does run on CRAM but is a lot slower
+            if (!(params.skip_tools && params.skip_tools.split(',').contains('markduplicates'))){
+
+                SAMTOOLS_CRAMTOBAM(ch_convert.cram, fasta, fasta_fai)
+                ch_versions = ch_versions.mix(SAMTOOLS_CRAMTOBAM.out.versions)
+
+                ch_bam_for_markduplicates = ch_bam_for_markduplicates.mix(SAMTOOLS_CRAMTOBAM.out.alignment_index.map{ meta, bam, bai -> [meta, bam]})
+            } else {
+                ch_input_cram_indexed     = ch_convert.cram
+            }
+        }
+
+        if (params.skip_tools && params.skip_tools.split(',').contains('markduplicates')) {
+            ch_bam_for_markduplicates.view()
+            // ch_bam_indexed will countain bam mapped with GATK4_MAPPING when step is mapping
+            // which are then merged and indexed
+            // Or bams that are specified in the samplesheet.csv when step is prepare_recalibration
+            ch_bam_indexed = params.step == 'mapping' ? MERGE_INDEX_BAM.out.bam_bai : ch_convert.bam
+
+            BAM_TO_CRAM(
+                ch_bam_indexed,
+                ch_input_cram_indexed,
+                fasta,
+                fasta_fai,
+                intervals_for_preprocessing)
+
+            ch_cram_no_markduplicates_restart = BAM_TO_CRAM.out.cram_converted
+
+            // Gather QC reports
+            ch_reports  = ch_reports.mix(BAM_TO_CRAM.out.qc.collect{meta, report -> report})
+
+            // Gather used softwares versions
+            ch_versions = ch_versions.mix(BAM_TO_CRAM.out.versions)
+        }
+        else if (params.use_gatk_spark && params.use_gatk_spark.contains('markduplicates')) {
+            MARKDUPLICATES_SPARK(
+                ch_bam_for_markduplicates,
+                dict,
+                fasta,
+                fasta_fai,
+                intervals_for_preprocessing)
+            ch_cram_markduplicates_spark = MARKDUPLICATES_SPARK.out.cram
+
+            // Gather QC reports
+            ch_reports  = ch_reports.mix(MARKDUPLICATES_SPARK.out.qc.collect{meta, report -> report})
+
+            // Gather used softwares versions
+            ch_versions = ch_versions.mix(MARKDUPLICATES_SPARK.out.versions)
+        }
+        else {
+            MARKDUPLICATES(
+                ch_bam_for_markduplicates,
+                fasta,
+                fasta_fai,
+                intervals_for_preprocessing)
+
+            ch_cram_markduplicates_no_spark = MARKDUPLICATES.out.cram
+
+            // Gather QC reports
+            ch_reports  = ch_reports.mix(MARKDUPLICATES.out.qc.collect{meta, report -> report})
+
+            // Gather used softwares versions
+            ch_versions = ch_versions.mix(MARKDUPLICATES.out.versions)
+        }
+
+        // ch_md_cram_for_restart contains either:
+        // - crams from markduplicates
+        // - crams from markduplicates_spark
+        // - crams converted from bam mapped when skipping markduplicates
+        ch_md_cram_for_restart = Channel.empty().mix(
+        ch_cram_markduplicates_no_spark,
+        ch_cram_markduplicates_spark,
+        ch_cram_no_markduplicates_restart).map {
+            meta, cram, crai ->
+            //Make sure correct data types are carried through
+            [[
+                data_type:  "cram",
+                id:         meta.id,
+                patient:    meta.patient,
+                sample:     meta.sample,
+                sex:        meta.sex,
+                status:     meta.status
+                ],
+            cram, crai]
+            }
+
+        // CSV should be written for the file actually out, either CRAM or BAM
+        // Create CSV to restart from this step
+        if (!(params.skip_tools && params.skip_tools.split(',').contains('markduplicates'))) MARKDUPLICATES_CSV(ch_md_cram_for_restart)
+    }
+
+    if (params.step in ['mapping', 'markduplicates', 'prepare_recalibration']) {
+
+        // Run if starting from step "prepare_recalibration"
+        if(params.step == 'prepare_recalibration'){
+
+            //Support if starting from BAM or CRAM files
+            ch_input_sample.branch{
+                bam: it[0].data_type == "bam"
+                cram: it[0].data_type == "cram"
+            }.set{ch_convert}
+
+            //BAM files first must be converted to CRAM files since from this step on we base everything on CRAM format
+            SAMTOOLS_BAMTOCRAM(ch_convert.bam, fasta, fasta_fai)
+            ch_versions = ch_versions.mix(SAMTOOLS_BAMTOCRAM.out.versions)
+
+            ch_cram_for_prepare_recalibration = Channel.empty().mix(SAMTOOLS_BAMTOCRAM.out.alignment_index, ch_convert.cram)
+
+            ch_md_cram_for_restart = SAMTOOLS_BAMTOCRAM.out.alignment_index
+
+        } else {
+
+            // ch_cram_for_prepare_recalibration contains either:
+            // - crams from markduplicates
+            // - crams from markduplicates_spark
+            // - crams converted from bam mapped when skipping markduplicates
+            // - input cram files, when start from step markduplicates
+            //ch_md_cram_for_restart.view() //contains md.cram.crai
+            ch_cram_for_prepare_recalibration = Channel.empty().mix(ch_md_cram_for_restart, ch_input_cram_indexed)
+        }
+
+        // STEP 3: Create recalibration tables
+        if (!(params.skip_tools && params.skip_tools.split(',').contains('baserecalibrator'))) {
+            ch_table_bqsr_no_spark = Channel.empty()
+            ch_table_bqsr_spark    = Channel.empty()
+
+            if (params.use_gatk_spark && params.use_gatk_spark.contains('baserecalibrator')) {
+            PREPARE_RECALIBRATION_SPARK(
+                ch_cram_for_prepare_recalibration,
+                dict,
+                fasta,
+                fasta_fai,
+                intervals,
+                known_sites_indels,
+                known_sites_indels_tbi)
+
+                ch_table_bqsr_spark = PREPARE_RECALIBRATION_SPARK.out.table_bqsr
+
+                // Gather used softwares versions
+                ch_versions = ch_versions.mix(PREPARE_RECALIBRATION_SPARK.out.versions)
+            } else {
+
+            PREPARE_RECALIBRATION(
+                ch_cram_for_prepare_recalibration,
+                dict,
+                fasta,
+                fasta_fai,
+                intervals,
+                known_sites_indels,
+                known_sites_indels_tbi)
+
+                ch_table_bqsr_no_spark = PREPARE_RECALIBRATION.out.table_bqsr
+
+                // Gather used softwares versions
+                ch_versions = ch_versions.mix(PREPARE_RECALIBRATION.out.versions)
+            }
+
+            // ch_table_bqsr contains either:
+            // - bqsr table from baserecalibrator
+            // - bqsr table from baserecalibrator_spark
+            ch_table_bqsr = Channel.empty().mix(
+                ch_table_bqsr_no_spark,
+                ch_table_bqsr_spark)
+
+            ch_reports  = ch_reports.mix(ch_table_bqsr.collect{ meta, table -> table})
+
+            ch_cram_applybqsr = ch_cram_for_prepare_recalibration.join(ch_table_bqsr)
+
+            // Create CSV to restart from this step
+            PREPARE_RECALIBRATION_CSV(ch_md_cram_for_restart.join(ch_table_bqsr), params.skip_tools)
+        }
+    }
+    // STEP 4: RECALIBRATING
+
 
 }
 
