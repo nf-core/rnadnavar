@@ -41,7 +41,7 @@ workflow RECALIBRATE {
 
     // STEP 4.5: MERGING AND INDEXING THE RECALIBRATED CRAM FILES
     MERGE_INDEX_CRAM(APPLYBQSR.out.cram, fasta)
-
+    MERGE_INDEX_CRAM.out.cram_crai.dump(tag:"MERGE_INDEX_CRAM.out.cram_crai")
     ch_cram_recal_out = MERGE_INDEX_CRAM.out.cram_crai.map{ meta, cram, crai ->
                             // remove no longer necessary fields to make sure joining can be done correctly: num_intervals
                             [[

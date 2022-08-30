@@ -25,6 +25,10 @@
                     "help_text": "You will need to create a design file with information about the samples in your experiment before running the pipeline. Use this parameter to specify its location. It has to be a comma-separated file with 3 columns, and a header row. See [usage docs](https://nf-co.re/rnadnavar/usage#samplesheet-input).",
                     "fa_icon": "fas fa-file-csv"
                 },
+                "split_fastq": {
+                    "type": "integer",
+                    "default": 50000000
+                },
                 "step": {
                     "type": "string",
                     "default": "mapping",
@@ -256,6 +260,13 @@
                     "type": "string",
                     "fa_icon": "fas fa-tag",
                     "description": "VEP cache version"
+                },
+                "dragmap": {
+                    "type": "string",
+                    "fa_icon": "fas fa-copy",
+                    "description": "Path to dragmap indices.",
+                    "help_text": "If you use AWS iGenomes, this has already been set for you appropriately.\n\nIf you wish to recompute indices available on igenomes, set `--dragmap false`.\n\n> **NB** If none provided, will be generated automatically from the FASTA reference, if `--aligner dragmap` is specified. Combine with `--save_reference` to save for future runs.",
+                    "hidden": true
                 }
             }
         },
@@ -457,6 +468,18 @@
             "default": "",
             "fa_icon": "fas fa-toolbox",
             "properties": {
+                "only_paired_variant_calling": {
+                    "type": "boolean",
+                    "fa_icon": "fas fa-forward",
+                    "description": "If true, skips germline variant calling for matched normal to tumor sample. Normal samples without matched tumor will still be processed through germline variant calling tools.",
+                    "help_text": "This can speed up computation for somatic variant calling with matched normal samples. If false, all normal samples are processed as well through the germline variantcalling tools. If true, only somatic variant calling is done."
+                },
+                "joint_germline": {
+                    "type": "boolean",
+                    "fa_icon": "fas fa-toolbox",
+                    "description": "Turn on the joint germline variant calling for GATK haplotypecaller",
+                    "help_text": "Uses all normal germline samples (as designated by `status` in the input csv) in the joint germline variant calling process."
+                },
                 "gatk_hc_call_conf": {
                     "type": "number",
                     "default": 20.0,
@@ -796,11 +819,5 @@
         {
             "$ref": "#/definitions/generic_options"
         }
-    ],
-    "properties": {
-        "split_fastq": {
-            "type": "integer",
-            "default": 50000000
-        }
-    }
+    ]
 }

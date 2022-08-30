@@ -53,6 +53,7 @@ workflow RUN_MANTA_SOMATIC {
                             num_intervals:  meta.num_intervals,
                             patient:        meta.patient,
                             sex:            meta.sex,
+                            status:         meta.status,
                             tumor_id:       meta.tumor_id
                         ],
                         meta.num_intervals),
@@ -70,6 +71,7 @@ workflow RUN_MANTA_SOMATIC {
                             num_intervals:  meta.num_intervals,
                             patient:        meta.patient,
                             sex:            meta.sex,
+                            status:         meta.status,
                             tumor_id:       meta.tumor_id
                         ],
                         meta.num_intervals),
@@ -86,6 +88,7 @@ workflow RUN_MANTA_SOMATIC {
                             num_intervals:  meta.num_intervals,
                             patient:        meta.patient,
                             sex:            meta.sex,
+                            status:         meta.status,
                             tumor_id:       meta.tumor_id
                         ]
 
@@ -95,6 +98,7 @@ workflow RUN_MANTA_SOMATIC {
                             num_intervals:  meta.num_intervals,
                             patient:        meta.patient,
                             sex:            meta.sex,
+                            status:         meta.status,
                             tumor_id:       meta.tumor_id
                         ],
                         meta.num_intervals),
@@ -112,6 +116,7 @@ workflow RUN_MANTA_SOMATIC {
                             num_intervals:  meta.num_intervals,
                             patient:        meta.patient,
                             sex:            meta.sex,
+                            status:         meta.status,
                             tumor_id:       meta.tumor_id
                         ],
                         meta.num_intervals),
@@ -133,6 +138,7 @@ workflow RUN_MANTA_SOMATIC {
             normal_id:      meta.normal_id,
             patient:        meta.patient,
             sex:            meta.sex,
+            status:         meta.status,
             tumor_id:       meta.tumor_id,
             variantcaller:  "manta"
         ],
@@ -149,6 +155,7 @@ workflow RUN_MANTA_SOMATIC {
             normal_id:  meta.normal_id,
             patient:    meta.patient,
             sex:        meta.sex,
+            status:     meta.status,
             tumor_id:   meta.tumor_id,
         ],
         vcf]
@@ -163,6 +170,7 @@ workflow RUN_MANTA_SOMATIC {
             normal_id:  meta.normal_id,
             patient:    meta.patient,
             sex:        meta.sex,
+            status:     meta.status,
             tumor_id:   meta.tumor_id
         ],
         vcf]

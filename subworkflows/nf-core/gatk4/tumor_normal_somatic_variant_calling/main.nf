@@ -66,12 +66,13 @@ workflow GATK_TUMOR_NORMAL_SOMATIC_VARIANT_CALLING {
         .map{ meta, vcf ->
 
             new_meta = [
-                        id:meta.tumor_id + "_vs_" + meta.normal_id,
-                        normal_id:meta.normal_id,
-                        num_intervals:meta.num_intervals,
-                        patient:meta.patient,
-                        sex:meta.sex,
-                        tumor_id:meta.tumor_id
+                        id:             meta.tumor_id + "_vs_" + meta.normal_id,
+                        normal_id:      meta.normal_id,
+                        num_intervals:  meta.num_intervals,
+                        patient:        meta.patient,
+                        sex:            meta.sex,
+                        status:         meta.status,
+                        tumor_id:       meta.tumor_id
                     ]
 
             [groupKey(new_meta, meta.num_intervals), vcf]
@@ -98,6 +99,7 @@ workflow GATK_TUMOR_NORMAL_SOMATIC_VARIANT_CALLING {
                         num_intervals:  meta.num_intervals,
                         patient:        meta.patient,
                         sex:            meta.sex,
+                        status:         meta.status,
                         tumor_id:       meta.tumor_id
                     ]
 
@@ -121,6 +123,7 @@ workflow GATK_TUMOR_NORMAL_SOMATIC_VARIANT_CALLING {
                             num_intervals:  meta.num_intervals,
                             patient:        meta.patient,
                             sex:            meta.sex,
+                            status:         meta.status,
                             tumor_id:       meta.tumor_id,
                         ]
 
@@ -148,6 +151,7 @@ workflow GATK_TUMOR_NORMAL_SOMATIC_VARIANT_CALLING {
                                         num_intervals:  meta.num_intervals,
                                         patient:        meta.patient,
                                         sex:            meta.sex,
+                                        status:         meta.status,
                                         tumor_id:       meta.tumor_id,
                                     ],
                                         cram, crai, intervals]
@@ -163,6 +167,7 @@ workflow GATK_TUMOR_NORMAL_SOMATIC_VARIANT_CALLING {
                                         num_intervals:  meta.num_intervals,
                                         patient:        meta.patient,
                                         sex:            meta.sex,
+                                        status:         meta.status,
                                         tumor_id:       meta.tumor_id,
                                     ],
                                         cram, crai, intervals]
@@ -190,6 +195,7 @@ workflow GATK_TUMOR_NORMAL_SOMATIC_VARIANT_CALLING {
                             num_intervals:  meta.num_intervals,
                             patient:        meta.patient,
                             sex:            meta.sex,
+                            status:         meta.status,
                             tumor_id:       meta.tumor_id,
                         ]
 
@@ -207,6 +213,7 @@ workflow GATK_TUMOR_NORMAL_SOMATIC_VARIANT_CALLING {
                             num_intervals:  meta.num_intervals,
                             patient:        meta.patient,
                             sex:            meta.sex,
+                            status:         meta.status,
                             tumor_id:       meta.tumor_id,
                         ]
             [new_meta, table]
@@ -221,6 +228,7 @@ workflow GATK_TUMOR_NORMAL_SOMATIC_VARIANT_CALLING {
                             num_intervals:  meta.num_intervals,
                             patient:        meta.patient,
                             sex:            meta.sex,
+                            status:         meta.status,
                             tumor_id:       meta.tumor_id,
                         ]
 
@@ -237,6 +245,7 @@ workflow GATK_TUMOR_NORMAL_SOMATIC_VARIANT_CALLING {
                         num_intervals:  meta.num_intervals,
                         patient:        meta.patient,
                         sex:            meta.sex,
+                        status:         meta.status,
                         tumor_id:       meta.tumor_id,
                     ]
 
@@ -251,13 +260,19 @@ workflow GATK_TUMOR_NORMAL_SOMATIC_VARIANT_CALLING {
     //
     //Mutect2 calls filtered by filtermutectcalls using the artifactpriors, contamination and segmentation tables.
     //
+    mutect2_vcf.dump(tag:'mutect2_vcf')
+    mutect2_stats.dump(tag:'mutect2_stats')
+    LEARNREADORIENTATIONMODEL.out.artifactprior.dump(tag:'LEARNREADORIENTATIONMODEL.out.artifactprior')
+    CALCULATECONTAMINATION.out.segmentation.dump(tag:'CALCULATECONTAMINATION.out.segmentation')
+    CALCULATECONTAMINATION.out.contamination.dump(tag:'CALCULATECONTAMINATION.out.contamination')
     ch_filtermutect    = mutect2_vcf.join(mutect2_tbi)
                                     .join(mutect2_stats)
                                     .join(LEARNREADORIENTATIONMODEL.out.artifactprior)
                                     .join(CALCULATECONTAMINATION.out.segmentation)
                                     .join(CALCULATECONTAMINATION.out.contamination)
+    ch_filtermutect.dump(tag:'ch_filtermutect')
     ch_filtermutect_in = ch_filtermutect.map{ meta, vcf, tbi, stats, orientation, seg, cont -> [meta, vcf, tbi, stats, orientation, seg, cont, []] }
-
+    ch_filtermutect_in.dump(tag: "ch_filtermutect_in")
     FILTERMUTECTCALLS ( ch_filtermutect_in, fasta, fai, dict )
 
     ch_versions = ch_versions.mix(MERGE_MUTECT2.out.versions)

@@ -12,7 +12,6 @@ workflow RUN_STRELKA_SOMATIC {
     main:
 
     ch_versions = Channel.empty()
-
     STRELKA_SOMATIC(cram, fasta, fasta_fai )
 
     // Figure out if using intervals or no_intervals
@@ -35,7 +34,8 @@ workflow RUN_STRELKA_SOMATIC {
                             num_intervals:  meta.num_intervals,
                             patient:        meta.patient,
                             sex:            meta.sex,
-                            tumor_id:       meta.tumor_id,
+                            status:         meta.status,
+                            tumor_id:       meta.tumor_id
                             ],
                         meta.num_intervals),
                 vcf]
@@ -51,7 +51,8 @@ workflow RUN_STRELKA_SOMATIC {
                             num_intervals:  meta.num_intervals,
                             patient:        meta.patient,
                             sex:            meta.sex,
-                            tumor_id:       meta.tumor_id,
+                            status:         meta.status,
+                            tumor_id:       meta.tumor_id
                             ],
                             meta.num_intervals),
                 vcf]
@@ -72,6 +73,7 @@ workflow RUN_STRELKA_SOMATIC {
                         num_intervals:  meta.num_intervals,
                         patient:        meta.patient,
                         sex:            meta.sex,
+                        status:         meta.status,
                         tumor_id:       meta.tumor_id,
                         variantcaller:  "strelka"
                         ],

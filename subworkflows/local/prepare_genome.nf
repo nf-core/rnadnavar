@@ -10,6 +10,8 @@
 
 include { BWA_INDEX as BWAMEM1_INDEX             } from '../../modules/nf-core/modules/bwa/index/main'
 include { BWAMEM2_INDEX                          } from '../../modules/nf-core/modules/bwamem2/index/main'
+include { GTF2BED                                } from '../../modules/local/gtf2bed'                                       //addParams(options: params.genome_options)
+include { GUNZIP as GUNZIP_GENE_BED              } from '../../modules/nf-core/modules/gunzip/main'                         //addParams(options: params.genome_options)
 include { STAR_GENOMEGENERATE                    } from '../../modules/nf-core/modules/star/genomegenerate/main'            //addParams(options: params.star_index_options)
 include { DRAGMAP_HASHTABLE                      } from '../../modules/nf-core/modules/dragmap/hashtable/main'
 include { GATK4_CREATESEQUENCEDICTIONARY         } from '../../modules/nf-core/modules/gatk4/createsequencedictionary/main'
@@ -79,6 +81,25 @@ workflow PREPARE_GENOME {
 
         ch_versions = ch_versions.mix(GFFREAD.out.versions)
     }
+
+     //
+    // Uncompress exon BED annotation file or create from GTF if required
+    //
+    if (params.exon_bed) {
+        if (params.exon_bed.endsWith('.gz')) {
+            GUNZIP_GENE_BED (
+                Channel.fromPath(params.exon_bed).map{ it -> [[id:it[0].baseName], it] }
+            )
+            ch_gene_bed = GUNZIP_GENE_BED.out.gunzip.map{ meta, bed -> [bed] }.collect()
+            ch_versions = ch_versions.mix(GUNZIP_GENE_BED.out.versions)
+        } else {
+            ch_gene_bed = Channel.fromPath(params.exon_bed).collect()
+        }
+    } else {
+        ch_exon_bed = GTF2BED ( ch_gtf ).bed.collect()
+        ch_versions = ch_versions.mix(GTF2BED.out.versions)
+    }
+
     //
     // Uncompress STAR index or generate from scratch if required
     //
@@ -136,6 +157,7 @@ workflow PREPARE_GENOME {
         fasta_fai                        = SAMTOOLS_FAIDX.out.fai.map{ meta, fai -> [fai] }                    // path: genome.fasta.fai
         star_index                       = ch_star_index       // path: star/index/
         gtf                              = ch_gtf              // path: genome.gtf
+        exon_bed                         = ch_exon_bed         // path: exon.bed
         germline_resource_tbi            = TABIX_GERMLINE_RESOURCE.out.tbi.map{ meta, tbi -> [tbi] }.collect() // path: germline_resource.vcf.gz.tbi
         known_snps_tbi                   = TABIX_KNOWN_SNPS.out.tbi.map{ meta, tbi -> [tbi] }.collect()      // path: {known_indels*}.vcf.gz.tbi
         known_indels_tbi                 = TABIX_KNOWN_INDELS.out.tbi.map{ meta, tbi -> [tbi] }.collect()      // path: {known_indels*}.vcf.gz.tbi

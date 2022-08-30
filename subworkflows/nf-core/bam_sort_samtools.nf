@@ -14,6 +14,7 @@ workflow BAM_SORT_SAMTOOLS {
 
     ch_versions = Channel.empty()
 
+//    ch_bam.view()
     SAMTOOLS_SORT (
         ch_bam
     )
@@ -36,7 +37,6 @@ workflow BAM_SORT_SAMTOOLS {
                 }
         }
         .set { ch_bam_bai }
-
     BAM_STATS_SAMTOOLS (
         ch_bam_bai
     )

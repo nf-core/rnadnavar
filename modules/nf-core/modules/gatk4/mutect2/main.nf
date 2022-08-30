@@ -35,9 +35,9 @@ process GATK4_MUTECT2 {
     def pon_command = panel_of_normals ? "--panel-of-normals $panel_of_normals" : ""
     def gr_command = germline_resource ? "--germline-resource $germline_resource" : ""
 
-    def avail_mem = 3
+    def avail_mem = 4
     if (!task.memory) {
-        log.info '[GATK Mutect2] Available memory not known - defaulting to 3GB. Specify process memory requirements to change this.'
+        log.info '[GATK Mutect2] Available memory not known - defaulting to 4GB. Specify process memory requirements to change this.'
     } else {
         avail_mem = task.memory.giga
     }

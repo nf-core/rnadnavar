@@ -42,7 +42,6 @@ for (param in checkPathParamList) {
 
 // Set input, can either be from --input or from automatic retrieval in lib/WorkflowRnadnavar.groovy
 ch_input_sample = extract_csv(file(params.input, checkIfExists: true))
-
 // Fails when wrongful extension for intervals file
 if (params.wes && !params.step == 'annotate') {
     if (params.intervals && !params.intervals.endsWith("bed")) exit 1, "Target file specified with `--intervals` must be in BED format for targeted data"
@@ -159,6 +158,8 @@ include { CREATE_UMI_CONSENSUS                                 } from '../subwor
 
 // Map input reads to reference genome
 include { GATK4_MAPPING                                        } from '../subworkflows/nf-core/gatk4/mapping/main'
+include { GATK4_BEDTOINTERVALLIST                              } from '../modules/nf-core/modules/gatk4/bedtointervallist/main'
+include { GATK4_INTERVALLISTTOOLS                              } from '../modules/nf-core/modules/gatk4/intervallisttools/main'
 
 // Merge and index BAM files (optional)
 include { MERGE_INDEX_BAM                                      } from '../subworkflows/nf-core/merge_index_bam'
@@ -177,6 +178,7 @@ include { MARKDUPLICATES_SPARK                                 } from '../subwor
 
 // Convert to CRAM (+QC)
 include { BAM_TO_CRAM                                          } from '../subworkflows/nf-core/bam_to_cram'
+include { BAM_TO_CRAM as BAM_TO_CRAM_SNCR                      } from '../subworkflows/nf-core/bam_to_cram'
 
 // QC on CRAM
 include { CRAM_QC                                              } from '../subworkflows/nf-core/cram_qc'
@@ -194,7 +196,8 @@ include { RECALIBRATE                                          } from '../subwor
 include { RECALIBRATE_SPARK                                    } from '../subworkflows/nf-core/gatk4/recalibrate_spark/main'
 
 // Variant calling on tumor/normal pair TODO: add tumour only for next version
-include { PAIR_VARIANT_CALLING                                 } from '../subworkflows/local/pair_variant_calling'
+include { PAIR_VARIANT_CALLING as PAIR_VARIANT_CALLING_DNA     } from '../subworkflows/local/pair_variant_calling'
+include { PAIR_VARIANT_CALLING as PAIR_VARIANT_CALLING_RNA     } from '../subworkflows/local/pair_variant_calling'
 
 include { VCF_QC                                               } from '../subworkflows/nf-core/vcf_qc'
 
@@ -216,7 +219,6 @@ include { MULTIQC                                              } from '../module
 
 include { ALIGN_STAR                    } from '../subworkflows/nf-core/align_star'         // Align reads to genome and sort and index the alignment file
 include { SPLITNCIGAR                   } from '../subworkflows/nf-core/splitncigar'        // Splits reads that contain Ns in their cigar string
-include { SPLITNCIGAR2                   } from '../subworkflows/nf-core/splitncigar2'        // Splits reads that contain Ns in their cigar string - without intervals option
 // TODO not needed?
 // include { RECALIBRATE                   } from '../subworkflows/nf-core/recalibrate'        // Estimate and correct systematic bias
 
@@ -268,6 +270,7 @@ workflow RNADNAVAR {
     known_indels_tbi       = params.known_indels            ? params.known_indels_tbi           ? Channel.fromPath(params.known_indels_tbi).collect()      : PREPARE_GENOME.out.known_indels_tbi      : Channel.value([])
     known_snps_tbi         = params.known_snps              ? params.known_snps_tbi             ? Channel.fromPath(params.known_snps_tbi).collect()        : PREPARE_GENOME.out.known_snps_tbi        : Channel.value([])
     pon_tbi                = params.pon                     ? params.pon_tbi                    ? Channel.fromPath(params.pon_tbi).collect()               : PREPARE_GENOME.out.pon_tbi               : []
+    dragmap                = params.fasta                   ? params.dragmap                    ? Channel.fromPath(params.dragmap).collect()               : PREPARE_GENOME.out.hashtable             : []
 
     // Gather index for mapping given the chosen aligner
     ch_map_index = params.aligner == "bwa-mem" ? bwa :
@@ -291,10 +294,34 @@ workflow RNADNAVAR {
 
     intervals                   = PREPARE_INTERVALS.out.intervals_bed        // [interval, num_intervals] multiple interval.bed files, divided by useful intervals for scatter/gather
     intervals_bed_gz_tbi        = PREPARE_INTERVALS.out.intervals_bed_gz_tbi // [interval_bed, tbi, num_intervals] multiple interval.bed.gz/.tbi files, divided by useful intervals for scatter/gather
-
     // Gather used softwares versions
     ch_versions = ch_versions.mix(PREPARE_GENOME.out.versions)
     ch_versions = ch_versions.mix(PREPARE_INTERVALS.out.versions)
+
+    //
+    // MODULE: Prepare the interval list from the GTF file using GATK4 BedToIntervalList
+    //
+    ch_genome_bed = Channel.from([id:'genome.bed']).combine(PREPARE_GENOME.out.exon_bed)
+    ch_versions = ch_versions.mix(PREPARE_GENOME.out.versions)
+    ch_interval_list = Channel.empty()
+    GATK4_BEDTOINTERVALLIST(
+        ch_genome_bed,
+        PREPARE_GENOME.out.dict
+    )
+    ch_interval_list = GATK4_BEDTOINTERVALLIST.out.interval_list
+    ch_versions = ch_versions.mix(GATK4_BEDTOINTERVALLIST.out.versions.first().ifEmpty(null))
+
+    //
+    // MODULE: Scatter one interval-list into many interval-files using GATK4 IntervalListTools
+    //
+    ch_interval_list_split = Channel.empty()
+    if (!params.skip_intervallisttools) {
+        GATK4_INTERVALLISTTOOLS(
+            ch_interval_list
+        )
+        ch_interval_list_split = GATK4_INTERVALLISTTOOLS.out.interval_list.map{ meta, bed -> [bed] }.flatten()
+    }
+    else ch_interval_list_split = ch_interval_list
 
     // PREPROCESSING
 
@@ -420,7 +447,7 @@ workflow RNADNAVAR {
         }.set{ch_reads_to_map_status}
 
 
-  // DNA will be aligned with star with the GATK4_MAPPING
+  // DNA will be aligned with bwa with the GATK4_MAPPING
         ch_reads_to_map_dna = ch_reads_to_map_status.dna.map{ meta, reads -> [meta, reads] }
         // bwa
         sort_bam = true
@@ -451,20 +478,6 @@ workflow RNADNAVAR {
             [ groupKey(new_meta, numLanes * size), bam]
         }.groupTuple()
 
-        // gatk4 markduplicates can handle multiple bams as input, so no need to merge/index here
-        // Except if and only if skipping markduplicates or saving mapped bams
-        if (params.save_bam_mapped || (params.skip_tools && params.skip_tools.split(',').contains('markduplicates'))) {
-
-            // bams are merged (when multiple lanes from the same sample), indexed and then converted to cram
-            MERGE_INDEX_BAM(ch_bam_mapped_dna)
-
-            // Create CSV to restart from this step
-            MAPPING_CSV(MERGE_INDEX_BAM.out.bam_bai)
-
-            // Gather used softwares versions
-            ch_versions = ch_versions.mix(MERGE_INDEX_BAM.out.versions)
-        }
-
         // Gather used softwares versions
         ch_versions = ch_versions.mix(ALIGNMENT_TO_FASTQ_INPUT.out.versions)
         ch_versions = ch_versions.mix(GATK4_MAPPING.out.versions)
@@ -480,9 +493,31 @@ workflow RNADNAVAR {
             seq_platform,
             seq_center
         )
-        ch_bam_mapped_rna        = ALIGN_STAR.out.bam
-        ch_bam_mapped_rna_index  = ALIGN_STAR.out.bai
-        ch_bam_mapped_transcriptome_rna = ALIGN_STAR.out.bam_transcript // TODO: is this necessary?
+
+        // Grouping the bams from the same samples not to stall the workflow
+        ch_bam_mapped_rna = ALIGN_STAR.out.bam.map{ meta, bam ->
+            numLanes = meta.numLanes ?: 1
+            size     = meta.size     ?: 1
+
+            // update ID to be based on the sample name
+            // update data_type
+            // remove no longer necessary fields:
+            //   read_group: Now in the BAM header
+            //     numLanes: Was only needed for mapping
+            //         size: Was only needed for mapping
+            new_meta = [
+                        id:meta.sample,
+                        data_type:"bam",
+                        patient:meta.patient,
+                        sample:meta.sample,
+                        sex:meta.sex,
+                        status:meta.status,
+                    ]
+
+            // Use groupKey to make sure that the correct group can advance as soon as it is complete
+            // and not stall the workflow until all reads from all channels are mapped
+            [ groupKey(new_meta, numLanes * size), bam]
+        }.groupTuple()
 
         // Gather QC reports
         ch_reports           = ch_reports.mix(ALIGN_STAR.out.stats.collect{it[1]}.ifEmpty([]))
@@ -535,7 +570,6 @@ workflow RNADNAVAR {
         }
 
         if (params.skip_tools && params.skip_tools.split(',').contains('markduplicates')) {
-            ch_bam_for_markduplicates.view()
             // ch_bam_indexed will countain bam mapped with GATK4_MAPPING when step is mapping
             // which are then merged and indexed
             // Or bams that are specified in the samplesheet.csv when step is prepare_recalibration
@@ -608,13 +642,86 @@ workflow RNADNAVAR {
             cram, crai]
             }
 
-        // CSV should be written for the file actually out, either CRAM or BAM
-        // Create CSV to restart from this step
-        if (!(params.skip_tools && params.skip_tools.split(',').contains('markduplicates'))) MARKDUPLICATES_CSV(ch_md_cram_for_restart)
+//        // CSV should be written for the file actually out, either CRAM or BAM
+//        // Create CSV to restart from this step
+        if (!(params.skip_tools && params.skip_tools.split(',').contains('markduplicates'))) {
+            MARKDUPLICATES_CSV(ch_md_cram_for_restart)
+            }
     }
 
-    if (params.step in ['mapping', 'markduplicates', 'prepare_recalibration']) {
+        if (params.step in ['mapping', 'markduplicates', 'splitncigar']) {
+            //
+            // Need to separate RNA from DNA to do SPLITNCIGARREADS from GATK
+            // Logic to separate DNA from RNA samples, DNA samples will be aligned with bwa, and RNA samples with star
+            //
+            ch_md_cram_for_restart.branch{
+                dna: it[0].status < 2
+                rna: it[0].status == 2
+            }.set{ch_md_cram_for_splitncigar_status}
 
+            // RNA samples only
+            ch_md_cram_for_splitncigar = ch_md_cram_for_splitncigar_status.rna
+            ch_md_cram_dna = ch_md_cram_for_splitncigar_status.dna
+
+            // TODO: separate this as a step - at the moment concurrent with markduplicates
+            // SUBWORKFLOW: SplitNCigarReads from GATK4 over the intervals
+            // Splits reads that contain Ns in their cigar string (e.g. spanning splicing events in RNAseq data).
+            //
+
+            ch_splitncigar_bam_bai = Channel.empty()
+            SPLITNCIGAR (
+                ch_md_cram_for_splitncigar,
+                fasta,
+                fasta_fai,
+                dict,
+                ch_interval_list_split
+            )
+            ch_splitncigar_bam_bai  = SPLITNCIGAR.out.bam_bai
+            ch_versions             = ch_versions.mix(SPLITNCIGAR.out.versions.first().ifEmpty(null))
+            ch_input_cram_indexed     = Channel.empty() // TODO introduce in a proper way as below
+            // SPLINCIGAR produces BAM as output
+            BAM_TO_CRAM_SNCR(
+                ch_splitncigar_bam_bai,
+                ch_input_cram_indexed,
+                fasta,
+                fasta_fai,
+                intervals_for_preprocessing)
+
+            ch_cram_splitncigar_restart = BAM_TO_CRAM_SNCR.out.cram_converted
+
+            // Gather QC reports
+            ch_reports  = ch_reports.mix(BAM_TO_CRAM_SNCR.out.qc.collect{meta, report -> report})
+
+            // Gather used softwares versions
+            ch_versions = ch_versions.mix(BAM_TO_CRAM_SNCR.out.versions)
+
+            // join again DNA and RNA to continue pre-processing
+            ch_cram_for_recalibration = Channel.empty()
+
+            ch_splitncigar_cram_for_restart = ch_cram_for_recalibration.mix(
+                                        ch_md_cram_dna,
+                                        ch_cram_splitncigar_restart)
+
+            ch_cram_for_recal = ch_splitncigar_cram_for_restart.map{ meta, cram, crai ->
+                        //Make sure correct data types are carried through
+                        [[
+                            data_type:  "cram",
+                            id:         meta.id,
+                            patient:    meta.patient,
+                            sample:     meta.sample,
+                            sex:        meta.sex,
+                            status:     meta.status
+                            ],
+                        cram, crai]
+                    }
+
+
+
+        }
+
+// STEP 3: Create recalibration tables
+    if (params.step in ['mapping', 'markduplicates', 'splitncigar', 'prepare_recalibration']) {
+        // TODO change introducing splitncigar
         // Run if starting from step "prepare_recalibration"
         if(params.step == 'prepare_recalibration'){
 
@@ -630,7 +737,7 @@ workflow RNADNAVAR {
 
             ch_cram_for_prepare_recalibration = Channel.empty().mix(SAMTOOLS_BAMTOCRAM.out.alignment_index, ch_convert.cram)
 
-            ch_md_cram_for_restart = SAMTOOLS_BAMTOCRAM.out.alignment_index
+            ch_cram_for_recal = SAMTOOLS_BAMTOCRAM.out.alignment_index
 
         } else {
 
@@ -639,44 +746,43 @@ workflow RNADNAVAR {
             // - crams from markduplicates_spark
             // - crams converted from bam mapped when skipping markduplicates
             // - input cram files, when start from step markduplicates
-            //ch_md_cram_for_restart.view() //contains md.cram.crai
-            ch_cram_for_prepare_recalibration = Channel.empty().mix(ch_md_cram_for_restart, ch_input_cram_indexed)
+            //ch_cram_for_recal.view() //contains md.cram.crai or sncr.cram.crai
+            ch_cram_for_prepare_recalibration = Channel.empty().mix(ch_cram_for_recal, ch_input_cram_indexed)
         }
 
-        // STEP 3: Create recalibration tables
         if (!(params.skip_tools && params.skip_tools.split(',').contains('baserecalibrator'))) {
             ch_table_bqsr_no_spark = Channel.empty()
             ch_table_bqsr_spark    = Channel.empty()
 
             if (params.use_gatk_spark && params.use_gatk_spark.contains('baserecalibrator')) {
-            PREPARE_RECALIBRATION_SPARK(
-                ch_cram_for_prepare_recalibration,
-                dict,
-                fasta,
-                fasta_fai,
-                intervals,
-                known_sites_indels,
-                known_sites_indels_tbi)
+                PREPARE_RECALIBRATION_SPARK(
+                    ch_cram_for_prepare_recalibration,
+                    dict,
+                    fasta,
+                    fasta_fai,
+                    intervals,
+                    germline_resource,
+                    germline_resource_tbi)
 
-                ch_table_bqsr_spark = PREPARE_RECALIBRATION_SPARK.out.table_bqsr
+                    ch_table_bqsr_spark = PREPARE_RECALIBRATION_SPARK.out.table_bqsr
 
-                // Gather used softwares versions
-                ch_versions = ch_versions.mix(PREPARE_RECALIBRATION_SPARK.out.versions)
+                    // Gather used softwares versions
+                    ch_versions = ch_versions.mix(PREPARE_RECALIBRATION_SPARK.out.versions)
             } else {
 
-            PREPARE_RECALIBRATION(
-                ch_cram_for_prepare_recalibration,
-                dict,
-                fasta,
-                fasta_fai,
-                intervals,
-                known_sites_indels,
-                known_sites_indels_tbi)
+                PREPARE_RECALIBRATION(
+                    ch_cram_for_prepare_recalibration,
+                    dict,
+                    fasta,
+                    fasta_fai,
+                    intervals,
+                    germline_resource,
+                    germline_resource_tbi)
 
-                ch_table_bqsr_no_spark = PREPARE_RECALIBRATION.out.table_bqsr
+                    ch_table_bqsr_no_spark = PREPARE_RECALIBRATION.out.table_bqsr
 
-                // Gather used softwares versions
-                ch_versions = ch_versions.mix(PREPARE_RECALIBRATION.out.versions)
+                    // Gather used softwares versions
+                    ch_versions = ch_versions.mix(PREPARE_RECALIBRATION.out.versions)
             }
 
             // ch_table_bqsr contains either:
@@ -691,7 +797,7 @@ workflow RNADNAVAR {
             ch_cram_applybqsr = ch_cram_for_prepare_recalibration.join(ch_table_bqsr)
 
             // Create CSV to restart from this step
-            PREPARE_RECALIBRATION_CSV(ch_md_cram_for_restart.join(ch_table_bqsr), params.skip_tools)
+            PREPARE_RECALIBRATION_CSV(ch_cram_for_recal.join(ch_table_bqsr), params.skip_tools)
         }
     }
 // STEP 4: RECALIBRATING
@@ -699,7 +805,6 @@ workflow RNADNAVAR {
 
         // Run if starting from step "prepare_recalibration"
         if(params.step == 'recalibrate'){
-            ch_input_sample.view()
             //Support if starting from BAM or CRAM files
             ch_input_sample.branch{
                 bam: it[0].data_type == "bam"
@@ -724,7 +829,6 @@ workflow RNADNAVAR {
             ch_cram_variant_calling_spark    = Channel.empty()
 
             if (params.use_gatk_spark && params.use_gatk_spark.contains('baserecalibrator')) {
-
                 RECALIBRATE_SPARK(
                     ch_cram_applybqsr,
                     dict,
@@ -738,7 +842,6 @@ workflow RNADNAVAR {
                 ch_versions = ch_versions.mix(RECALIBRATE_SPARK.out.versions)
 
             } else {
-
                 RECALIBRATE(
                     ch_cram_applybqsr,
                     dict,
@@ -790,6 +893,175 @@ workflow RNADNAVAR {
             // - crams from markduplicates = ch_cram_for_prepare_recalibration if skip BQSR but not started from step recalibration
             ch_cram_variant_calling = Channel.empty().mix(ch_cram_for_prepare_recalibration)
         }
+    }
+
+// STEP 5: VARIANT CALLING
+    if (params.step == 'variant_calling') {
+        // if input is a BAM file for variant calling we need to convert it to CRAM
+        ch_input_sample.branch{
+                bam: it[0].data_type == "bam"
+                cram: it[0].data_type == "cram"
+            }.set{ch_convert}
+
+        //BAM files first must be converted to CRAM files since from this step on we base everything on CRAM format
+        SAMTOOLS_BAMTOCRAM_VARIANTCALLING(ch_convert.bam, fasta, fasta_fai)
+        ch_versions = ch_versions.mix(SAMTOOLS_BAMTOCRAM_VARIANTCALLING.out.versions)
+
+        ch_cram_variant_calling = Channel.empty().mix(SAMTOOLS_BAMTOCRAM_VARIANTCALLING.out.alignment_index, ch_convert.cram)
+
+    }
+
+    if (params.tools) {
+
+        if (params.step == 'annotate') ch_cram_variant_calling = Channel.empty()
+
+        //
+        // Logic to separate germline samples, tumor samples with no matched normal, and combine tumor-normal pairs
+        // tumor-normal pairs will be created for DNA and RNA
+        //
+        ch_cram_variant_calling.branch{
+            normal: it[0].status == 0
+            dna:  it[0].status == 1
+            rna:  it[0].status == 2
+        }.set{ch_cram_variant_calling_status}
+
+        // All Germline samples -- will be the same for DNA and RNA
+        ch_cram_variant_calling_normal_to_cross = ch_cram_variant_calling_status.normal.map{ meta, cram, crai -> [meta.patient, meta, cram, crai] }
+
+        // All tumor samples
+        ch_cram_variant_calling_rna_pair_to_cross = ch_cram_variant_calling_status.rna.map{ meta, cram, crai -> [meta.patient, meta, cram, crai] }
+        ch_cram_variant_calling_dna_pair_to_cross = ch_cram_variant_calling_status.dna.map{ meta, cram, crai -> [meta.patient, meta, cram, crai] }
+
+        // Tumor only samples
+        // 1. Group together all tumor samples by patient ID [patient1, [meta1, meta2], [cram1,crai1, cram2, crai2]]
+
+        // Downside: this only works by waiting for all tumor samples to finish preprocessing, since no group size is provided
+        ch_cram_variant_calling_dna_tumor_grouped = ch_cram_variant_calling_dna_pair_to_cross.groupTuple()
+        ch_cram_variant_calling_rna_tumor_grouped = ch_cram_variant_calling_rna_pair_to_cross.groupTuple()
+
+        // 2. Join with normal samples, in each channel there is one key per patient now. Patients without matched normal end up with: [patient1, [meta1, meta2], [cram1,crai1, cram2, crai2], null]
+        ch_cram_variant_calling_dna_tumor_joined = ch_cram_variant_calling_dna_tumor_grouped.join(ch_cram_variant_calling_normal_to_cross, remainder: true)
+        ch_cram_variant_calling_rna_tumor_joined = ch_cram_variant_calling_rna_tumor_grouped.join(ch_cram_variant_calling_normal_to_cross, remainder: true)
+
+        // 3. Filter out entries with last entry null
+        ch_cram_variant_calling_dna_tumor_filtered = ch_cram_variant_calling_dna_tumor_joined.filter{ it ->  !(it.last()) }
+        ch_cram_variant_calling_rna_tumor_filtered = ch_cram_variant_calling_rna_tumor_joined.filter{ it ->  !(it.last()) }
+
+
+        // Only this supported for now.
+        if(params.only_paired_variant_calling){
+            // Normal only samples
+
+            // 1. Join with tumor samples, in each channel there is one key per patient now. Patients without matched tumor end up with: [patient1, [meta1], [cram1,crai1], null] as there is only one matched normal possible
+            ch_cram_variant_calling_dna_normal_joined = ch_cram_variant_calling_normal_to_cross.join(ch_cram_variant_calling_dna_tumor_grouped, remainder: true)
+            ch_cram_variant_calling_rna_normal_joined = ch_cram_variant_calling_normal_to_cross.join(ch_cram_variant_calling_rna_tumor_grouped, remainder: true)
+
+            // 2. Filter out entries with last entry null
+            ch_cram_variant_calling_dna_normal_filtered = ch_cram_variant_calling_dna_normal_joined.filter{ it ->  !(it.last()) }
+            ch_cram_variant_calling_rna_normal_filtered = ch_cram_variant_calling_rna_normal_joined.filter{ it ->  !(it.last()) }
+
+            // 3. Remove patient ID field & null value for further processing [meta1, [cram1,crai1]] [meta2, [cram2,crai2]] (no transposing needed since only one normal per patient ID)
+            ch_cram_variant_calling_dna_status_normal = ch_cram_variant_calling_dna_normal_filtered.map{ it -> [it[1], it[2], it[3]] }
+            ch_cram_variant_calling_rna_status_normal = ch_cram_variant_calling_rna_normal_filtered.map{ it -> [it[1], it[2], it[3]] }
+
+        }else{ // will never enter here TODO: cleanup
+            ch_cram_variant_calling_status_normal = ch_cram_variant_calling_status_dna.normal
+        }
+
+
+        // Tumor - normal pairs
+        // Use cross to combine normal with all tumor samples, i.e. multi tumor samples from recurrences
+        ch_cram_variant_calling_dna_pair = ch_cram_variant_calling_normal_to_cross.cross(ch_cram_variant_calling_dna_pair_to_cross)
+            .map { normal, tumor ->
+                def meta = [:]
+                meta.patient    = normal[0]
+                meta.normal_id  = normal[1].sample
+                meta.tumor_id   = tumor[1].sample
+                meta.sex        = normal[1].sex
+                meta.status     = tumor[1].status
+                meta.id         = "${meta.tumor_id}_vs_${meta.normal_id}".toString()
+
+                [meta, normal[2], normal[3], tumor[2], tumor[3]]
+            }
+
+        ch_cram_variant_calling_rna_pair = ch_cram_variant_calling_normal_to_cross.cross(ch_cram_variant_calling_rna_pair_to_cross)
+            .map { normal, tumor ->
+                def meta = [:]
+                meta.patient    = normal[0]
+                meta.normal_id  = normal[1].sample
+                meta.tumor_id   = tumor[1].sample
+                meta.sex        = normal[1].sex
+                meta.status     = tumor[1].status
+                meta.id         = "${meta.tumor_id}_vs_${meta.normal_id}".toString()
+
+                [meta, normal[2], normal[3], tumor[2], tumor[3]]
+            }
+        //TODO: are these starting in parallel?? I think so???
+        PAIR_VARIANT_CALLING_DNA(
+            params.tools,
+            ch_cram_variant_calling_dna_pair,
+            dbsnp,
+            dbsnp_tbi,
+            dict,
+            fasta,
+            fasta_fai,
+            germline_resource,
+            germline_resource_tbi,
+            intervals,
+            intervals_bed_gz_tbi,
+            intervals_bed_combined,
+            pon,
+            pon_tbi
+        )
+
+        // PAIR VARIANT CALLING RNA
+        PAIR_VARIANT_CALLING_RNA(
+            params.tools,
+            ch_cram_variant_calling_rna_pair,
+            dbsnp,
+            dbsnp_tbi,
+            dict,
+            fasta,
+            fasta_fai,
+            germline_resource,
+            germline_resource_tbi,
+            intervals,
+            intervals_bed_gz_tbi,
+            intervals_bed_combined,
+            pon,
+            pon_tbi
+        )
+
+        // Gather vcf files for annotation and QC
+        vcf_to_annotate = Channel.empty()
+        vcf_to_annotate = vcf_to_annotate.mix(PAIR_VARIANT_CALLING_RNA.out.manta_vcf)
+        vcf_to_annotate = vcf_to_annotate.mix(PAIR_VARIANT_CALLING_DNA.out.manta_vcf)
+
+        vcf_to_annotate = vcf_to_annotate.mix(PAIR_VARIANT_CALLING_RNA.out.strelka_vcf)
+        vcf_to_annotate = vcf_to_annotate.mix(PAIR_VARIANT_CALLING_DNA.out.strelka_vcf)
+
+        vcf_to_annotate = vcf_to_annotate.mix(PAIR_VARIANT_CALLING_RNA.out.mutect2_vcf)
+        vcf_to_annotate = vcf_to_annotate.mix(PAIR_VARIANT_CALLING_DNA.out.mutect2_vcf)
+
+        vcf_to_annotate = vcf_to_annotate.mix(PAIR_VARIANT_CALLING_RNA.out.freebayes_vcf)
+        vcf_to_annotate = vcf_to_annotate.mix(PAIR_VARIANT_CALLING_DNA.out.freebayes_vcf)
+
+
+        // Gather used softwares versions
+//        ch_versions = ch_versions.mix(PAIR_VARIANT_CALLING_DNA.out.versions)
+        ch_versions = ch_versions.mix(PAIR_VARIANT_CALLING_RNA.out.versions)
+
+        //QC
+        VCF_QC(vcf_to_annotate, intervals_bed_combined)
+
+        ch_versions = ch_versions.mix(VCF_QC.out.versions)
+        ch_versions = ch_versions.mix(VCF_QC.out.versions)
+        ch_reports  = ch_reports.mix(VCF_QC.out.bcftools_stats.collect{meta, stats -> stats})
+        ch_reports  = ch_reports.mix(VCF_QC.out.vcftools_tstv_counts.collect{ meta, counts -> counts})
+        ch_reports  = ch_reports.mix(VCF_QC.out.vcftools_tstv_qual.collect{ meta, qual -> qual })
+        ch_reports  = ch_reports.mix(VCF_QC.out.vcftools_filter_summary.collect{meta, summary -> summary})
+
+        VARIANTCALLING_CSV(vcf_to_annotate)
     }
 
 
@@ -937,6 +1209,9 @@ def extract_csv(csv_file) {
             def flowcell    = flowcellLaneFromFastq(fastq_1)
             //Don't use a random element for ID, it breaks resuming
             def read_group  = "\"@RG\\tID:${flowcell}.${row.sample}.${row.lane}\\t${CN}PU:${row.lane}\\tSM:${row.patient}_${row.sample}\\tLB:${row.sample}\\tDS:${params.fasta}\\tPL:${params.seq_platform}\""
+            if (meta.status == 2) { // STAR does not need '@RG'
+               read_group  = "ID:${flowcell}.${row.sample}.${row.lane} ${CN}PU:${row.lane} SM:${row.patient}_${row.sample} LB:${row.sample} DS:${params.fasta} PL:${params.seq_platform}"
+            }
 
             meta.numLanes   = numLanes.toInteger()
             meta.read_group = read_group.toString()
@@ -960,6 +1235,9 @@ def extract_csv(csv_file) {
             def bai         = file(row.bai,   checkIfExists: true)
             def CN          = params.seq_center ? "CN:${params.seq_center}\\t" : ''
             def read_group  = "\"@RG\\tID:${row.sample}_${row.lane}\\t${CN}PU:${row.lane}\\tSM:${row.sample}\\tLB:${row.sample}\\tPL:${params.seq_platform}\""
+            if (meta.status == 2) { // STAR does not need '@RG'
+               read_group  = "ID:${row.sample}_${row.lane} ${CN}PU:${row.lane} SM:${row.sample} LB:${row.sample} PL:${params.seq_platform}"
+            }
 
             meta.numLanes   = numLanes.toInteger()
             meta.read_group = read_group.toString()

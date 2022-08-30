@@ -14,7 +14,6 @@ workflow MERGE_INDEX_CRAM {
 
     main:
     ch_versions = Channel.empty()
-
     // Figuring out if there is one or more cram(s) from the same sample
     ch_cram_to_merge = ch_cram.map{ meta, cram ->
 
@@ -35,7 +34,6 @@ workflow MERGE_INDEX_CRAM {
         single:   it[0].num_intervals <= 1
         multiple: it[0].num_intervals > 1
     }
-
     MERGE_CRAM(ch_cram_to_merge.multiple, fasta)
     INDEX_CRAM(ch_cram_to_merge.single.mix(MERGE_CRAM.out.cram))
 
