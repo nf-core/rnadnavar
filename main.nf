@@ -4,7 +4,7 @@
     nf-core/rnadnavar
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     Github : https://github.com/nf-core/rnadnavar
-    Website: https://nf-co.re/rnadnavar
+Website: https://nf-co.re/rnadnavar
     Slack  : https://nfcore.slack.com/channels/rnadnavar
 ----------------------------------------------------------------------------------------
 */
