@@ -24,6 +24,7 @@ def checkPathParamList = [
     params.dbsnp_tbi,
     params.known_indels,
     params.known_indels_tbi,
+    params.multiqc_config,
     params.snpeff_cache,
     params.vep_cache,
     params.star_index
@@ -108,7 +109,10 @@ if (anno_readme && file(anno_readme).exists()) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-ch_multiqc_config        = file("$projectDir/assets/multiqc_config.yml", checkIfExists: true)
+ch_multiqc_config        = [
+                            file("$projectDir/assets/multiqc_config.yml", checkIfExists: true),
+                            file("$projectDir/assets/nf-core-rnadnavar_logo_light.png", checkIfExists: true)
+                            ]
 ch_multiqc_custom_config = params.multiqc_config ? Channel.fromPath(params.multiqc_config) : Channel.empty()
 ch_rnadnavar_logo           = Channel.fromPath(file("$projectDir/assets/nf-core-rnadnavar_logo_light.png", checkIfExists: true))
 
@@ -309,7 +313,7 @@ workflow RNADNAVAR {
         PREPARE_GENOME.out.dict
     )
     ch_interval_list = GATK4_BEDTOINTERVALLIST.out.interval_list
-    ch_versions = ch_versions.mix(GATK4_BEDTOINTERVALLIST.out.versions.first().ifEmpty(null))
+//    ch_versions = ch_versions.mix(GATK4_BEDTOINTERVALLIST.out.versions.first().ifEmpty(null))
 
     //
     // MODULE: Scatter one interval-list into many interval-files using GATK4 IntervalListTools
@@ -522,7 +526,7 @@ workflow RNADNAVAR {
         // Gather QC reports
         ch_reports           = ch_reports.mix(ALIGN_STAR.out.stats.collect{it[1]}.ifEmpty([]))
         ch_reports           = ch_reports.mix(ALIGN_STAR.out.log_final.collect{it[1]}.ifEmpty([]))
-        ch_versions          = ch_versions.mix(ALIGN_STAR.out.versions.first().ifEmpty(null))
+//        ch_versions          = ch_versions.mix(ALIGN_STAR.out.versions.first().ifEmpty(null))
 
     }
     if (params.step in ['mapping', 'markduplicates']) {
@@ -677,7 +681,7 @@ workflow RNADNAVAR {
                 ch_interval_list_split
             )
             ch_splitncigar_bam_bai  = SPLITNCIGAR.out.bam_bai
-            ch_versions             = ch_versions.mix(SPLITNCIGAR.out.versions.first().ifEmpty(null))
+//            ch_versions             = ch_versions.mix(SPLITNCIGAR.out.versions.first().ifEmpty(null))
             ch_input_cram_indexed     = Channel.empty() // TODO introduce in a proper way as below
             // SPLINCIGAR produces BAM as output
             BAM_TO_CRAM_SNCR(
@@ -1048,7 +1052,7 @@ workflow RNADNAVAR {
 
 
         // Gather used softwares versions
-//        ch_versions = ch_versions.mix(PAIR_VARIANT_CALLING_DNA.out.versions)
+        ch_versions = ch_versions.mix(PAIR_VARIANT_CALLING_DNA.out.versions)
         ch_versions = ch_versions.mix(PAIR_VARIANT_CALLING_RNA.out.versions)
 
         //QC
