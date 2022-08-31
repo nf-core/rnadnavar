@@ -1,6 +1,7 @@
 include { BCFTOOLS_SORT                                } from '../../../../modules/nf-core/modules/bcftools/sort/main'
 include { GATK4_MERGEVCFS as MERGE_FREEBAYES           } from '../../../../modules/nf-core/modules/gatk4/mergevcfs/main'
 include { FREEBAYES                                    } from '../../../../modules/nf-core/modules/freebayes/main'
+include { VCFFILTER                                    } from '../../../../modules/nf-core/modules/vcflib/filter/main'
 include { TABIX_TABIX as TABIX_VC_FREEBAYES            } from '../../../../modules/nf-core/modules/tabix/tabix/main'
 
 workflow RUN_FREEBAYES {
@@ -20,7 +21,9 @@ workflow RUN_FREEBAYES {
         fasta_fai,
         [], [], [])
 
-    BCFTOOLS_SORT(FREEBAYES.out.vcf)
+    VCFFILTER(FREEBAYES.out.vcf)
+
+    BCFTOOLS_SORT(VCFFILTER.out.vcf)
     BCFTOOLS_SORT.out.vcf.branch{
             intervals:    it[0].num_intervals > 1
             no_intervals: it[0].num_intervals <= 1
