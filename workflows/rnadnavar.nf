@@ -9,7 +9,6 @@ def summary_params = NfcoreSchema.paramsSummaryMap(workflow, params)
 // Validate input parameters
 WorkflowRnadnavar.initialise(params, log)
 
-// TODO nf-core: For now added paramers from rnavar to start with
 // Check input path parameters to see if they exist
 def checkPathParamList = [
     params.input,
@@ -114,7 +113,6 @@ ch_multiqc_config        = [
                             file("$projectDir/assets/nf-core-rnadnavar_logo_light.png", checkIfExists: true)
                             ]
 ch_multiqc_custom_config = params.multiqc_config ? Channel.fromPath(params.multiqc_config) : Channel.empty()
-ch_rnadnavar_logo           = Channel.fromPath(file("$projectDir/assets/nf-core-rnadnavar_logo_light.png", checkIfExists: true))
 
 
 /*
@@ -204,6 +202,9 @@ include { PAIR_VARIANT_CALLING as PAIR_VARIANT_CALLING_DNA     } from '../subwor
 include { PAIR_VARIANT_CALLING as PAIR_VARIANT_CALLING_RNA     } from '../subworkflows/local/pair_variant_calling'
 
 include { VCF_QC                                               } from '../subworkflows/nf-core/vcf_qc'
+
+// VCF normalization
+include { NORMALIZE_VCF                                        } from '../subworkflows/local/normalize_vcf_variants'
 
 // Annotation
 include { ANNOTATE                                             } from '../subworkflows/local/annotate'
@@ -1059,13 +1060,58 @@ workflow RNADNAVAR {
         VCF_QC(vcf_to_annotate, intervals_bed_combined)
 
         ch_versions = ch_versions.mix(VCF_QC.out.versions)
-        ch_versions = ch_versions.mix(VCF_QC.out.versions)
         ch_reports  = ch_reports.mix(VCF_QC.out.bcftools_stats.collect{meta, stats -> stats})
         ch_reports  = ch_reports.mix(VCF_QC.out.vcftools_tstv_counts.collect{ meta, counts -> counts})
         ch_reports  = ch_reports.mix(VCF_QC.out.vcftools_tstv_qual.collect{ meta, qual -> qual })
         ch_reports  = ch_reports.mix(VCF_QC.out.vcftools_filter_summary.collect{meta, summary -> summary})
 
         VARIANTCALLING_CSV(vcf_to_annotate)
+        vcf_to_annotate.dump(tag:'vcf_to_annotate')
+    }
+ // NORMALIZE
+    if (params.step in ['mapping', 'markduplicates', 'prepare_recalibration', 'recalibrate', 'normalize']) {
+        if (params.step == 'normalize') vcf_to_normalize = ch_input_sample
+        else {
+            vcf_to_normalize = vcf_to_annotate
+
+            }
+        vcf_to_normalize.dump(tag:"vcf_to_normalize")
+        NORMALIZE_VCF (
+                        vcf_to_normalize,
+                        fasta
+                       )
+
+        vcf_normalized = Channel.empty()
+        vcf_normalized = vcf_normalized.mix(NORMALIZE_VCF.out.vcf)
+        ch_versions = ch_versions.mix(NORMALIZE_VCF.out.versions)
+    }
+
+
+
+// REPORTING
+
+    ch_version_yaml = Channel.empty()
+    if (!(params.skip_tools && params.skip_tools.split(',').contains('versions'))) {
+        CUSTOM_DUMPSOFTWAREVERSIONS(ch_versions.unique().collectFile(name: 'collated_versions.yml'))
+        ch_version_yaml = CUSTOM_DUMPSOFTWAREVERSIONS.out.mqc_yml.collect()
+    }
+
+    //
+    // MODULE: MultiQC
+    // Present summary of reads, alignment, duplicates, BSQR stats for all samples as well as workflow summary/parameters as single report
+    //
+    if (!(params.skip_tools && params.skip_tools.split(',').contains('multiqc'))) {
+        workflow_summary    = WorkflowRnadnavar.paramsSummaryMultiqc(workflow, summary_params)
+        ch_workflow_summary = Channel.value(workflow_summary)
+
+        ch_multiqc_files =  Channel.empty().mix(ch_version_yaml,
+                                            ch_workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml'),
+                                            ch_reports.collect().ifEmpty([]))
+
+        ch_multiqc_configs = Channel.from(ch_multiqc_config).mix(ch_multiqc_custom_config).ifEmpty([])
+
+        MULTIQC(ch_multiqc_files.collect(), ch_multiqc_configs.collect())
+        multiqc_report = MULTIQC.out.report.toList()
     }
 
 
