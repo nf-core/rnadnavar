@@ -1,0 +1,47 @@
+name: vt_normalize
+description: Normalize VCF files
+keywords:
+  - normalize
+  - VCF
+  - variant calling
+tools:
+  - decompose:
+      description: Normalize variants in a VCF file.
+      homepage: https://genome.sph.umich.edu/wiki/Vt
+      documentation: https://genome.sph.umich.edu/wiki/Vt
+      tool_dev_url: https://github.com/atks/vt
+      doi: "https://doi.org/10.1093/bioinformatics/btv112"
+      licence: ["MIT"]
+
+input:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test', single_end:false ]
+  - vcf:
+      type: file
+      description: The VCF/BCF file to be normalized
+      pattern: "*.{vcf.gz,vcf,bcf}"
+  - fasta:
+      type: file
+      description: Input genome fasta file
+
+
+output:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test', single_end:false ]
+  - versions:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+  - vcf:
+      type: file
+      description: Normalized VCF file
+      pattern: "*.{vcf.gz}"
+
+authors:
+  - "@RaqManzano"
