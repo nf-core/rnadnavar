@@ -1,5 +1,6 @@
 include { GATK4_MERGEVCFS as MERGE_STRELKA_INDELS } from '../../../../../modules/nf-core/modules/gatk4/mergevcfs/main'
 include { GATK4_MERGEVCFS as MERGE_STRELKA_SNVS   } from '../../../../../modules/nf-core/modules/gatk4/mergevcfs/main'
+include { GATK4_MERGEVCFS as MERGE_STRELKA        } from '../../../../../modules/nf-core/modules/gatk4/mergevcfs/main'
 include { STRELKA_SOMATIC                         } from '../../../../../modules/nf-core/modules/strelka/somatic/main'
 
 workflow RUN_STRELKA_SOMATIC {
@@ -60,7 +61,7 @@ workflow RUN_STRELKA_SOMATIC {
             dict)
 
     // Mix output channels for "no intervals" and "with intervals" results
-    strelka_vcf = Channel.empty().mix(
+    strelka_separate_vcf = Channel.empty().mix(
                     MERGE_STRELKA_SNVS.out.vcf,
                     strelka_vcf_snvs.no_intervals,
                     MERGE_STRELKA_INDELS.out.vcf,
@@ -79,9 +80,18 @@ workflow RUN_STRELKA_SOMATIC {
                         ],
                     vcf]
                 }
+    MERGE_STRELKA(
+                  strelka_separate_vcf.groupTuple(),
+                  dict
+                  )
+    strelka_vcf = MERGE_STRELKA.out.vcf
+
+
+    // add merge between SNVs and indels
 
     ch_versions = ch_versions.mix(MERGE_STRELKA_SNVS.out.versions)
     ch_versions = ch_versions.mix(MERGE_STRELKA_INDELS.out.versions)
+    ch_versions = ch_versions.mix(MERGE_STRELKA.out.versions)
     ch_versions = ch_versions.mix(STRELKA_SOMATIC.out.versions)
 
     emit:

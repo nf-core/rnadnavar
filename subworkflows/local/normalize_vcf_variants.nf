@@ -30,7 +30,7 @@ workflow NORMALIZE_VCF {
     ch_versions = ch_versions.mix(VT_NORMALIZE.out.versions.first())
 
     emit:
-        vcf    = ch_vcf_norm // channel: [ [meta], vcf ]
+        vcf         = ch_vcf_norm // channel: [ [meta], vcf ]
         versions    = ch_versions // channel: [ versions.yml ]
 
 }

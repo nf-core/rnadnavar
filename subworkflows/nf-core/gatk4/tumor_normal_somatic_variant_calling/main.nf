@@ -79,7 +79,6 @@ workflow GATK_TUMOR_NORMAL_SOMATIC_VARIANT_CALLING {
         }.groupTuple(),
         dict
     )
-
     mutect2_vcf = Channel.empty().mix(
         MERGE_MUTECT2.out.vcf,
         mutect2_vcf_branch.no_intervals)
@@ -260,20 +259,24 @@ workflow GATK_TUMOR_NORMAL_SOMATIC_VARIANT_CALLING {
     //
     //Mutect2 calls filtered by filtermutectcalls using the artifactpriors, contamination and segmentation tables.
     //
-    mutect2_vcf.dump(tag:'mutect2_vcf')
-    mutect2_stats.dump(tag:'mutect2_stats')
-    LEARNREADORIENTATIONMODEL.out.artifactprior.dump(tag:'LEARNREADORIENTATIONMODEL.out.artifactprior')
-    CALCULATECONTAMINATION.out.segmentation.dump(tag:'CALCULATECONTAMINATION.out.segmentation')
-    CALCULATECONTAMINATION.out.contamination.dump(tag:'CALCULATECONTAMINATION.out.contamination')
     ch_filtermutect    = mutect2_vcf.join(mutect2_tbi)
                                     .join(mutect2_stats)
                                     .join(LEARNREADORIENTATIONMODEL.out.artifactprior)
                                     .join(CALCULATECONTAMINATION.out.segmentation)
                                     .join(CALCULATECONTAMINATION.out.contamination)
-    ch_filtermutect.dump(tag:'ch_filtermutect')
     ch_filtermutect_in = ch_filtermutect.map{ meta, vcf, tbi, stats, orientation, seg, cont -> [meta, vcf, tbi, stats, orientation, seg, cont, []] }
-    ch_filtermutect_in.dump(tag: "ch_filtermutect_in")
     FILTERMUTECTCALLS ( ch_filtermutect_in, fasta, fai, dict )
+
+    filtered_vcf = FILTERMUTECTCALLS.out.vcf.map{ meta, vcf ->
+                                            [[patient:meta.patient,
+                                              normal_id:meta.normal_id,
+                                              tumor_id:meta.tumor_id,
+                                              sex:meta.sex,
+                                              status:meta.status,
+                                              id:meta.tumor_id + "_vs_" + meta.normal_id,
+                                              num_intervals:meta.num_intervals,
+                                              variantcaller:"mutect2"
+                                              ], vcf]}
 
     ch_versions = ch_versions.mix(MERGE_MUTECT2.out.versions)
     ch_versions = ch_versions.mix(CALCULATECONTAMINATION.out.versions)
@@ -298,8 +301,7 @@ workflow GATK_TUMOR_NORMAL_SOMATIC_VARIANT_CALLING {
     contamination_table    = CALCULATECONTAMINATION.out.contamination       // channel: [ val(meta), [ contamination ] ]
     segmentation_table     = CALCULATECONTAMINATION.out.segmentation        // channel: [ val(meta), [ segmentation ] ]
 
-    filtered_vcf           = FILTERMUTECTCALLS.out.vcf.map{ meta, vcf -> [[patient:meta.patient, normal_id:meta.normal_id, tumor_id:meta.tumor_id, sex:meta.sex, id:meta.tumor_id + "_vs_" + meta.normal_id, num_intervals:meta.num_intervals, variantcaller:"mutect2"],
-                                                                            vcf]} // channel: [ val(meta), [ vcf ] ]
+    filtered_vcf           = filtered_vcf                                   // channel: [ val(meta), [ vcf ] ]
     filtered_tbi           = FILTERMUTECTCALLS.out.tbi                      // channel: [ val(meta), [ tbi ] ]
     filtered_stats         = FILTERMUTECTCALLS.out.stats                    // channel: [ val(meta), [ stats ] ]
 

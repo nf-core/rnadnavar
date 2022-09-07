@@ -43,6 +43,7 @@ workflow RUN_FREEBAYES {
                                                 num_intervals:  meta.num_intervals,
                                                 patient:        meta.patient,
                                                 sex:            meta.sex,
+                                                status:         meta.status,
                                                 tumor_id:       meta.tumor_id,
                                             ]
                                         :   [
@@ -69,6 +70,7 @@ workflow RUN_FREEBAYES {
                             num_intervals:  meta.num_intervals,
                             patient:        meta.patient,
                             sex:            meta.sex,
+                            status:         meta.status,
                             tumor_id:       meta.tumor_id,
                             variantcaller:  "freebayes"
                         ],
