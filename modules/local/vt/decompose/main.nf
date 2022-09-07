@@ -2,7 +2,7 @@ process VT_DECOMPOSE {
     tag "$meta.id"
     label 'process_low'
 
-    conda (params.enable_conda ? "" : null )
+    conda (params.enable_conda ? "bioconda::vt-0.57721-h17a1952_6" : null )
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/vt:0.57721--h17a1952_6' :
         'quay.io/biocontainers/vt:0.57721--h17a1952_6' }"
@@ -33,16 +33,5 @@ process VT_DECOMPOSE {
         vt decompose: \$(vt decompose -? 2>&1 | head -n1 | sed 's/^.*decompose //; s/ .*\$//')
     END_VERSIONS
     """
-
-
-
-
-
-
-
-
-
-
-
 
 }
