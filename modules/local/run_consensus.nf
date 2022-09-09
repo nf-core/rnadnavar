@@ -8,12 +8,12 @@ process RUN_CONSENSUS {
         'quay.io/biocontainers/pandas:1.4.3' }"
 
     input:
-        tuple val(meta), path(vcfs)
-        tuple val(meta), val(callers)
+        tuple val(meta), path(vcfs), val(callers)
 
     output:
-        path '*.vcf.gz'       , emit: vcf
-        path "versions.yml", emit: versions
+        tuple val(meta), path('*.consensus.vcf.gz'), val(['consensus'])   , emit: vcf
+        tuple val(meta), path('*.consensus_*.vcf.gz'), val(callers)  , emit: vcf_separate
+        path "versions.yml"                                          , emit: versions
 
     when:
         task.ext.when == null || task.ext.when
@@ -22,8 +22,10 @@ process RUN_CONSENSUS {
         def args = task.ext.args ?: ''
         def prefix = task.ext.prefix ?: "${meta.id}"
         def caller_list = "${callers.join(' ')}"
+
         """
-        run_consensus.py -i $vcfs -n ${caller_list} $args
+        run_consensus.py -i $vcfs -n ${caller_list} --prefix ${prefix}.consensus $args
+        gzip *.vcf
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
             python: \$(echo \$(python --version 2>&1) | sed 's/^.*Python (//;s/).*//')

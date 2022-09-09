@@ -729,9 +729,7 @@ workflow RNADNAVAR {
         if (params.step == 'normalize') vcf_to_normalize = ch_input_sample
         else {
             vcf_to_normalize = vcf_to_annotate
-
             }
-        vcf_to_normalize.dump(tag:'vcf_to_normalize')
         NORMALIZE_VCF (
                         vcf_to_normalize,
                         fasta
@@ -752,26 +750,29 @@ workflow RNADNAVAR {
                                     [[id:meta.id,
                                      patient:meta.patient,
                                      status:meta.status
-                                     ], vcf]
+                                     ], vcf, meta.variantcaller]
                                     }.groupTuple()
 
-        callers_to_consensus = vcf_normalized.map{ meta, vcf ->
-
-                                    [[id:meta.id,
-                                     patient:meta.patient,
-                                     status:meta.status
-                                     ], meta.variantcaller]
-                                    }.groupTuple()
+        vcf_to_consensus.dump(tag:'vcf_to_consensus')
         CONSENSUS (
-                   vcf_to_consensus,
-                   callers_to_consensus
+                   vcf_to_consensus
                        )
+
+
 
 //
 //        vcf_consensus = Channel.empty()
 //        vcf_consensus = vcf_normalized.mix(NORMALIZE_VCF.out.vcf)
 //        ch_versions = ch_versions.mix(NORMALIZE_VCF.out.versions)
     }
+
+    // FILTER VARIANTS
+
+
+    // ANNOTATION
+
+
+    // RNA SPECIFIC FILTERING
 
 
 
