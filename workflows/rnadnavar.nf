@@ -139,7 +139,8 @@ include { MARKDUPLICATES_CSV                                   } from '../subwor
 include { PREPARE_RECALIBRATION_CSV                            } from '../subworkflows/local/prepare_recalibration_csv'
 include { RECALIBRATE_CSV                                      } from '../subworkflows/local/recalibrate_csv'
 include { VARIANTCALLING_CSV                                   } from '../subworkflows/local/variantcalling_csv'
-
+include { PAIR_VARIANT_CALLING_MUTECT2 as GATK_FORCE_CALLS_DNA              } from '../subworkflows/local/force_mutect_pair_variant_calling'
+include { PAIR_VARIANT_CALLING_MUTECT2 as GATK_FORCE_CALLS_RNA             } from '../subworkflows/local/force_mutect_pair_variant_calling'
 // Build the genome index and other reference files
 include { PREPARE_GENOME                                       } from '../subworkflows/local/prepare_genome'
 
@@ -753,11 +754,73 @@ workflow RNADNAVAR {
                                      ], vcf, meta.variantcaller]
                                     }.groupTuple()
 
-        vcf_to_consensus.dump(tag:'vcf_to_consensus')
         CONSENSUS (
                    vcf_to_consensus
                        )
+        alleles_dna = CONSENSUS.out.vcf_dna.map{
+                                        meta, vcf, tbi ->
+                                        vcf}
+        alleles_rna = CONSENSUS.out.vcf_rna.map{
+                                        meta, vcf, tbi ->
+                                        vcf}
+        ch_cram_variant_calling_dna_pair_con = ch_cram_variant_calling_normal_to_cross
+            .combine(alleles_dna)
+            .cross(ch_cram_variant_calling_dna_pair_to_cross)
+            .map { normal, tumor ->
+                def meta = [:]
+                meta.patient    = normal[0]
+                meta.normal_id  = normal[1].sample
+                meta.tumor_id   = tumor[1].sample
+                meta.sex        = normal[1].sex
+                meta.status     = tumor[1].status
+                meta.id         = "${meta.tumor_id}_vs_${meta.normal_id}".toString()
+                meta.alleles    = normal[4]
 
+                [meta, normal[2], normal[3], tumor[2], tumor[3]]
+            }
+        ch_cram_variant_calling_rna_pair_con = ch_cram_variant_calling_normal_to_cross
+            .combine(alleles_rna)
+            .cross(ch_cram_variant_calling_rna_pair_to_cross)
+            .map { normal, tumor ->
+                def meta = [:]
+                meta.patient    = normal[0]
+                meta.normal_id  = normal[1].sample
+                meta.tumor_id   = tumor[1].sample
+                meta.sex        = normal[1].sex
+                meta.status     = tumor[1].status
+                meta.id         = "${meta.tumor_id}_vs_${meta.normal_id}".toString()
+                meta.alleles    = normal[4]
+
+                [meta, normal[2], normal[3], tumor[2], tumor[3]]
+            }
+        // force calls to get consensus with same annotation
+        GATK_FORCE_CALLS_DNA(
+            ch_cram_variant_calling_dna_pair_con,  // from previous variant calling
+            dict,
+            fasta,
+            fasta_fai,
+            germline_resource,
+            germline_resource_tbi,
+            intervals,
+            intervals_bed_gz_tbi,
+            intervals_bed_combined,
+            pon,
+            pon_tbi
+        )
+
+        GATK_FORCE_CALLS_RNA(
+            ch_cram_variant_calling_rna_pair_con,  // from previous variant calling
+            dict,
+            fasta,
+            fasta_fai,
+            germline_resource,
+            germline_resource_tbi,
+            intervals,
+            intervals_bed_gz_tbi,
+            intervals_bed_combined,
+            pon,
+            pon_tbi
+        )
 
 
 //
@@ -766,7 +829,9 @@ workflow RNADNAVAR {
 //        ch_versions = ch_versions.mix(NORMALIZE_VCF.out.versions)
     }
 
-    // FILTER VARIANTS
+
+
+    // FILTER VARIANTS -- PASS only
 
 
     // ANNOTATION

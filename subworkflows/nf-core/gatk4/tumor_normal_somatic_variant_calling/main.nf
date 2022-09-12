@@ -72,7 +72,8 @@ workflow GATK_TUMOR_NORMAL_SOMATIC_VARIANT_CALLING {
                         patient:        meta.patient,
                         sex:            meta.sex,
                         status:         meta.status,
-                        tumor_id:       meta.tumor_id
+                        tumor_id:       meta.tumor_id,
+                        alleles:        meta.alleles
                     ]
 
             [groupKey(new_meta, meta.num_intervals), vcf]
@@ -99,7 +100,8 @@ workflow GATK_TUMOR_NORMAL_SOMATIC_VARIANT_CALLING {
                         patient:        meta.patient,
                         sex:            meta.sex,
                         status:         meta.status,
-                        tumor_id:       meta.tumor_id
+                        tumor_id:       meta.tumor_id,
+                        alleles:        meta.alleles
                     ]
 
             [groupKey(new_meta, meta.num_intervals), stats]
@@ -124,6 +126,7 @@ workflow GATK_TUMOR_NORMAL_SOMATIC_VARIANT_CALLING {
                             sex:            meta.sex,
                             status:         meta.status,
                             tumor_id:       meta.tumor_id,
+                            alleles:        meta.alleles
                         ]
 
                 [groupKey(new_meta, meta.num_intervals), f1r2]
@@ -152,6 +155,7 @@ workflow GATK_TUMOR_NORMAL_SOMATIC_VARIANT_CALLING {
                                         sex:            meta.sex,
                                         status:         meta.status,
                                         tumor_id:       meta.tumor_id,
+                                        alleles:        meta.alleles
                                     ],
                                         cram, crai, intervals]
                                 },
@@ -168,6 +172,7 @@ workflow GATK_TUMOR_NORMAL_SOMATIC_VARIANT_CALLING {
                                         sex:            meta.sex,
                                         status:         meta.status,
                                         tumor_id:       meta.tumor_id,
+                                        alleles:        meta.alleles
                                     ],
                                         cram, crai, intervals]
                                 },
@@ -196,6 +201,7 @@ workflow GATK_TUMOR_NORMAL_SOMATIC_VARIANT_CALLING {
                             sex:            meta.sex,
                             status:         meta.status,
                             tumor_id:       meta.tumor_id,
+                            alleles:        meta.alleles
                         ]
 
             [groupKey(new_meta, meta.num_intervals), table]
@@ -214,6 +220,7 @@ workflow GATK_TUMOR_NORMAL_SOMATIC_VARIANT_CALLING {
                             sex:            meta.sex,
                             status:         meta.status,
                             tumor_id:       meta.tumor_id,
+                            alleles:        meta.alleles
                         ]
             [new_meta, table]
         }
@@ -229,6 +236,7 @@ workflow GATK_TUMOR_NORMAL_SOMATIC_VARIANT_CALLING {
                             sex:            meta.sex,
                             status:         meta.status,
                             tumor_id:       meta.tumor_id,
+                            alleles:        meta.alleles
                         ]
 
             [groupKey(new_meta, meta.num_intervals), table]
@@ -246,6 +254,7 @@ workflow GATK_TUMOR_NORMAL_SOMATIC_VARIANT_CALLING {
                         sex:            meta.sex,
                         status:         meta.status,
                         tumor_id:       meta.tumor_id,
+                        alleles:        meta.alleles
                     ]
 
             [new_meta, table]
