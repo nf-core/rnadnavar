@@ -5,7 +5,10 @@
 include { RUN_CONSENSUS } from '../../modules/local/run_consensus'
 include { RUN_CONSENSUS as RUN_CONSENSUS_RESCUE_DNA } from '../../modules/local/run_consensus'
 include { RUN_CONSENSUS as RUN_CONSENSUS_RESCUE_RNA } from '../../modules/local/run_consensus'
+include { TABIX_BGZIPTABIX as TABIX_BGZIPTABIX_DNA } from '../../modules/nf-core/modules/tabix/bgziptabix/main'
+include { TABIX_BGZIPTABIX as TABIX_BGZIPTABIX_RNA } from '../../modules/nf-core/modules/tabix/bgziptabix/main'
 
+include { GATK_TUMOR_ONLY_SOMATIC_VARIANT_CALLING as GATK_TUMOR_ONLY_SOMATIC_VARIANT_CALLING_FORCE } from '../nf-core/gatk4/tumor_only_somatic_variant_calling/main'
 
 workflow CONSENSUS {
     take:
@@ -74,19 +77,16 @@ workflow CONSENSUS {
         RUN_CONSENSUS_RESCUE_DNA ( vcfs_dna_crossed_with_rna_rescue )
         RUN_CONSENSUS_RESCUE_RNA ( vcfs_rna_crossed_with_dna_rescue )
 
+        vcf_consensus_dna = RUN_CONSENSUS_RESCUE_DNA.out.vcf
+        vcf_consensus_rna = RUN_CONSENSUS_RESCUE_RNA.out.vcf
 
-   //     consensus = RUN_CONSENSUS_RESCUE_DNA.out.vcf.mix()
-    //    rna_consensus = RUN_CONSENSUS_RESCUE_RNA.out.vcf
-
-    //    dna_consensus.dump(tag:'dna_consensus')
-    //    dna_consensus.join(original_meta).dump(tag:'dna_consensus')
-    // RESCUE
-//    CONSENSUS with RNA and vice versa then remove variants and annotate
-
-
+        TABIX_BGZIPTABIX_DNA (vcf_consensus_dna)
+        TABIX_BGZIPTABIX_RNA (vcf_consensus_rna)
+        vcf_consensus_dna_tbi = TABIX_BGZIPTABIX_DNA.out.gz_tbi
+        vcf_consensus_rna_tbi = TABIX_BGZIPTABIX_RNA.out.gz_tbi
 
     emit:
-        vcf    = RUN_CONSENSUS.out.vcf // channel: [ [meta], vcf ]
-        vcf_separate    = RUN_CONSENSUS.out.vcf_separate // channel: [ [meta], vcf ]
+        vcf_dna    = vcf_consensus_dna_tbi // channel: [ [meta], vcf ]
+        vcf_rna    = vcf_consensus_rna_tbi // channel: [ [meta], vcf ]
         versions    = ch_versions // channel: [ versions.yml ]
 }

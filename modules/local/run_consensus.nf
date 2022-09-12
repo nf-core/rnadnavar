@@ -11,8 +11,8 @@ process RUN_CONSENSUS {
         tuple val(meta), path(vcfs), val(callers)
 
     output:
-        tuple val(meta), path('*.consensus.vcf.gz'), val(['consensus'])   , emit: vcf
-        tuple val(meta), path('*.consensus_*.vcf.gz'), val(callers)  , emit: vcf_separate
+        tuple val(meta), path('*.consensus.vcf'), val(['consensus']) , emit: vcf
+        tuple val(meta), path('*.consensus_*.vcf'), val(callers)     , emit: vcf_separate
         path "versions.yml"                                          , emit: versions
 
     when:
@@ -25,7 +25,6 @@ process RUN_CONSENSUS {
 
         """
         run_consensus.py -i $vcfs -n ${caller_list} --prefix ${prefix}.consensus $args
-        gzip *.vcf
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
             python: \$(echo \$(python --version 2>&1) | sed 's/^.*Python (//;s/).*//')
