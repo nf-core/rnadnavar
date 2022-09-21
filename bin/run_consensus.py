@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 """
-Date: 01 Sep 2022
 Author: Raquel Manzano - @RaqManzano
 Script: Performs a consensus with results from different variant callers
 """
@@ -9,7 +8,6 @@ import argparse
 import pandas as pd
 import numpy as np
 import gzip
-
 
 def argparser():
     parser = argparse.ArgumentParser(description='')
@@ -188,14 +186,13 @@ def seek_overlap(current_caller, current_end, current_filter, current_start, ove
     return overlap_id, overlaps
 
 
-def add_consensus_info_to_meta(meta, consensus_precious_pass):
+def add_consensus_info_to_meta(meta):
     new_info = [
         '##INFO=<ID=overlap_type,Number=1,Type=String,Description="Overlap type for an indel: ABSOLUTE (exact match), TOTAL (one variant completely overlaps), PARTIAL_LEFT/RIGHT.">',
         '##INFO=<ID=consensus_count,Number=1,Type=Integer,Description="Number of callers supporting this variant">',
-        '##INFO=<ID=overlap_id,Number=1,Type=String,Description="Overlap ID">'
+        '##INFO=<ID=overlap_id,Number=1,Type=String,Description="Overlap ID">',
+        '##INFO=<ID=consensus_callers,Number=1,Type=String,Description="Callers that detected the variant">'
     ]
-    if consensus_precious_pass:
-        new_info += ['##INFO=<ID=consensus_pass1,Number=1,Type=String,Description="YES/NO value">']
     meta += '\n'.join(new_info) + '\n'
     return meta
 
@@ -209,8 +206,12 @@ def add_consensus_info_to_info(variants, variants_in_consensus):
         info += ";overlap_type=" + row["overlap"]
         info += ";consensus_count=" + str(row["consensus_count"])
         info += ";overlap_id=" + row["overlap_id"]
-        if variants_in_consensus:
-            info += ";consensus_pass1=" + str(np.where(row["DNAchange"] in variants_in_consensus, "YES", "NO"))
+        for caller, consensus_variants in variants_in_consensus.items():
+            if row["DNAchange"] in consensus_variants:
+                if 'consensus_callers' not in info:
+                    info += f";consensus_callers={caller}"
+                else:
+                    info += f",{caller}"
         variants.at[idx, 'INFO'] = info
     return variants
 
@@ -218,16 +219,15 @@ def add_consensus_info_to_info(variants, variants_in_consensus):
 def add_consensus_info(calls_dict, callers_name, variants_in_consensus):
     # put together info for one caller
     caller_dict = {x: {'meta': '', 'variants': []} for x in callers_name}
-    consensus_precious_pass = False
-    if variants_in_consensus:
-        consensus_precious_pass = True
+
     for idx, caller in enumerate(callers_name):
         meta = calls_dict['meta'][idx]  # header
-        meta = add_consensus_info_to_meta(meta, consensus_precious_pass)
+        meta = add_consensus_info_to_meta(meta)
         caller_set = pd.concat([calls_dict["SNVs"][idx],
                                 calls_dict["MNPs"][idx],
                                 calls_dict["INDELs"][idx],
                                 ]).sort_values(["#CHROM", "POS"]).reset_index()
+        caller = caller_set["Caller"].unique()[0]  # order can get mess up with python dict
         caller_set = add_consensus_info_to_info(caller_set, variants_in_consensus)
         caller_dict[caller]['meta'] = meta
         caller_dict[caller]['variants'] = caller_set
@@ -244,23 +244,23 @@ def write_vcf_and_intervals(caller_dict, caller_names, vcf_list, prefix, headers
             out.write(meta)
         variants = caller_dict[caller]['variants']
         variants["ID"] = variants['DNAchange']
-        pd.options.display.max_colwidth = 1100
         variants[header].to_csv(vcf_out, mode="a", index=False, header=True, sep="\t")
         all_calls += [variants]
     all_out = f"{prefix}.vcf"
     all_calls = pd.concat(all_calls).reset_index()
     all_calls["POS"] = all_calls["POS"].astype(int)
     all_calls.sort_values(["#CHROM", "POS"], inplace=True)
+    # write a basic consensus VCF
     consensus_variants = all_calls[all_calls['overlap'] != "NONE"]
     # Generate a minimal VCF for forcing variant calling
     consensus_variants = consensus_variants[
         ["#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT"]]
+    consensus_variants['QUAL'] = "."
     consensus_variants['FILTER'] = "."
     consensus_variants['INFO'] = "."
     consensus_variants['FORMAT'] = "."
     consensus_variants['SAMPLE'] = "."
     consensus_variants = consensus_variants.drop_duplicates("ID")
-    print(len(caller_names), "CALLERS!!")
     meta = f"##fileformat=VCFv4.2\n##source=Consensus{len(caller_names)}Callers\n" + "\n".join(meta_contigs) + "\n"
     with open(all_out, "w") as int_out:
         int_out.write(meta)
@@ -271,19 +271,18 @@ def get_calls_from_callers(vcfs, caller_names):
     # get calls from each caller
     original_vcf_headers = []
     calls_dict = {"SNVs": [], "MNPs": [], "INDELs": [], "meta": []}
-    variants_in_consensus = []
-    for idx, vcf in enumerate(vcfs):
+    variants_in_consensus = {}
+    for caller, vcf in zip(caller_names, vcfs):
         meta, header, df = vcf_to_pandas(vcf)
         original_vcf_headers += [header]
-        calls = add_varid_and_type(df=df, caller=caller_names[idx])
+        calls = add_varid_and_type(df=df, caller=caller)
         calls_dict["SNVs"] += [(calls["SNVs"])]
         calls_dict["MNPs"] += [calls["MNPs"]]
         calls_dict["INDELs"] += [calls["INDELs"]]
         calls_dict["meta"] += [meta]
-        if caller_names[idx] == 'consensus':
-            variants_in_consensus += calls["SNVs"]['DNAchange'].tolist() + \
-                                     calls["INDELs"]['DNAchange'].tolist() + \
-                                     calls["MNPs"]['DNAchange'].tolist()
+        variants_in_consensus[caller] = calls["SNVs"]['DNAchange'].tolist() + \
+                                                   calls["INDELs"]['DNAchange'].tolist() + \
+                                                   calls["MNPs"]['DNAchange'].tolist()
     return original_vcf_headers, calls_dict, variants_in_consensus
 
 
@@ -305,8 +304,7 @@ def main():
     # get callers names
     caller_names = assign_callers_names(caller_names=args.names, vcfs=args.input)
     # get calls
-    original_vcf_headers, calls_dict, variants_in_consensus = get_calls_from_callers(vcfs=args.input,
-                                                                                     caller_names=caller_names)
+    original_vcf_headers, calls_dict, variants_in_consensus = get_calls_from_callers(vcfs=args.input, caller_names=args.names)
     # consensus
     consensus = do_consensus(args.indel_window, calls_dict)
     # add info

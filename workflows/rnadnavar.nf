@@ -130,6 +130,7 @@ germline_resource  = params.germline_resource  ? Channel.fromPath(params.germlin
 known_indels       = params.known_indels       ? Channel.fromPath(params.known_indels).collect()             : Channel.value([])
 known_snps         = params.known_snps         ? Channel.fromPath(params.known_snps).collect()               : Channel.value([])
 pon                = params.pon                ? Channel.fromPath(params.pon).collect()                      : Channel.value([]) //PON is optional for Mutect2 (but highly recommended)
+whitelist          = params.whitelist          ? Channel.fromPath(params.whitelist).collect()                      : Channel.value([])
 
 
 // Create samplesheets to restart from different steps
@@ -180,6 +181,11 @@ include { CONSENSUS                                            } from '../subwor
 
 // Annotation
 include { ANNOTATE                                             } from '../subworkflows/local/annotate'
+include { VCF2MAF                                             } from '../modules/local/vcf2maf/vcf2maf/main'
+
+// Filtering
+include { FILTER_DNA as BASIC_FILTERING                                             } from '../subworkflows/local/filtering/filter_dna'
+//include { FILTER_RNA                                             } from '../subworkflows/local/filtering/filter_rna'
 
 // REPORTING VERSIONS OF SOFTWARE USED
 include { CUSTOM_DUMPSOFTWAREVERSIONS                          } from '../modules/nf-core/modules/custom/dumpsoftwareversions/main'
@@ -645,7 +651,6 @@ workflow RNADNAVAR {
 
                 [meta, normal[2], normal[3], tumor[2], tumor[3]]
             }
-        //TODO: are these starting in parallel?? I think so???
         PAIR_VARIANT_CALLING_DNA(
             params.tools,
             ch_cram_variant_calling_dna_pair,
@@ -846,8 +851,22 @@ workflow RNADNAVAR {
             maf_to_filter = VCF2MAF.out.maf
         }
 
-    // ANNOTATION
+    if (params.step == 'filtering') {
+        maf_to_filter = ch_input_sample
+    } else {
+        BASIC_FILTERING(maf_to_filter,
+                       whitelist )
+        BASIC_FILTERING.out.filter_maf.branch{
+                dna: it[0].status < 2
+                rna: it[0].status == 2
+            }.set{maf_to_filter_status}
+        // Only PASS mutations
 
+        maf_to_filter_status.rna.dump(tag:'maf_to_filter_statusRNA')
+        //
+    //    FILTER_RNA(maf_to_filter_status.rna)
+
+    }
 
     // RNA SPECIFIC FILTERING
 
