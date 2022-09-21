@@ -239,28 +239,6 @@
                     "type": "string",
                     "description": "Path to dbSNP VCF index file"
                 },
-                "snpeff_db": {
-                    "type": "string",
-                    "fa_icon": "fas fa-database",
-                    "description": "snpEff DB version"
-                },
-                "vep_genome": {
-                    "type": "string",
-                    "fa_icon": "fas fa-microscope",
-                    "description": "VEP genome",
-                    "help_text": "If you use AWS iGenomes or a local resource with genomes.conf, this has already been set for you appropriately."
-                },
-                "vep_species": {
-                    "type": "string",
-                    "fa_icon": "fas fa-microscope",
-                    "description": "VEP species",
-                    "help_text": "If you use AWS iGenomes or a local resource with genomes.conf, this has already been set for you appropriately."
-                },
-                "vep_cache_version": {
-                    "type": "string",
-                    "fa_icon": "fas fa-tag",
-                    "description": "VEP cache version"
-                },
                 "dragmap": {
                     "type": "string",
                     "fa_icon": "fas fa-copy",
@@ -609,6 +587,45 @@
                     "description": "Path to VEP cache",
                     "help_text": "To be used with `--annotation_cache`",
                     "hidden": true
+                },
+                "vep_dbnsfp": {
+                    "type": "boolean",
+                    "fa_icon": "fas fa-database",
+                    "description": "Enable the use of the VEP dbNSFP plugin.",
+                    "hidden": true,
+                    "help_text": "For details, see [here](https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html#dbnsfp)."
+                },
+                "snpeff_db": {
+                    "type": "string",
+                    "fa_icon": "fas fa-database",
+                    "description": "snpEff DB version"
+                },
+                "vep_genome": {
+                    "type": "string",
+                    "fa_icon": "fas fa-microscope",
+                    "description": "VEP genome",
+                    "help_text": "If you use AWS iGenomes or a local resource with genomes.conf, this has already been set for you appropriately."
+                },
+                "vep_species": {
+                    "type": "string",
+                    "fa_icon": "fas fa-microscope",
+                    "description": "VEP species",
+                    "help_text": "If you use AWS iGenomes or a local resource with genomes.conf, this has already been set for you appropriately."
+                },
+                "vep_cache_version": {
+                    "type": "string",
+                    "fa_icon": "fas fa-tag",
+                    "description": "VEP cache version"
+                },
+                "vep_out_format": {
+                    "type": "string",
+                    "fa_icon": "fas fa-tag",
+                    "description": "VEP output format",
+                "whitelist": {
+                    "type": "string",
+                    "fa_icon": "fas fa-database",
+                    "description": "Path to BED file with variants to whitelist during filtering"
+                }
                 }
             }
         },

@@ -135,9 +135,6 @@ pon                = params.pon                ? Channel.fromPath(params.pon).co
 // Create samplesheets to restart from different steps
 include { MAPPING_CSV                                          } from '../subworkflows/local/mapping_csv'
 include { GATK_PREPROCESSING                                   } from '../subworkflows/local/gatk_preprocessing'
-include { MARKDUPLICATES_CSV                                   } from '../subworkflows/local/markduplicates_csv'
-include { PREPARE_RECALIBRATION_CSV                            } from '../subworkflows/local/prepare_recalibration_csv'
-include { RECALIBRATE_CSV                                      } from '../subworkflows/local/recalibrate_csv'
 include { VARIANTCALLING_CSV                                   } from '../subworkflows/local/variantcalling_csv'
 include { PAIR_VARIANT_CALLING_MUTECT2 as GATK_FORCE_CALLS_DNA              } from '../subworkflows/local/force_mutect_pair_variant_calling'
 include { PAIR_VARIANT_CALLING_MUTECT2 as GATK_FORCE_CALLS_RNA             } from '../subworkflows/local/force_mutect_pair_variant_calling'
@@ -165,39 +162,10 @@ include { GATK4_MAPPING                                        } from '../subwor
 include { GATK4_BEDTOINTERVALLIST                              } from '../modules/nf-core/modules/gatk4/bedtointervallist/main'
 include { GATK4_INTERVALLISTTOOLS                              } from '../modules/nf-core/modules/gatk4/intervallisttools/main'
 
-// Merge and index BAM files (optional)
-include { MERGE_INDEX_BAM                                      } from '../subworkflows/nf-core/merge_index_bam'
 
-include { SAMTOOLS_CONVERT as SAMTOOLS_CRAMTOBAM               } from '../modules/nf-core/modules/samtools/convert/main'
-include { SAMTOOLS_CONVERT as SAMTOOLS_CRAMTOBAM_RECAL         } from '../modules/nf-core/modules/samtools/convert/main'
 
-include { SAMTOOLS_CONVERT as SAMTOOLS_BAMTOCRAM               } from '../modules/nf-core/modules/samtools/convert/main'
 include { SAMTOOLS_CONVERT as SAMTOOLS_BAMTOCRAM_VARIANTCALLING} from '../modules/nf-core/modules/samtools/convert/main'
 
-// Mark Duplicates (+QC)
-include { MARKDUPLICATES                                       } from '../subworkflows/nf-core/gatk4/markduplicates/main'
-
-// Mark Duplicates SPARK (+QC)
-include { MARKDUPLICATES_SPARK                                 } from '../subworkflows/nf-core/gatk4/markduplicates_spark/main'
-
-// Convert to CRAM (+QC)
-include { BAM_TO_CRAM                                          } from '../subworkflows/nf-core/bam_to_cram'
-include { BAM_TO_CRAM as BAM_TO_CRAM_SNCR                      } from '../subworkflows/nf-core/bam_to_cram'
-
-// QC on CRAM
-include { CRAM_QC                                              } from '../subworkflows/nf-core/cram_qc'
-
-// Create recalibration tables
-include { PREPARE_RECALIBRATION                                } from '../subworkflows/nf-core/gatk4/prepare_recalibration/main'
-
-// Create recalibration tables SPARK
-include { PREPARE_RECALIBRATION_SPARK                          } from '../subworkflows/nf-core/gatk4/prepare_recalibration_spark/main'
-
-// Create recalibrated cram files to use for variant calling (+QC)
-include { RECALIBRATE                                          } from '../subworkflows/nf-core/gatk4/recalibrate/main'
-
-// Create recalibrated cram files to use for variant calling (+QC)
-include { RECALIBRATE_SPARK                                    } from '../subworkflows/nf-core/gatk4/recalibrate_spark/main'
 
 // Variant calling on tumor/normal pair TODO: add tumour only for next version
 include { PAIR_VARIANT_CALLING as PAIR_VARIANT_CALLING_DNA     } from '../subworkflows/local/pair_variant_calling'
@@ -227,8 +195,6 @@ include { MULTIQC                                              } from '../module
 */
 
 include { ALIGN_STAR                    } from '../subworkflows/nf-core/align_star'         // Align reads to genome and sort and index the alignment file
-// TODO not needed?
-// include { RECALIBRATE                   } from '../subworkflows/nf-core/recalibrate'        // Estimate and correct systematic bias
 
 /*
 ========================================================================================
@@ -279,6 +245,26 @@ workflow RNADNAVAR {
     known_snps_tbi         = params.known_snps              ? params.known_snps_tbi             ? Channel.fromPath(params.known_snps_tbi).collect()        : PREPARE_GENOME.out.known_snps_tbi        : Channel.value([])
     pon_tbi                = params.pon                     ? params.pon_tbi                    ? Channel.fromPath(params.pon_tbi).collect()               : PREPARE_GENOME.out.pon_tbi               : []
     dragmap                = params.fasta                   ? params.dragmap                    ? Channel.fromPath(params.dragmap).collect()               : PREPARE_GENOME.out.hashtable             : []
+
+
+    snpeff_db          = params.snpeff_db          ?: Channel.empty()
+    vep_cache_version  = params.vep_cache_version  ?: Channel.empty()
+    vep_genome         = params.vep_genome         ?: Channel.empty()
+    vep_species        = params.vep_species        ?: Channel.empty()
+
+    // Initialize files channels based on params, not defined within the params.genomes[params.genome] scope
+    snpeff_cache       = params.snpeff_cache       ? Channel.fromPath(params.snpeff_cache).collect()             : []
+    vep_cache          = params.vep_cache          ? Channel.fromPath(params.vep_cache).collect()                : []
+
+    vep_extra_files = []
+
+    if (params.dbnsfp && params.dbnsfp_tbi) {
+        vep_extra_files.add(file(params.dbnsfp, checkIfExists: true))
+        vep_extra_files.add(file(params.dbnsfp_tbi, checkIfExists: true))
+}
+
+
+
 
     // Gather index for mapping given the chosen aligner
     ch_map_index = params.aligner == "bwa-mem" ? bwa :
@@ -807,6 +793,7 @@ workflow RNADNAVAR {
             pon,
             pon_tbi
         )
+        ch_versions = ch_versions.mix(GATK_FORCE_CALLS_DNA.out.versions)
 
         GATK_FORCE_CALLS_RNA(
             ch_cram_variant_calling_rna_pair_con,  // from previous variant calling
@@ -821,7 +808,10 @@ workflow RNADNAVAR {
             pon,
             pon_tbi
         )
+        ch_versions = ch_versions.mix(GATK_FORCE_CALLS_RNA.out.versions)
 
+        vcf_to_annotate = Channel.empty()
+        vcf_to_annotate = GATK_FORCE_CALLS_DNA.out.vcf.mix(GATK_FORCE_CALLS_RNA.out.vcf)
 
 //
 //        vcf_consensus = Channel.empty()
@@ -830,9 +820,31 @@ workflow RNADNAVAR {
     }
 
 
+    if (params.step == 'annotate') vcf_to_annotate = ch_input_sample
 
-    // FILTER VARIANTS -- PASS only
+        if (params.tools.split(',').contains('merge') || params.tools.split(',').contains('snpeff') || params.tools.split(',').contains('vep')) {
 
+            vep_fasta = (params.vep_include_fasta) ? fasta : []
+            ANNOTATE(
+                vcf_to_annotate,
+                vep_fasta,
+                params.tools,
+                snpeff_db,
+                snpeff_cache,
+                vep_genome,
+                vep_species,
+                vep_cache_version,
+                vep_cache,
+                vep_extra_files)
+
+            // Gather used softwares versions
+            ch_versions = ch_versions.mix(ANNOTATE.out.versions)
+            ch_reports  = ch_reports.mix(ANNOTATE.out.reports)
+            VCF2MAF(ANNOTATE.out.vcf_ann,
+                    fasta,
+                    vep_genome)
+            maf_to_filter = VCF2MAF.out.maf
+        }
 
     // ANNOTATION
 
