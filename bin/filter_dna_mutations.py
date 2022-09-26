@@ -49,11 +49,13 @@ def filtering(maf, gnomad_thr, whitelist, blacklist, filters):
         maf_filtered = maf[((maf[af_col] < gnomad_thr) & (maf["KEEP"] == False))]
     maf_filtered = maf_filtered[((~maf_filtered['DNAchange'].isin(blacklist)) & (maf["KEEP"] == False))]
     maf_filtered = maf_filtered[(maf_filtered["FILTER"].isin(filters) & (maf["KEEP"] == False))]
+    # print(maf_filtered[["t_alt_count", "n_alt_count", "n_AF", "t_ref_count"]])
+    # print(maf_filtered["t_alt_count"].astype(int))
     maf_filtered = maf_filtered[
-                                ((maf_filtered["t_alt_count"].astype(int) >= 3) &
-                                 (maf_filtered["n_alt_count"].astype(int) == 0) &
+                                ((maf_filtered["t_alt_count"].astype(float) >= 3) &
+                                 (maf_filtered["n_alt_count"].astype(float) == 0) &
                                  (maf_filtered["n_AF"].astype(float) <= 0.01) &
-                                 (maf_filtered["t_ref_count"].astype(int) >= 3))
+                                 (maf_filtered["t_ref_count"].astype(float) >= 3))
                                 ]
     return maf_filtered
 
