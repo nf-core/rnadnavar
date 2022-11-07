@@ -30,7 +30,6 @@ workflow RECALIBRATE_SPARK {
                 num_intervals:  num_intervals,
                 patient:        meta.patient,
                 sample:         meta.sample,
-                sex:            meta.sex,
                 status:         meta.status,
             ],
             cram, crai, recal, intervals_new]
@@ -49,7 +48,6 @@ workflow RECALIBRATE_SPARK {
                                 data_type:  meta.data_type,
                                 patient:    meta.patient,
                                 sample:     meta.sample,
-                                sex:        meta.sex,
                                 status:     meta.status,
                             ],
                             cram, crai]

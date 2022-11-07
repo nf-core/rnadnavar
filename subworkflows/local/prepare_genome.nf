@@ -10,10 +10,10 @@
 
 include { BWA_INDEX as BWAMEM1_INDEX             } from '../../modules/nf-core/modules/bwa/index/main'
 include { BWAMEM2_INDEX                          } from '../../modules/nf-core/modules/bwamem2/index/main'
+include { DRAGMAP_HASHTABLE                      } from '../../modules/nf-core/modules/dragmap/hashtable/main'
 include { GTF2BED                                } from '../../modules/local/gtf2bed'                                       //addParams(options: params.genome_options)
 include { GUNZIP as GUNZIP_GENE_BED              } from '../../modules/nf-core/modules/gunzip/main'                         //addParams(options: params.genome_options)
 include { STAR_GENOMEGENERATE                    } from '../../modules/nf-core/modules/star/genomegenerate/main'            //addParams(options: params.star_index_options)
-include { DRAGMAP_HASHTABLE                      } from '../../modules/nf-core/modules/dragmap/hashtable/main'
 include { GATK4_CREATESEQUENCEDICTIONARY         } from '../../modules/nf-core/modules/gatk4/createsequencedictionary/main'
 include { SAMTOOLS_FAIDX                         } from '../../modules/nf-core/modules/samtools/faidx/main'
 include { TABIX_TABIX as TABIX_DBSNP             } from '../../modules/nf-core/modules/tabix/tabix/main'
@@ -25,6 +25,8 @@ include { UNZIP as UNZIP_ALLELES                 } from '../../modules/nf-core/m
 include { UNZIP as UNZIP_LOCI                    } from '../../modules/nf-core/modules/unzip/main'
 include { UNZIP as UNZIP_GC                      } from '../../modules/nf-core/modules/unzip/main'
 include { UNZIP as UNZIP_RT                      } from '../../modules/nf-core/modules/unzip/main'
+include { HISAT2_EXTRACTSPLICESITES         } from '../../modules/nf-core/modules/hisat2/extractsplicesites/main'
+include { HISAT2_BUILD                      } from '../../modules/nf-core/modules/hisat2/build/main'
 
 workflow PREPARE_GENOME {
     take:
@@ -123,10 +125,12 @@ workflow PREPARE_GENOME {
         .set { ch_star_index }
         ch_versions     = ch_versions.mix(STAR_GENOMEGENERATE.out.versions)
     }
+    // HISAT mandatory for realignment TODO: make opt with arguments
+    ch_splicesites  = HISAT2_EXTRACTSPLICESITES ( ch_gtf ).txt
+    ch_hisat2_index = HISAT2_BUILD ( fasta, ch_gtf, ch_splicesites ).index
 
 
     // the following are flattened and mapped in case the user supplies more than one value for the param
-    // written for KNOWN_INDELS, but preemptively applied to the rest
     // [file1,file2] becomes [[meta1,file1],[meta2,file2]]
     // outputs are collected to maintain a single channel for relevant TBI files
     TABIX_DBSNP(dbsnp.flatten().map{ it -> [[id:it.baseName], it] })
@@ -147,6 +151,8 @@ workflow PREPARE_GENOME {
     ch_versions = ch_versions.mix(TABIX_KNOWN_SNPS.out.versions)
     ch_versions = ch_versions.mix(TABIX_KNOWN_INDELS.out.versions)
     ch_versions = ch_versions.mix(TABIX_PON.out.versions)
+    ch_versions = ch_versions.mix(HISAT2_EXTRACTSPLICESITES.out.versions)
+    ch_versions = ch_versions.mix(HISAT2_BUILD.out.versions)
 
     emit:
         bwa                              = BWAMEM1_INDEX.out.index                                             // path: bwa/*
@@ -162,5 +168,7 @@ workflow PREPARE_GENOME {
         known_snps_tbi                   = TABIX_KNOWN_SNPS.out.tbi.map{ meta, tbi -> [tbi] }.collect()      // path: {known_indels*}.vcf.gz.tbi
         known_indels_tbi                 = TABIX_KNOWN_INDELS.out.tbi.map{ meta, tbi -> [tbi] }.collect()      // path: {known_indels*}.vcf.gz.tbi
         pon_tbi                          = TABIX_PON.out.tbi.map{ meta, tbi -> [tbi] }.collect()               // path: pon.vcf.gz.tbi
+        hisat2_index                     = ch_hisat2_index     //    path: hisat2/index/
+        splicesites                      = ch_splicesites      //    path: genome.splicesites.txt
         versions                         = ch_versions                                                         // channel: [ versions.yml ]
 }

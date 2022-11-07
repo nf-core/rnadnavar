@@ -30,7 +30,6 @@ workflow RECALIBRATE {
                 num_intervals:  num_intervals,
                 patient:        meta.patient,
                 sample:         meta.sample,
-                sex:            meta.sex,
                 status:         meta.status,
             ],
             cram, crai, recal, intervals_new]
@@ -48,7 +47,6 @@ workflow RECALIBRATE {
                                 id:         meta.id,
                                 patient:    meta.patient,
                                 sample:     meta.sample,
-                                sex:        meta.sex,
                                 status:     meta.status,
                             ],
                             cram, crai]

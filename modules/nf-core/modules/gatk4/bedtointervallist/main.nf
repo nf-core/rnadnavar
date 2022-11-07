@@ -1,6 +1,6 @@
 process GATK4_BEDTOINTERVALLIST {
     tag "$meta.id"
-    label 'process_medium'
+    label 'process_very_low'
 
     conda (params.enable_conda ? "bioconda::gatk4=4.2.6.1" : null)
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
