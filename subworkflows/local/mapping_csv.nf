@@ -9,12 +9,13 @@ workflow MAPPING_CSV {
     main:
         // Creating csv files to restart from this step
         bam_indexed.collectFile(keepHeader: true, skip: 1, sort: true, storeDir: "${params.outdir}/csv") { meta, bam, bai ->
+            id = meta.id
             patient = meta.patient
             sample  = meta.sample
-            sex     = meta.sex
             status  = meta.status
-            bam   = "${params.outdir}/preprocessing/mapped/${sample}/${bam.name}"
-            bai   = "${params.outdir}/preprocessing/mapped/${sample}/${bai.name}"
-            ["mapped.csv", "patient,sex,status,sample,bam,bai\n${patient},${sex},${status},${sample},${bam},${bai}\n"]
+            lane    = meta.lane
+            bam     = "${params.outdir}/preprocessing/mapped/${patient}/${id}/${bam.name}"
+            bai     = "${params.outdir}/preprocessing/mapped/${patient}/${id}/${bai.name}"
+            ["mapped.csv", "patient,status,sample,lane,fastq_1,fastq_2,bam,bai,cram,crai,table,vcf\n${patient},${status},${sample},${lane},,,${bam},${bai},,,,\n"]
         }
 }
