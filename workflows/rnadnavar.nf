@@ -27,7 +27,9 @@ def checkPathParamList = [
     params.multiqc_config,
     params.snpeff_cache,
     params.vep_cache,
-    params.star_index
+    params.star_index,
+    params.hisat2_index,
+    params.whitelist
     ]
 
 /*
@@ -95,6 +97,8 @@ if (anno_readme && file(anno_readme).exists()) {
     file(anno_readme).copyTo("${params.outdir}/genome/")
 }
 
+file("${params.outdir}").mkdirs()
+
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -118,15 +122,10 @@ ch_multiqc_custom_config = params.multiqc_config ? Channel.fromPath(params.multi
 
 
 // Create samplesheets to restart from different steps
-include { MAPPING_CSV                                          } from '../subworkflows/local/mapping_csv'
 include { GATK_PREPROCESSING                                   } from '../subworkflows/local/gatk_preprocessing'
-include { VARIANTCALLING_CSV                                   } from '../subworkflows/local/variantcalling_csv'
-// TODO: this produces a warning? unknown recognition error type: groovyjarjarantlr4.v4.runtime.LexerNoViableAltException
-//include { PAIR_VARIANT_CALLING_MUTECT2 as GATK_FORCE_CALLS_DNA              } from '../subworkflows/local/force_mutect_pair_variant_calling'
-//include { PAIR_VARIANT_CALLING_MUTECT2 as GATK_FORCE_CALLS_RNA             } from '../subworkflows/local/force_mutect_pair_variant_calling'
 // Build the genome index and other reference files
 include { PREPARE_REFERENCE_AND_INTERVALS                                       } from '../subworkflows/local/prepare_reference_and_intervals'
-include { MAPPING                                       } from '../subworkflows/local/mapping'
+include { MAPPING                                             } from '../subworkflows/local/mapping'
 
 include { SAMTOOLS_CONVERT as SAMTOOLS_BAMTOCRAM_VARIANTCALLING} from '../modules/nf-core/modules/samtools/convert/main'
 include { SAMTOOLS_MERGE                                       } from '../modules/nf-core/modules/samtools/merge/main'
@@ -201,21 +200,29 @@ workflow RNADNAVAR {
     germline_resource_tbi       =    PREPARE_REFERENCE_AND_INTERVALS.out.germline_resource_tbi
     intervals                   =    PREPARE_REFERENCE_AND_INTERVALS.out.intervals
     intervals_for_preprocessing =    PREPARE_REFERENCE_AND_INTERVALS.out.intervals_for_preprocessing
-    ch_interval_list_split      =    PREPARE_REFERENCE_AND_INTERVALS.out. ch_interval_list_split
+    ch_interval_list_split      =    PREPARE_REFERENCE_AND_INTERVALS.out.ch_interval_list_split
+    // specific for variant calling
+    intervals_bed_combined      =    PREPARE_REFERENCE_AND_INTERVALS.out.intervals_bed_combined
+    intervals_bed_gz_tbi        =    PREPARE_REFERENCE_AND_INTERVALS.out.intervals_bed_gz_tbi
+    dbsnp                       =    PREPARE_REFERENCE_AND_INTERVALS.out.dbsnp
+    dbsnp_tbi                   =    PREPARE_REFERENCE_AND_INTERVALS.out.dbsnp_tbi
+    pon                         =    PREPARE_REFERENCE_AND_INTERVALS.out.pon
+    pon_tbi                     =    PREPARE_REFERENCE_AND_INTERVALS.out.pon_tbi
+    germline_resource           =    PREPARE_REFERENCE_AND_INTERVALS.out.germline_resource
+    germline_resource_tbi       =    PREPARE_REFERENCE_AND_INTERVALS.out.germline_resource_tbi
 
 
 // STEP 1: ALIGNMENT PREPROCESSING
-    if (params.step == 'mapping') {
-        MAPPING(
-            PREPARE_REFERENCE_AND_INTERVALS.out.bwa,
-            PREPARE_REFERENCE_AND_INTERVALS.out.bwamem2,
-            PREPARE_REFERENCE_AND_INTERVALS.out.dragmap,
-            PREPARE_REFERENCE_AND_INTERVALS.out.star_index,
-            PREPARE_REFERENCE_AND_INTERVALS.out.gtf,
-            ch_input_sample
-            )
-        ch_reports = ch_reports.mix(MAPPING.out.reports)
-        ch_versions = ch_versions.mix(MAPPING.out.versions)
+    MAPPING(
+        PREPARE_REFERENCE_AND_INTERVALS.out.bwa,
+        PREPARE_REFERENCE_AND_INTERVALS.out.bwamem2,
+        PREPARE_REFERENCE_AND_INTERVALS.out.dragmap,
+        PREPARE_REFERENCE_AND_INTERVALS.out.star_index,
+        PREPARE_REFERENCE_AND_INTERVALS.out.gtf,
+        ch_input_sample
+        )
+    ch_reports = ch_reports.mix(MAPPING.out.reports)
+    ch_versions = ch_versions.mix(MAPPING.out.versions)
 
     }
 
