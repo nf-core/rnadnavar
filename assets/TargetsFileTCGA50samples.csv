@@ -1,0 +1,4 @@
+patient,status,sample,lane,fastq_1,fastq_2,bam,bai,cram,crai,table,vcf
+TCGA-02-0055,0,TCGA-02-0055-10A-01D-1490-08,L21,,,/rds/project/rds-nRVsLqKmyyw/work/tcga/TCGA-02-0055/test_data/TCGA-02-0055-10A-01D-1490-08.bam,/rds/project/rds-nRVsLqKmyyw/work/tcga/TCGA-02-0055/test_data/TCGA-02-0055-10A-01D-1490-08.bam.bai,,,
+TCGA-02-0055,1,TCGA-02-0055-01A-01D-1490-08,L22,,,/rds/project/rds-nRVsLqKmyyw/work/tcga/TCGA-02-0055/test_data/TCGA-02-0055-01A-01D-1490-08.bam,/rds/project/rds-nRVsLqKmyyw/work/tcga/TCGA-02-0055/test_data/TCGA-02-0055-01A-01D-1490-08.bam.bai,,,
+TCGA-02-0055,2,TCGA-02-0055-01A-01R-1849-01,L23,,,/rds/project/rds-nRVsLqKmyyw/work/tcga/TCGA-02-0055/test_data/TCGA-02-0055-01A-01R-1849-01.bam,/rds/project/rds-nRVsLqKmyyw/work/tcga/TCGA-02-0055/test_data/TCGA-02-0055-01A-01R-1849-01.bam.bai,,,
