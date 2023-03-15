@@ -42,13 +42,12 @@ workflow RUN_MANTA_TUMORONLY {
                             num_intervals:  meta.num_intervals,
                             patient:        meta.patient,
                             sample:         meta.sample,
-                            sex:            meta.sex,
                             status:         meta.status,
                         ],
                         meta.num_intervals),
                 vcf]
 
-            }.groupTuple(),
+            }.groupTuple(sort:true),
         dict)
 
     MERGE_MANTA_SV(
@@ -59,13 +58,12 @@ workflow RUN_MANTA_TUMORONLY {
                             num_intervals:  meta.num_intervals,
                             patient:        meta.patient,
                             sample:         meta.sample,
-                            sex:            meta.sex,
                             status:         meta.status
                         ],
                         meta.num_intervals),
                 vcf]
 
-            }.groupTuple(),
+            }.groupTuple(sort:true),
         dict)
 
     MERGE_MANTA_TUMOR(
@@ -76,13 +74,12 @@ workflow RUN_MANTA_TUMORONLY {
                             num_intervals:  meta.num_intervals,
                             patient:        meta.patient,
                             sample:         meta.sample,
-                            sex:            meta.sex,
                             status:         meta.status,
                         ],
                         meta.num_intervals),
                 vcf]
 
-            }.groupTuple(),
+            }.groupTuple(sort:true),
         dict)
 
     // Mix output channels for "no intervals" and "with intervals" results
@@ -96,7 +93,6 @@ workflow RUN_MANTA_TUMORONLY {
             num_intervals:  meta.num_intervals,
             patient:        meta.patient,
             sample:         meta.sample,
-            sex:            meta.sex,
             status:         meta.status,
             variantcaller:  "manta"
         ],

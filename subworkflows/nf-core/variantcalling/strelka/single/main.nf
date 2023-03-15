@@ -34,12 +34,11 @@ workflow RUN_STRELKA_SINGLE {
                                 num_intervals:  meta.num_intervals,
                                 patient:        meta.patient,
                                 sample:         meta.sample,
-                                sex:            meta.sex,
                                 status:         meta.status
                             ]
 
                 [groupKey(new_meta, meta.num_intervals), vcf]
-            }.groupTuple(),
+            }.groupTuple(sort:true),
         dict
     )
 
@@ -52,13 +51,12 @@ workflow RUN_STRELKA_SINGLE {
                             num_intervals:  meta.num_intervals,
                             patient:        meta.patient,
                             sample:         meta.sample,
-                            sex:            meta.sex,
                             status:         meta.status,
                         ],
                         meta.num_intervals),
                 vcf]
 
-            }.groupTuple(),
+            }.groupTuple(sort:true),
         dict
     )
 
@@ -73,7 +71,6 @@ workflow RUN_STRELKA_SINGLE {
                         num_intervals:  meta.num_intervals,
                         patient:        meta.patient,
                         sample:         meta.sample,
-                        sex:            meta.sex,
                         status:         meta.status,
                         variantcaller:  "strelka"
                     ],vcf]
