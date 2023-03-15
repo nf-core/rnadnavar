@@ -2,17 +2,16 @@ process RUN_CONSENSUS {
     tag "$meta.id"
     label 'process_low'
 
-    conda (params.enable_conda ? "anaconda::pandas=1.4.3" : null)
+    conda (params.enable_conda ? "bioconda::bioconductor-rtracklayer bioconda::bioconductor-complexheatmap conda-forge::r-ggrepel conda-forge::r-data.table conda-forge::r-dplyr conda-forge::ggpubr " : null)
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/pandas:1.4.3' :
-        'quay.io/biocontainers/pandas:1.4.3' }"
+        'ghcr.io/raqmanzano/renv:latest' : null }"
 
     input:
-        tuple val(meta), path(vcfs), val(callers)
+        tuple val(meta), path(vcf), val(caller)
 
     output:
-        tuple val(meta), path('*.consensus.vcf'), val(['consensus']) , emit: vcf
-        tuple val(meta), path('*.consensus_*.vcf'), val(callers)     , emit: vcf_separate
+        tuple val(meta), path('*.consensus.maf'), val(['consensus']) , emit: vcf
+        tuple val(meta), path('*.consensus_*.maf'), val(caller)     , emit: vcf_separate
         path "versions.yml"                                          , emit: versions
 
     when:
@@ -21,13 +20,14 @@ process RUN_CONSENSUS {
     script: // This script is bundled with the pipeline, in nf-core/rnadnavar/bin/
         def args = task.ext.args ?: ''
         def prefix = task.ext.prefix ?: "${meta.id}"
-        def caller_list = "${callers.join(' ')}"
+        def input_list = vcf.collect{ "--input=$it"}.join(' ')
+        def caller_list = caller.collect{ "--caller=$it"}.join(' ')
 
         """
-        run_consensus.py -i $vcfs -n ${caller_list} --prefix ${prefix}.consensus $args
+        run_consensus.R ${input_list} ${caller_list} --out_prefix=${prefix} $args
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
-            python: \$(echo \$(python --version 2>&1) | sed 's/^.*Python (//;s/).*//')
+            R: \$(echo \$(R --version 2>&1) | head -n 1)
         END_VERSIONS
         """
 
