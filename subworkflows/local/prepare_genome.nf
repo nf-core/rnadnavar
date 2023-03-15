@@ -43,6 +43,8 @@ workflow PREPARE_GENOME {
 
     ch_versions = Channel.empty()
 
+
+    // If aligner is bwa-mem
     BWAMEM1_INDEX(fasta)     // If aligner is bwa-mem
     BWAMEM2_INDEX(fasta)     // If aligner is bwa-mem2
     DRAGMAP_HASHTABLE(fasta) // If aligner is dragmap
@@ -95,7 +97,7 @@ workflow PREPARE_GENOME {
             ch_gene_bed = GUNZIP_GENE_BED.out.gunzip.map{ meta, bed -> [bed] }.collect()
             ch_versions = ch_versions.mix(GUNZIP_GENE_BED.out.versions)
         } else {
-            ch_gene_bed = Channel.fromPath(params.exon_bed).collect()
+            ch_exon_bed = Channel.fromPath(params.exon_bed).collect()
         }
     } else {
         ch_exon_bed = GTF2BED ( ch_gtf ).bed.collect()
@@ -126,8 +128,22 @@ workflow PREPARE_GENOME {
         ch_versions     = ch_versions.mix(STAR_GENOMEGENERATE.out.versions)
     }
     // HISAT mandatory for realignment TODO: make opt with arguments
-    ch_splicesites  = HISAT2_EXTRACTSPLICESITES ( ch_gtf ).txt
-    ch_hisat2_index = HISAT2_BUILD ( fasta, ch_gtf, ch_splicesites ).index
+    if (params.splicesites) {
+        ch_splicesites  = Channel.fromPath(params.splicesites).collect()
+    } else{
+        ch_splicesites  = HISAT2_EXTRACTSPLICESITES ( ch_gtf ).txt
+        ch_versions = ch_versions.mix(HISAT2_EXTRACTSPLICESITES.out.versions)
+
+    }
+
+    if (params.hisat2_index) {
+        ch_hisat2_index  = Channel.fromPath(params.hisat2_index).collect()
+    } else{
+        ch_hisat2_index = HISAT2_BUILD ( fasta, ch_gtf, ch_splicesites ).index
+        ch_versions = ch_versions.mix(HISAT2_BUILD.out.versions)
+    }
+
+
 
 
     // the following are flattened and mapped in case the user supplies more than one value for the param
@@ -151,11 +167,10 @@ workflow PREPARE_GENOME {
     ch_versions = ch_versions.mix(TABIX_KNOWN_SNPS.out.versions)
     ch_versions = ch_versions.mix(TABIX_KNOWN_INDELS.out.versions)
     ch_versions = ch_versions.mix(TABIX_PON.out.versions)
-    ch_versions = ch_versions.mix(HISAT2_EXTRACTSPLICESITES.out.versions)
-    ch_versions = ch_versions.mix(HISAT2_BUILD.out.versions)
+
 
     emit:
-        bwa                              = BWAMEM1_INDEX.out.index                                             // path: bwa/*
+        bwa                              = BWAMEM1_INDEX.out.index                                              // path: bwa/*
         bwamem2                          = BWAMEM2_INDEX.out.index                                             // path: bwamem2/*
         hashtable                        = DRAGMAP_HASHTABLE.out.hashmap                                       // path: dragmap/*
         dbsnp_tbi                        = TABIX_DBSNP.out.tbi.map{ meta, tbi -> [tbi] }.collect()             // path: dbsnb.vcf.gz.tbi
