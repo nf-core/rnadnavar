@@ -21,16 +21,17 @@ workflow PREPARE_INTERVALS {
     // If no_intervals it will generate files with this option
     if (params.no_intervals) {
         // create files with no_interval
-        file("${params.outdir}/no_intervals.bed").text = "no_intervals\n"
-        file("${params.outdir}/no_intervals.bed.gz").text = "no_intervals\n"
-        file("${params.outdir}/no_intervals.bed.gz.tbi").text = "no_intervals\n"
+        file("${params.outdir}/intervals").mkdirs()
+        file("${params.outdir}/intervals/no_intervals.bed").text = "no_intervals\n"
+        file("${params.outdir}/intervals/no_intervals.bed.gz").text = "no_intervals\n"
+        file("${params.outdir}/intervals/no_intervals.bed.gz.tbi").text = "no_intervals\n"
         // create channels
-        ch_intervals = Channel.fromPath(file("${params.outdir}/no_intervals.bed"))
+        ch_intervals = Channel.fromPath(file("${params.outdir}/intervals/no_intervals.bed"))
                                             .map{ it -> [it, 0]}
-        ch_intervals_bed_gz_tbi = Channel.fromPath(file("${params.outdir}/no_intervals.bed.{gz,gz.tbi}"))
+        ch_intervals_bed_gz_tbi = Channel.fromPath(file("${params.outdir}/intervals/no_intervals.bed.{gz,gz.tbi}"))
                                             .collect().map{ it -> [it, 0]}
-        ch_intervals_combined = Channel.fromPath(file("${params.outdir}/no_intervals.bed"))
-                                            .maps{ it -> [[id:it.simpleName], it]}
+        ch_intervals_combined = Channel.fromPath(file("${params.outdir}/intervals/no_intervals.bed"))
+                                            .map{ it -> [[id:it.simpleName], it]}
 
 
     // If intervals but no intervals file it will generate files with the FASTA file (if we are not starting from annotate)
