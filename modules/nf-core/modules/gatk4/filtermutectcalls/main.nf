@@ -26,10 +26,10 @@ process GATK4_FILTERMUTECTCALLS {
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
 
-    def orientationbias_command = orientationbias ? orientationbias.collect{"--orientation-bias-artifact-priors $it"}.join(' ') : ''
-    def segmentation_command    = segmentation    ? segmentation.collect{"--tumor-segmentation $it"}.join(' ')                  : ''
-    def estimate_command        = estimate        ? " --contamination-estimate ${estimate} "                                    : ''
-    def table_command           = table           ? " --contamination-table ${table} "                                          : ''
+    def orientationbias_command = orientationbias.name.endsWith('NO_ARTPRIOR') ? '' : orientationbias.collect{"--orientation-bias-artifact-priors $it"}.join(' ')
+    def segmentation_command    = segmentation.name.endsWith('NO_SEG')         ? '' : segmentation.collect{"--tumor-segmentation $it"}.join(' ')
+    def estimate_command        = estimate                                     ? " --contamination-estimate ${estimate} " : ''
+    def table_command           = table.name.endsWith('NO_TABLE')              ? '' : " --contamination-table ${table} "
 
     def avail_mem = 3
     if (!task.memory) {
