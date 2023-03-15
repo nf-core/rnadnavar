@@ -50,7 +50,6 @@ workflow PREPARE_RECALIBRATION {
                                     num_intervals:  meta.num_intervals,
                                     patient:        meta.patient,
                                     sample:         meta.sample,
-                                    sex:            meta.sex,
                                     status:         meta.status,
                                 ]
 
