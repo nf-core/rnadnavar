@@ -2,7 +2,6 @@
 // Subworkflow: Run GATK4 SplitNCigarReads without intervals, merge and index BAM file.
 //
 include { GATK4_SPLITNCIGARREADS } from '../../modules/nf-core/modules/gatk4/splitncigarreads/main'
-include { SAMTOOLS_MERGE         } from '../../modules/nf-core/modules/samtools/merge/main'
 include { SAMTOOLS_INDEX         } from '../../modules/nf-core/modules/samtools/index/main'
 
 workflow SPLITNCIGAR {
