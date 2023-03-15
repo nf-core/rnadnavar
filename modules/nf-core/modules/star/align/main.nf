@@ -3,10 +3,12 @@ process STAR_ALIGN {
     label 'process_high'
 
     // Note: 2.7X indices incompatible with AWS iGenomes. TODO
-    conda (params.enable_conda ? 'bioconda::star=2.7.9a' : null)
+    // Note2: genomegenerate and align must be on the same STAR version
+    conda (params.enable_conda ? "bioconda::star=2.7.9a bioconda::samtools=1.15.1 conda-forge::gawk=5.1.0" : null)
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/star:2.7.9a--h9ee0642_0' :
-        'quay.io/biocontainers/star:2.7.9a--h9ee0642_0' }"
+        'https://depot.galaxyproject.org/singularity/mulled-v2-1fa26d1ce03c295fe2fdcf85831a92fbcbd7e8c2:1c4c32d87798d425c970ececfbadd155e7560277-0' :
+        'quay.io/biocontainers/mulled-v2-1fa26d1ce03c295fe2fdcf85831a92fbcbd7e8c2:1c4c32d87798d425c970ececfbadd155e7560277-0' }"
+
 
     input:
     tuple val(meta), path(reads)
