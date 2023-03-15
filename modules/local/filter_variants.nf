@@ -10,7 +10,6 @@ process BASIC_FILTERING {
 
     input:
         tuple val(meta), path(maf)
-        path whitelist
         path ref
 
     output:
@@ -25,7 +24,7 @@ process BASIC_FILTERING {
         def prefix = task.ext.prefix ?: "${meta.id}"
 
         """
-        filter_dna_mutations.py -i $maf --output ${prefix}.maf --ref $ref $args
+        python filter_mutations.py -i $maf --output ${prefix}.maf --ref $ref $args
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
             python: \$(echo \$(python --version 2>&1) | sed 's/^.*Python (//;s/).*//')
