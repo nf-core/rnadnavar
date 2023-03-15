@@ -42,17 +42,17 @@ workflow RUN_FREEBAYES {
                                                 normal_id:      meta.normal_id,
                                                 num_intervals:  meta.num_intervals,
                                                 patient:        meta.patient,
-                                                sex:            meta.sex,
                                                 status:         meta.status,
                                                 tumor_id:       meta.tumor_id,
+                                                alleles:        meta.alleles
                                             ]
                                         :   [
                                                 id:             meta.sample,
                                                 num_intervals:  meta.num_intervals,
                                                 patient:        meta.patient,
                                                 sample:         meta.sample,
-                                                sex:            meta.sex,
                                                 status:         meta.status,
+                                                alleles:        meta.alleles
                                             ]
                 [groupKey(new_meta, meta.num_intervals), vcf]
             }.groupTuple(),
@@ -69,9 +69,9 @@ workflow RUN_FREEBAYES {
                             normal_id:      meta.normal_id,
                             num_intervals:  meta.num_intervals,
                             patient:        meta.patient,
-                            sex:            meta.sex,
                             status:         meta.status,
                             tumor_id:       meta.tumor_id,
+                            alleles:        meta.alleles,
                             variantcaller:  "freebayes"
                         ],
                             vcf]

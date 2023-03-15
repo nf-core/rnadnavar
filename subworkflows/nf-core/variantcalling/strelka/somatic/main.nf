@@ -34,9 +34,9 @@ workflow RUN_STRELKA_SOMATIC {
                             normal_id:      meta.normal_id,
                             num_intervals:  meta.num_intervals,
                             patient:        meta.patient,
-                            sex:            meta.sex,
                             status:         meta.status,
-                            tumor_id:       meta.tumor_id
+                            tumor_id:       meta.tumor_id,
+                            alleles:        meta.alleles
                             ],
                         meta.num_intervals),
                 vcf]
@@ -51,9 +51,9 @@ workflow RUN_STRELKA_SOMATIC {
                             normal_id:      meta.normal_id,
                             num_intervals:  meta.num_intervals,
                             patient:        meta.patient,
-                            sex:            meta.sex,
                             status:         meta.status,
-                            tumor_id:       meta.tumor_id
+                            tumor_id:       meta.tumor_id,
+                            alleles:        meta.alleles
                             ],
                             meta.num_intervals),
                 vcf]
@@ -73,9 +73,9 @@ workflow RUN_STRELKA_SOMATIC {
                         normal_id:      meta.normal_id,
                         num_intervals:  meta.num_intervals,
                         patient:        meta.patient,
-                        sex:            meta.sex,
                         status:         meta.status,
                         tumor_id:       meta.tumor_id,
+                        alleles:        meta.alleles,
                         variantcaller:  "strelka"
                         ],
                     vcf]

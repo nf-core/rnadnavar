@@ -52,9 +52,9 @@ workflow RUN_MANTA_SOMATIC {
                             normal_id:      meta.normal_id,
                             num_intervals:  meta.num_intervals,
                             patient:        meta.patient,
-                            sex:            meta.sex,
                             status:         meta.status,
-                            tumor_id:       meta.tumor_id
+                            tumor_id:       meta.tumor_id,
+                            alleles:        meta.alleles
                         ],
                         meta.num_intervals),
                 vcf]
@@ -70,9 +70,9 @@ workflow RUN_MANTA_SOMATIC {
                             normal_id:      meta.normal_id,
                             num_intervals:  meta.num_intervals,
                             patient:        meta.patient,
-                            sex:            meta.sex,
                             status:         meta.status,
-                            tumor_id:       meta.tumor_id
+                            tumor_id:       meta.tumor_id,
+                            alleles:        meta.alleles
                         ],
                         meta.num_intervals),
                 vcf]
@@ -87,9 +87,9 @@ workflow RUN_MANTA_SOMATIC {
                             normal_id:      meta.normal_id,
                             num_intervals:  meta.num_intervals,
                             patient:        meta.patient,
-                            sex:            meta.sex,
                             status:         meta.status,
-                            tumor_id:       meta.tumor_id
+                            tumor_id:       meta.tumor_id,
+                            alleles:        meta.alleles
                         ]
 
                 [groupKey([
@@ -97,9 +97,9 @@ workflow RUN_MANTA_SOMATIC {
                             normal_id:      meta.normal_id,
                             num_intervals:  meta.num_intervals,
                             patient:        meta.patient,
-                            sex:            meta.sex,
                             status:         meta.status,
-                            tumor_id:       meta.tumor_id
+                            tumor_id:       meta.tumor_id,
+                            alleles:        meta.alleles
                         ],
                         meta.num_intervals),
                 vcf]
@@ -115,9 +115,9 @@ workflow RUN_MANTA_SOMATIC {
                             normal_id:      meta.normal_id,
                             num_intervals:  meta.num_intervals,
                             patient:        meta.patient,
-                            sex:            meta.sex,
                             status:         meta.status,
-                            tumor_id:       meta.tumor_id
+                            tumor_id:       meta.tumor_id,
+                            alleles:        meta.alleles
                         ],
                         meta.num_intervals),
                 vcf]
@@ -137,9 +137,9 @@ workflow RUN_MANTA_SOMATIC {
             num_intervals:  meta.num_intervals,
             normal_id:      meta.normal_id,
             patient:        meta.patient,
-            sex:            meta.sex,
             status:         meta.status,
             tumor_id:       meta.tumor_id,
+            alleles:        meta.alleles,
             variantcaller:  "manta"
         ],
         vcf]
@@ -154,9 +154,9 @@ workflow RUN_MANTA_SOMATIC {
             id:         meta.tumor_id + "_vs_" + meta.normal_id,
             normal_id:  meta.normal_id,
             patient:    meta.patient,
-            sex:        meta.sex,
             status:     meta.status,
             tumor_id:   meta.tumor_id,
+            alleles:    meta.alleles
         ],
         vcf]
     }
@@ -169,9 +169,9 @@ workflow RUN_MANTA_SOMATIC {
             id:         meta.tumor_id + "_vs_" + meta.normal_id,
             normal_id:  meta.normal_id,
             patient:    meta.patient,
-            sex:        meta.sex,
             status:     meta.status,
-            tumor_id:   meta.tumor_id
+            tumor_id:   meta.tumor_id,
+            alleles:    meta.alleles
         ],
         vcf]
     }

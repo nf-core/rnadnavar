@@ -30,11 +30,10 @@ workflow RECALIBRATE {
                 num_intervals:  num_intervals,
                 patient:        meta.patient,
                 sample:         meta.sample,
-                status:         meta.status,
+                status:         meta.status
             ],
             cram, crai, recal, intervals_new]
         }
-
     // Run Applybqsr
     APPLYBQSR(cram_intervals, fasta, fasta_fai, dict)
 
@@ -47,11 +46,10 @@ workflow RECALIBRATE {
                                 id:         meta.id,
                                 patient:    meta.patient,
                                 sample:     meta.sample,
-                                status:     meta.status,
+                                status:     meta.status
                             ],
                             cram, crai]
                         }
-
     // Gather versions of all tools used
     ch_versions = ch_versions.mix(APPLYBQSR.out.versions)
     ch_versions = ch_versions.mix(MERGE_INDEX_CRAM.out.versions)
