@@ -148,7 +148,17 @@ def remove_rnaediting(maf, database, db_name):
                          rnadb["ref"] + ">" + rnadb["alt"]
     maf["rnaediting"] = maf["DNAchange"].isin(rnadb["DNAchange"])
     # change filter accordingly
-    maf.loc[maf["rnaediting"], 'FILTER'] = maf["FILTER"].apply(add_to_filter, args=[db_name])
+
+    for idx, row in maf.iterrows():
+        ravex_filter = row["RaVeX_FILTER"].split(";")
+        if ravex_filter == ["PASS"]:
+            ravex_filter = []
+        if row["rnaediting"]:
+            ravex_filter += ["rnaediting"]
+        if not ravex_filter:
+            ravex_filter = ["PASS"]
+        ravex_filter = ";".join(ravex_filter)
+        maf.at[idx, "RaVeX_FILTER"] = ravex_filter
     return maf
 
 
@@ -156,20 +166,26 @@ def write_output(args, results, output, out_suffix):
     maf_out = args.maf.replace(".maf", f".{out_suffix}.maf").replace(".gz", "").split("/")[-1]
     maf2_out = args.maf_2pass.replace(".maf", f".{out_suffix}.maf").replace(".gz", "").split("/")[-1]
     maf12_out = output[:]
-    pd.concat([results[0], results[2]]).sort_values(["Chromosome",
-                                                     "Start_Position"]).to_csv(maf_out,
-                                                                               sep="\t",
-                                                                               index=False,
-                                                                               header=True)
-    pd.concat([results[1], results[2]]).sort_values(["Chromosome",
-                                                     "Start_Position"]).to_csv(maf2_out,
-                                                                               sep="\t",
-                                                                               index=False,
-                                                                               header=True)
-    results[2].sort_values(["Chromosome", "Start_Position"]).to_csv(maf12_out,
-                                                                    sep="\t",
-                                                                    index=False,
-                                                                    header=True)
+    if len(results.keys()) > 1:
+        pd.concat([results[0], results[2]]).sort_values(["Chromosome",
+                                                         "Start_Position"]).to_csv(maf_out,
+                                                                                   sep="\t",
+                                                                                   index=False,
+                                                                                   header=True)
+        pd.concat([results[1], results[2]]).sort_values(["Chromosome",
+                                                         "Start_Position"]).to_csv(maf2_out,
+                                                                                   sep="\t",
+                                                                                   index=False,
+                                                                                   header=True)
+        results[2].sort_values(["Chromosome", "Start_Position"]).to_csv(maf12_out,
+                                                                        sep="\t",
+                                                                        index=False,
+                                                                        header=True)
+    else:
+        results[0].sort_values(["Chromosome", "Start_Position"]).to_csv(maf12_out,
+                                                                        sep="\t",
+                                                                        index=False,
+                                                                        header=True)
     print(f"See:\n-{maf_out}\n-{maf2_out}\n-{maf12_out}")
 
 
