@@ -3,6 +3,7 @@
 //
 include { SAMTOOLS_CONVERT as SAMTOOLS_CRAMTOBAM               } from '../../modules/nf-core/modules/samtools/convert/main'
 include { SAMTOOLS_CONVERT as SAMTOOLS_CRAMTOBAM_RECAL         } from '../../modules/nf-core/modules/samtools/convert/main'
+include { SAMTOOLS_CONVERT as SAMTOOLS_CRAMTOBAM_SNCR          } from '../../modules/nf-core/modules/samtools/convert/main'
 include { SAMTOOLS_CONVERT as SAMTOOLS_BAMTOCRAM               } from '../../modules/nf-core/modules/samtools/convert/main'
 include { MARKDUPLICATES                                       } from '../nf-core/gatk4/markduplicates/main'
 include { MARKDUPLICATES_CSV                                   } from '../local/markduplicates_csv'
@@ -43,11 +44,12 @@ workflow GATK_PREPROCESSING {
         ch_cram_markduplicates            = Channel.empty()
         ch_cram_variant_calling           = Channel.empty()
         // input from mapping
-        if (step == 'mapping') {
+        if (step == 'mapping' | !ch_input_sample) {
             ch_bam_for_markduplicates = ch_bam_mapped
+            ch_input_sample = ch_bam_mapped
         } else {
                 // input from samplesheet was a BAM and there is no need for alignment
-                ch_input_sample.branch{
+                ch_bam_mapped.branch{
                     bam:  it[0].data_type == "bam"
                     cram: it[0].data_type == "cram"
                 }.set{ch_convert}
@@ -139,10 +141,17 @@ workflow GATK_PREPROCESSING {
             ch_md_cram_for_restart.branch{
                 dna: it[0].status < 2
                 rna: it[0].status == 2
-            }.set{ch_md_cram_for_splitncigar_status}
+            }.set{ch_md_for_splitncigar}
             // RNA samples only
-            ch_md_cram_for_splitncigar = ch_md_cram_for_splitncigar_status.rna
-            ch_md_cram_dna = ch_md_cram_for_splitncigar_status.dna
+            ch_for_splitncigar = ch_md_for_splitncigar.rna
+            ch_md_cram_dna = ch_md_for_splitncigar.dna
+            // If CRAM files, convert to BAM, because the tool only runs on BAM files.
+            ch_for_splitncigar.branch{
+                    bam:  it[0].data_type == "bam"
+                    cram: it[0].data_type == "cram"
+                }.set{ch_for_splitncigar_input}
+            SAMTOOLS_CRAMTOBAM_SNCR(ch_for_splitncigar_input.cram, fasta, fasta_fai)
+            ch_md_cram_for_splitncigar = ch_for_splitncigar_input.bam.mix(SAMTOOLS_CRAMTOBAM_SNCR.out.alignment_index)
             SPLITNCIGAR (
                 ch_md_cram_for_splitncigar,
                 fasta,
@@ -186,7 +195,7 @@ workflow GATK_PREPROCESSING {
         // STEP 2: Create recalibration tables
         if (step in ['mapping', 'markduplicates', 'splitncigar', 'prepare_recalibration'] ) {
             // Run if starting from step "prepare_recalibration" or from "splitncigar" but skipping splitncigar (not much sense but just in case)
-            if (step  == 'prepare_recalibration' || (step == "splitncigar" && params.skip_tools.split(',').contains('splitncigar'))){
+            if (step  == 'prepare_recalibration' || (step == "splitncigar" && skip_tools.split(',').contains('splitncigar'))){
                 // Known issue: if you try to start the pipeline with a csv with a file in the table column
                 // but want to start from prepare_recalibration (re-do the table) then it will throw an error
                 // because the input object already has a table - this is actually bad practice for the pipeline so should not be used.
