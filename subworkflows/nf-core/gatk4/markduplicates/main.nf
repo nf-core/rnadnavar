@@ -33,6 +33,7 @@ workflow MARKDUPLICATES {
     ch_versions = ch_versions.mix(BAM_TO_CRAM.out.versions)
 
     emit:
+        bam      = GATK4_MARKDUPLICATES.out.bam.join(GATK4_MARKDUPLICATES.out.bai)
         cram     = BAM_TO_CRAM.out.cram_converted
         qc       = qc_reports
 
