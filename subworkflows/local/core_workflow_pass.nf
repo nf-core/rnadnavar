@@ -12,6 +12,7 @@ include { BASIC_FILTERING as FILTERING                         } from '../../mod
 workflow CORE_RUN {
     take:
         step                   // step to start with
+        skip_tools
         ch_input_sample        // input from CSV if applicable
         ch_genome_bam          // input from mapping
         fasta                  // fasta reference file
@@ -40,7 +41,7 @@ workflow CORE_RUN {
     GATK_PREPROCESSING(
         step,                   // Mandatory, step to start with - should be mapping for second pass
         ch_genome_bam,        // channel: [mandatory] [meta, [bam]]
-        params.skip_tools,           // channel: [mandatory] skip_tools
+        skip_tools,           // channel: [mandatory] skip_tools
         params.save_output_as_bam,   // channel: [mandatory] save_output_as_bam
         fasta,                       // channel: [mandatory] fasta
         fasta_fai ,                  // channel: [mandatory] fasta_fai
@@ -129,10 +130,17 @@ workflow CORE_RUN {
 
     FILTERING(CONSENSUS.out.maf, fasta)
 
+    FILTERING.out.maf.branch{
+                             dna: it[0].status < 2
+                             rna: it[0].status == 2
+                             }.set{filtered_maf}
+
     emit:
         vcf_consensus_dna               = CONSENSUS.out.vcf_consensus_dna
         vcfs_status_dna                 = CONSENSUS.out.vcfs_status_dna
         maf                             = FILTERING.out.maf
+        maf_rna                         = filtered_maf.rna
+        maf_dna                         = filtered_maf.dna
         versions                        = ch_versions                                                         // channel: [ versions.yml ]
         reports                         = ch_reports
 }
