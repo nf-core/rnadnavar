@@ -1,3 +1,16 @@
+# :warning: UNDER ACTIVE DEVELOPMENT :warning: 
+
+TODO:
+
+- [ ] Review pipeline format to make sure it follows nf-core best practices
+  - [ ] Review modules.config
+  - [ ] Review changes in pre-existing modules/subworkflows
+- [ ] Set up proper tests
+- [ ] Cleaning up
+  - [ ] Remove modules/subworkflows that are no longer necessary
+
+
+
 # ![nf-core/rnadnavar](docs/images/nf-core-rnadnavar_logo_light.png#gh-light-mode-only) ![nf-core/rnadnavar](docs/images/nf-core-rnadnavar_logo_dark.png#gh-dark-mode-only)
 
 [![GitHub Actions CI Status](https://github.com/nf-core/rnadnavar/workflows/nf-core%20CI/badge.svg)](https://github.com/nf-core/rnadnavar/actions?query=workflow%3A%22nf-core+CI%22)
