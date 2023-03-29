@@ -33,6 +33,16 @@ On release, automated continuous integration tests run the pipeline on a full-si
 
 1. Read QC ([`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))
 2. Present QC for raw reads ([`MultiQC`](http://multiqc.info/))
+3. Alignment (BWA/STAR)
+3. GATK pre-processing
+4. Variant calling
+5. Normalise calls
+6. Annotation
+7. Consensus
+8. Filtering
+9. Realignment [OPT]
+10. RNA filtering
+
 
 ## Quick Start
 
