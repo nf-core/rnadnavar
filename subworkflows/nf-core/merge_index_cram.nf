@@ -23,8 +23,7 @@ workflow MERGE_INDEX_CRAM {
                     num_intervals:  meta.num_intervals,
                     patient:        meta.patient,
                     sample:         meta.sample,
-                    sex:            meta.sex,
-                    status:         meta.status,
+                    status:         meta.status
                     ],
                 meta.num_intervals),
         cram]
