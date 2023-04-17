@@ -70,8 +70,6 @@ process HISAT2_ALIGN {
             --threads $task.cpus \\
             $rg_tag \\
             $unaligned \\
-            --no-mixed \\
-            --no-discordant \\
             $args \\
             | samtools view -bS -F 4 -F 8 -F 256 - > ${prefix}.bam
 
