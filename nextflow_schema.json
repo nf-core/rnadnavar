@@ -38,10 +38,14 @@
                     "enum": [
                         "mapping",
                         "markduplicates",
+                        "splitncigar",
                         "prepare_recalibration",
                         "recalibrate",
                         "variant_calling",
-                        "annotate"
+                        "normalization",
+                        "consensus",
+                        "annotate",
+                        "filtering"
                     ]
                 },
                 "outdir": {
@@ -65,26 +69,6 @@
                 "save_merged_fastq": {
                     "type": "boolean",
                     "description": "Save FastQ files after merging re-sequenced libraries in the results directory."
-                },
-                "tools": {
-                    "type": "string",
-                    "fa_icon": "fas fa-toolbox",
-                    "description": "Tools to use for variant calling and/or for annotation.",
-                    "help_text": "Multiple tools separated with commas.\n\n**Variant Calling:**\n\nGermline variant calling can currently be performed with the following variant callers:\n- SNPs/Indels: DeepVariant, FreeBayes, HaplotypeCaller, mpileup, Strelka\n- Structural Variants: Manta, TIDDIT\n- Copy-number: CNVKit\n\nTumor-only somatic variant calling can currently be performed with the following variant callers:\n- SNPs/Indels: FreeBayes, mpileup, Mutect2, Strelka\n- Structural Variants: Manta, TIDDIT\n- Copy-number: CNVKit, ControlFREEC\n\nSomatic variant calling can currently only be performed with the following variant callers:\n- SNPs/Indels: FreeBayes, Mutect2, Strelka2\n- Structural variants: Manta, TIDDIT\n- Copy-Number: ASCAT, CNVKit, Control-FREEC\n- Microsatellite Instability: MSIsensorpro\n\n> **NB** Mutect2 for somatic variant calling cannot be combined with `--no_intervals`\n\n**Annotation:**\n \n- snpEff, VEP, merge (both consecutively).\n\n> **NB** As Sarek will use bgzip and tabix to compress and index VCF files annotated, it expects VCF files to be sorted when starting from `--step annotate`.",
-                    "pattern": "^((deepvariant|freebayes|haplotypecaller|manta|merge|mpileup|mutect2|snpeff|strelka|vep)*,?)*$"
-                },
-                "skip_tools": {
-                    "type": "string",
-                    "fa_icon": "fas fa-forward",
-                    "description": "Disable specified tools.",
-                    "help_text": "Multiple tools can be specified, separated by commas.\n\n> **NB** `--skip_tools baserecalibrator_report` is actually just not saving the reports.\n> **NB** `--skip_tools markduplicates_report` does not skip `MarkDuplicates` but prevent the collection of duplicate metrics that slows down performance.",
-                    "pattern": "^((baserecalibrator|baserecalibrator_report|bcftools|documentation|fastqc|markduplicates|markduplicates_report|mosdepth|multiqc|samtools|vcftools|versions)*(,)*)*$"
-                },
-                "wes": {
-                    "type": "boolean",
-                    "fa_icon": "fas fa-dna",
-                    "description": "Enable when exome or panel data is provided.",
-                    "help_text": "With this parameter flags in various tools are set for targeted sequencing data. It is recommended to enable for whole-exome and panel data analysis."
                 },
                 "save_bam_mapped": {
                     "type": "boolean",
@@ -270,6 +254,13 @@
                     "help_text": "Use this to perform adapter trimming. Adapter are detected automatically by using the FastP flag `--detect_adapter_for_pe`. For more info see [FastP](https://github.com/OpenGene/fastp) ",
                     "hidden": true
                 },
+                "save_trimmed_fail": {
+                    "type": "boolean",
+                    "fa_icon": "fas fa-cut",
+                    "description": "Save failed fastq from FastP",
+                    "help_text": "Use this to saved failed FastP results ",
+                    "hidden": false
+                },
                 "clip_r1": {
                     "type": "integer",
                     "default": 0,
@@ -344,35 +335,25 @@
             "fa_icon": "fas fa-terminal",
             "description": "Define parameters that control the stages in the pipeline",
             "properties": {
-                "skip_baserecalibration": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Skip the process of base recalibration steps i.e., GATK BaseRecalibrator and GATK ApplyBQSR.",
-                    "help_text": "This parameter disable the base recalibration step, thus using a un-calibrated BAM file for variant calling."
+                "tools": {
+                    "type": "string",
+                    "fa_icon": "fas fa-toolbox",
+                    "description": "Tools to use for variant calling and/or for annotation.",
+                    "help_text": "Multiple tools separated with commas.\n\n**Variant Calling:**\n\nGermline variant calling can currently be performed with the following variant callers:\n- SNPs/Indels: DeepVariant, FreeBayes, HaplotypeCaller, mpileup, Strelka\n- Structural Variants: Manta, TIDDIT\n- Copy-number: CNVKit\n\nTumor-only somatic variant calling can currently be performed with the following variant callers:\n- SNPs/Indels: FreeBayes, mpileup, Mutect2, Strelka\n- Structural Variants: Manta, TIDDIT\n- Copy-number: CNVKit, ControlFREEC\n\nSomatic variant calling can currently only be performed with the following variant callers:\n- SNPs/Indels: FreeBayes, Mutect2, Strelka2\n- Structural variants: Manta, TIDDIT\n- Copy-Number: ASCAT, CNVKit, Control-FREEC\n- Microsatellite Instability: MSIsensorpro\n\n> **NB** Mutect2 for somatic variant calling cannot be combined with `--no_intervals`\n\n**Annotation:**\n \n- snpEff, VEP, merge (both consecutively).\n\n> **NB** As Sarek will use bgzip and tabix to compress and index VCF files annotated, it expects VCF files to be sorted when starting from `--step annotate`.",
+                    "pattern": "^((freebayes|manta|merge|sage|mutect2|snpeff|strelka|vep)*,?)*$"
                 },
-                "skip_intervallisttools": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Skip the process of preparing interval lists for the GATK variant calling step",
-                    "help_text": "This parameter disable preparing multiple interval lists to use with HaplotypeCaller module of GATK. It is recommended not to disable the step as it is required to run the variant calling correctly."
+                "skip_tools": {
+                    "type": "string",
+                    "fa_icon": "fas fa-forward",
+                    "description": "Disable specified tools.",
+                    "help_text": "Multiple tools can be specified, separated by commas.\n\n> **NB** `--skip_tools baserecalibrator_report` is actually just not saving the reports.\n> **NB** `--skip_tools markduplicates_report` does not skip `MarkDuplicates` but prevent the collection of duplicate metrics that slows down performance.",
+                    "pattern": "^((contamination|learnreadorientation|baserecalibrator|baserecalibrator_report|bcftools|documentation|fastqc|markduplicates|markduplicates_report|mosdepth|multiqc|samtools|vcftools|versions|splitncigar)*(,)*)*$"
                 },
-                "skip_variantfiltration": {
+                "wes": {
                     "type": "boolean",
-                    "default": false,
-                    "description": "Skip variant filtering of GATK",
-                    "help_text": "Set this parameter if you don't want to filter any variants."
-                },
-                "skip_variantannotation": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Skip variant annotation",
-                    "help_text": "Set this parameter if you don't want to run variant annotation."
-                },
-                "skip_multiqc": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Skip MultiQC reports",
-                    "help_text": "This parameter disable all QC reports"
+                    "fa_icon": "fas fa-dna",
+                    "description": "Enable when exome or panel data is provided.",
+                    "help_text": "With this parameter flags in various tools are set for targeted sequencing data. It is recommended to enable for whole-exome and panel data analysis."
                 }
             }
         },
@@ -420,6 +401,19 @@
                     "default": 1000000,
                     "description": "Specifies the maximum number of collapsed junctions"
                 },
+                "hisat2_index": {
+                    "type": "string",
+                    "format": "path",
+                    "fa_icon": "fas fa-bezier-curve",
+                    "description": "Path to directory or tar.gz archive for pre-built HISAT2 index."
+                },
+                "splicesites": {
+                    "type": "string",
+                    "format": "file-path",
+                    "mimetype": "text/plain",
+                    "fa_icon": "fas fa-hand-scissors",
+                    "description": "Splice sites file required for HISAT2."
+                },
                 "seq_center": {
                     "type": "string",
                     "description": "Sequencing center information to be added to read group of BAM files.",
@@ -454,26 +448,6 @@
             "default": "",
             "fa_icon": "fas fa-toolbox",
             "properties": {
-                "only_paired_variant_calling": {
-                    "type": "boolean",
-                    "fa_icon": "fas fa-forward",
-                    "description": "If true, skips germline variant calling for matched normal to tumor sample. Normal samples without matched tumor will still be processed through germline variant calling tools.",
-                    "help_text": "This can speed up computation for somatic variant calling with matched normal samples. If false, all normal samples are processed as well through the germline variantcalling tools. If true, only somatic variant calling is done."
-                },
-                "joint_germline": {
-                    "type": "boolean",
-                    "fa_icon": "fas fa-toolbox",
-                    "description": "Turn on the joint germline variant calling for GATK haplotypecaller",
-                    "help_text": "Uses all normal germline samples (as designated by `status` in the input csv) in the joint germline variant calling process."
-                },
-                "gatk_hc_call_conf": {
-                    "type": "number",
-                    "default": 20.0,
-                    "fa_icon": "fas fa-hammer",
-                    "description": "The minimum phred-scaled confidence threshold at which variants should be called.",
-                    "help_text": "Specify the minimum phred-scaled confidence threshold at which variants should be called.",
-                    "hidden": false
-                },
                 "remove_duplicates": {
                     "type": "boolean",
                     "default": false
@@ -492,22 +466,6 @@
                     "type": "integer",
                     "default": 25
                 },
-                "gatk_vf_window_size": {
-                    "type": "integer",
-                    "default": 35
-                },
-                "gatk_vf_cluster_size": {
-                    "type": "integer",
-                    "default": 3
-                },
-                "gatk_vf_fs_filter": {
-                    "type": "number",
-                    "default": 30.0
-                },
-                "gatk_vf_qd_filter": {
-                    "type": "number",
-                    "default": 2.0
-                },
                 "pon": {
                     "type": "string",
                     "fa_icon": "fas fa-file",
@@ -520,6 +478,24 @@
                     "fa_icon": "fas fa-file",
                     "description": "Index of PON panel-of-normals VCF.",
                     "help_text": "If none provided, will be generated automatically from the PON bgzipped VCF file.",
+                    "hidden": true
+                },
+                "highconfidence": {
+                    "type": "string",
+                    "fa_icon": "fas fa-file",
+                    "description": "Bed file with known high confidence used as input in Sage variant caller",
+                    "hidden": true
+                },
+                "actionablepanel": {
+                    "type": "string",
+                    "fa_icon": "fas fa-file",
+                    "description": "Bed file with ac actionable list of variants used as input in Sage variant caller",
+                    "hidden": true
+                },
+                "knownhot": {
+                    "type": "string",
+                    "fa_icon": "fas fa-file",
+                    "description": "Known hotspots used as input in Sage variant caller",
                     "hidden": true
                 }
             }
@@ -534,7 +510,7 @@
                 "annotate_tools": {
                     "type": "string",
                     "fa_icon": "fas fa-hammer",
-                    "description": "Specify which tools RNAvar should use for annotating variants. Values can be 'snpeff', 'vep' or 'merge'. If you specify 'merge', the pipeline runs both snpeff and VEP annotation.",
+                    "description": "Specify which tools RNADNAvar should use for annotating variants. Values can be 'snpeff', 'vep' or 'merge'. If you specify 'merge', the pipeline runs both snpeff and VEP annotation.",
                     "help_text": "List of tools to be used for variant annotation.",
                     "pattern": "^((snpeff|vep|merge)*(,)*)*$",
                     "hidden": true
@@ -628,12 +604,17 @@
                 "vep_out_format": {
                     "type": "string",
                     "fa_icon": "fas fa-tag",
-                    "description": "VEP output format",
+                    "description": "VEP output format"
+                },
                 "whitelist": {
                     "type": "string",
                     "fa_icon": "fas fa-database",
                     "description": "Path to BED file with variants to whitelist during filtering"
-                }
+                },
+                "blacklist": {
+                    "type": "string",
+                    "fa_icon": "fas fa-database",
+                    "description": "Path to BED file with positions to blacklist during filtering (e.g. regions difficult to map)"
                 }
             }
         },
