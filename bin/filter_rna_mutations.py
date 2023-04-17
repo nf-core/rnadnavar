@@ -7,7 +7,6 @@ import argparse
 import pandas as pd
 from liftover import ChainFile
 from capy import mut
-import numpy as np
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
@@ -38,7 +37,9 @@ def argparser():
 
 
 def realignment(maf1, maf2):
-    """Get variants that are in both"""
+    """
+    Get variants that intersect both mafs
+    """
     maf1["DNAchange"] = maf1["Chromosome"] + ":g." + \
                         maf1["Start_Position"].map(str) + \
                         maf1["Reference_Allele"] + ">" + maf1["Tumor_Seq_Allele2"]
@@ -56,6 +57,9 @@ def realignment(maf1, maf2):
 
 
 def add_rnaediting_sites(maf, rnaeditingsites, realignment):
+    """
+    Check for RNA editing sites in the MAF table
+    """
     # bed format expected
     maf["rnaediting"] = maf["DNAchange"].isin(rnaeditingsites["DNAchange"])
     # change filter accordingly
@@ -80,13 +84,17 @@ def add_rnaediting_sites(maf, rnaeditingsites, realignment):
 
 
 def extract_coords(df):
-    """Extract coordinates from maf and stores them in a bed format file"""
+    """
+    Extract coordinates from maf and stores them in a bed format file
+    """
     coords = df["Chromosome"] + ":" + df["Start_Position"].astype(str) + "-" + df["Start_Position"].astype(str)
     return coords
 
 
 def run_capy(M, pon, ref, thr, chroms, suffix="_hg38"):
-    """Runs capy with hg38 PoN"""
+    """
+    Runs CApy with RNA PoN generated with tokenizer (https://github.com/getzlab/aggregate_tokens_files_TOOL)
+    """
     print('- Running CApy' + suffix)
     chrom = 'Chromosome'
     start = 'Start_Position'
@@ -108,6 +116,9 @@ def run_capy(M, pon, ref, thr, chroms, suffix="_hg38"):
 
 
 def add_hg19_coords_with_liftover(M, chain_file):
+    """
+    Liftover HG38 coordinates from maf to HG19
+    """
     converter = ChainFile(chain_file, 'hg38', 'hg19')
     starting_size = M.shape[0]
     M["coordinates19"] = M.apply(lambda x: converter[x["Chromosome"]][x["Start_Position"]], axis=1)
