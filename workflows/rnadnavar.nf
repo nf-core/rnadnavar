@@ -119,39 +119,31 @@ ch_multiqc_custom_config = params.multiqc_config ? Channel.fromPath(params.multi
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-
+include { CORE_RUN                                            } from '../subworkflows/local/core_workflow_pass'
+include { CORE_RUN as SECOND_RUN                              } from '../subworkflows/local/core_workflow_pass'
 
 // Create samplesheets to restart from different steps
-include { GATK_PREPROCESSING                                   } from '../subworkflows/local/gatk_preprocessing'
+//include { GATK_PREPROCESSING                                   } from '../subworkflows/local/gatk_preprocessing'
 // Build the genome index and other reference files
 include { PREPARE_REFERENCE_AND_INTERVALS                                       } from '../subworkflows/local/prepare_reference_and_intervals'
 include { MAPPING                                             } from '../subworkflows/local/mapping'
 
-include { SAMTOOLS_CONVERT as SAMTOOLS_BAMTOCRAM_VARIANTCALLING} from '../modules/nf-core/modules/samtools/convert/main'
-include { SAMTOOLS_MERGE                                       } from '../modules/nf-core/modules/samtools/merge/main'
-
-
 // Variant calling on tumor/normal pair TODO: add tumour only for next version
-include { PAIR_VARIANT_CALLING            } from '../subworkflows/local/pair_variant_calling'
-//include { TUMOR_ONLY_VARIANT_CALLING      } from '../subworkflows/local/tumor_variant_calling'
+//include { VARIANT_CALLING            } from '../subworkflows/local/variant_calling'
 
-include { VCF_QC                                               } from '../subworkflows/nf-core/vcf_qc'
 
 // VCF normalization
 // TODO: this produces a warning? unknown recognition error type: groovyjarjarantlr4.v4.runtime.LexerNoViableAltException
-//include { NORMALIZE_VCF                                        } from '../subworkflows/local/normalize_vcf_variants'
+//include { NORMALIZE                                        } from '../subworkflows/local/normalize_vcf_variants'
 // Consensus
-include { CONSENSUS                                            } from '../subworkflows/local/consensus'
+//include { CONSENSUS                                            } from '../subworkflows/local/consensus'
 
 // Annotation
-include { ANNOTATE                                             } from '../subworkflows/local/annotate'
-include { VCF2MAF                                             } from '../modules/local/vcf2maf/vcf2maf/main'
+//include { ANNOTATE                                             } from '../subworkflows/local/annotate'
 
 // Filtering
-include { FILTER_DNA as BASIC_FILTERING                                             } from '../subworkflows/local/filtering/filter_dna'
-// TODO: this produces TWO(!!) warnings? unknown recognition error type: groovyjarjarantlr4.v4.runtime.LexerNoViableAltException
-//include { FILTER_RNA                                             } from '../subworkflows/local/filtering/filter_rna'
-
+include { PREPARE_SECOND_RUN     } from '../subworkflows/local/prepare_second_run'
+include {FILTERING_RNA            } from '../subworkflows/local/rna_filtering'
 // REPORTING VERSIONS OF SOFTWARE USED
 include { CUSTOM_DUMPSOFTWAREVERSIONS                          } from '../modules/nf-core/modules/custom/dumpsoftwareversions/main'
 
@@ -167,10 +159,12 @@ include { MULTIQC                                              } from '../module
 ========================================================================================
 */
 
-// Check STAR alignment parameters
-//def prepareToolIndices  = params.aligner
-//def seq_platform        = params.seq_platform ? params.seq_platform : []
-//def seq_center          = params.seq_center ? params.seq_center : []
+whitelist  = params.whitelist  ? Channel.fromPath(params.whitelist).collect() : Channel.value([])
+blacklist  = params.blacklist  ? Channel.fromPath(params.blacklist).collect() : Channel.value([])
+darned     = params.darned     ? Channel.fromPath(params.darned).collect()    : Channel.value([])
+radar      = params.radar      ? Channel.fromPath(params.radar).collect()     : Channel.value([])
+nat        = params.nat        ? Channel.fromPath(params.nat).collect()       : Channel.value([])
+redi       = params.redi       ? Channel.fromPath(params.redi).collect()      : Channel.value([])
 
 // Info required for completion email and summary
 def multiqc_report = []
@@ -224,395 +218,78 @@ workflow RNADNAVAR {
     ch_reports = ch_reports.mix(MAPPING.out.reports)
     ch_versions = ch_versions.mix(MAPPING.out.versions)
 
-    }
-
-// STEP 2: GATK PREPROCESSING - See: https://gatk.broadinstitute.org/hc/en-us/articles/360035535912-Data-pre-processing-for-variant-discovery
-    GATK_PREPROCESSING(
-        params.step,                        // Mandatory, step to start with
-        MAPPING.out.ch_bam_mapped,                 // channel: [mandatory] bam
-        params.skip_tools,                    // channel: [mandatory] skip_tools
-        params.use_gatk_spark,                // channel: [mandatory] use_gatk_spark
-        params.save_output_as_bam,            // channel: [mandatory] save_output_as_bam
-        fasta,                         // channel: [mandatory] fasta
-        fasta_fai ,                    // channel: [mandatory] fasta_fai
-        dict,
-        germline_resource,           // channel: [optional]  germline_resource
-        germline_resource_tbi,        // channel: [optional]  germline_resource_tbi
-        intervals,                     // channel: [mandatory] intervals/target regions
-        intervals_for_preprocessing,                     // channel: [mandatory] intervals_for_preprocessing/wes
+    // 5 MAIN STEPS: GATK PREPROCESING - VARIANT CALLING - NORMALIZATION - CONSENSUS - ANNOTATION
+    CORE_RUN(
+        params.step,
+        params.skip_tools,
+        ch_input_sample,           // input from CSV if applicable
+        MAPPING.out.ch_bam_mapped, // input from mapping
+        fasta,                     // fasta reference file
+        fasta_fai,                 // fai for fasta file
+        dict,                      //
+        dbsnp,
+        dbsnp_tbi,
+        pon,
+        pon_tbi,
+        germline_resource,
+        germline_resource_tbi,
+        intervals,
+        intervals_for_preprocessing,
         ch_interval_list_split,
-        ch_input_sample
+        intervals_bed_gz_tbi,
+        intervals_bed_combined,
+        null,  // to repeat rescue consensus
+        null  // to repeat rescue consensus
     )
 
-    ch_cram_variant_calling = GATK_PREPROCESSING.out.ch_cram_variant_calling
-    ch_versions = ch_versions.mix(GATK_PREPROCESSING.out.versions)
-    ch_reports = ch_reports.mix(GATK_PREPROCESSING.out.ch_reports)
+    ch_reports = ch_reports.mix(CORE_RUN.out.reports)
+    ch_versions = ch_versions.mix(CORE_RUN.out.versions)
 
-// STEP 3: VARIANT CALLING
-//    if (params.step == 'variant_calling') {
-//        // if input is a BAM file for variant calling we need to convert it to CRAM
-//        ch_input_sample.branch{
-//                bam: it[0].data_type == "bam"
-//                cram: it[0].data_type == "cram"
-//            }.set{ch_convert}
-//
-//        //BAM files first must be converted to CRAM files since from this step on we base everything on CRAM format
-//        SAMTOOLS_BAMTOCRAM_VARIANTCALLING(ch_convert.bam, fasta, fasta_fai)
-//        ch_versions = ch_versions.mix(SAMTOOLS_BAMTOCRAM_VARIANTCALLING.out.versions)
-//
-//        ch_cram_variant_calling = Channel.empty().mix(SAMTOOLS_BAMTOCRAM_VARIANTCALLING.out.alignment_index, ch_convert.cram)
-//
-//    }
-//
-//    if (params.tools) {
-//
-//        if (params.step == 'annotate') ch_cram_variant_calling = Channel.empty()
-//        if (params.step == 'annotate') ch_cram_variant_calling = Channel.empty()
-//
-//        //
-//        // Logic to separate germline samples, tumor samples with no matched normal, and combine tumor-normal pairs
-//        // tumor-normal pairs will be created for DNA and RNA
-//        //
-//        ch_cram_variant_calling.branch{
-//            normal: it[0].status == 0
-//            dna:  it[0].status == 1
-//            rna:  it[0].status == 2
-//        }.set{ch_cram_variant_calling_status}
-//
-//        // All Germline samples -- will be the same for DNA and RNA
-//        ch_cram_variant_calling_normal_to_cross = ch_cram_variant_calling_status.normal.map{ meta, cram, crai -> [meta.patient, meta, cram, crai] }
-//
-//        // All tumor samples
-//        ch_cram_variant_calling_rna_pair_to_cross = ch_cram_variant_calling_status.rna.map{ meta, cram, crai -> [meta.patient, meta, cram, crai] }
-//        ch_cram_variant_calling_dna_pair_to_cross = ch_cram_variant_calling_status.dna.map{ meta, cram, crai -> [meta.patient, meta, cram, crai] }
-//
-//        // Tumor only samples
-//        // 1. Group together all tumor samples by patient ID [patient1, [meta1, meta2], [cram1,crai1, cram2, crai2]]
-//
-//        // Downside: this only works by waiting for all tumor samples to finish preprocessing, since no group size is provided
-//        ch_cram_variant_calling_dna_tumor_grouped = ch_cram_variant_calling_dna_pair_to_cross.groupTuple()
-//        ch_cram_variant_calling_rna_tumor_grouped = ch_cram_variant_calling_rna_pair_to_cross.groupTuple()
-//
-//        // 2. Join with normal samples, in each channel there is one key per patient now. Patients without matched normal end up with: [patient1, [meta1, meta2], [cram1,crai1, cram2, crai2], null]
-//        ch_cram_variant_calling_dna_tumor_joined = ch_cram_variant_calling_dna_tumor_grouped.join(ch_cram_variant_calling_normal_to_cross, remainder: true)
-//        ch_cram_variant_calling_rna_tumor_joined = ch_cram_variant_calling_rna_tumor_grouped.join(ch_cram_variant_calling_normal_to_cross, remainder: true)
-//
-//        // 3. Filter out entries with last entry null
-//        ch_cram_variant_calling_dna_tumor_filtered = ch_cram_variant_calling_dna_tumor_joined.filter{ it ->  !(it.last()) }
-//        ch_cram_variant_calling_rna_tumor_filtered = ch_cram_variant_calling_rna_tumor_joined.filter{ it ->  !(it.last()) }
-//
-//
-//        // Only this supported for now.
-//        if(params.only_paired_variant_calling){
-//            // Normal only samples
-//
-//            // 1. Join with tumor samples, in each channel there is one key per patient now. Patients without matched tumor end up with: [patient1, [meta1], [cram1,crai1], null] as there is only one matched normal possible
-//            ch_cram_variant_calling_dna_normal_joined = ch_cram_variant_calling_normal_to_cross.join(ch_cram_variant_calling_dna_tumor_grouped, remainder: true)
-//            ch_cram_variant_calling_rna_normal_joined = ch_cram_variant_calling_normal_to_cross.join(ch_cram_variant_calling_rna_tumor_grouped, remainder: true)
-//
-//            // 2. Filter out entries with last entry null
-//            ch_cram_variant_calling_dna_normal_filtered = ch_cram_variant_calling_dna_normal_joined.filter{ it ->  !(it.last()) }
-//            ch_cram_variant_calling_rna_normal_filtered = ch_cram_variant_calling_rna_normal_joined.filter{ it ->  !(it.last()) }
-//
-//            // 3. Remove patient ID field & null value for further processing [meta1, [cram1,crai1]] [meta2, [cram2,crai2]] (no transposing needed since only one normal per patient ID)
-//            ch_cram_variant_calling_dna_status_normal = ch_cram_variant_calling_dna_normal_filtered.map{ it -> [it[1], it[2], it[3]] }
-//            ch_cram_variant_calling_rna_status_normal = ch_cram_variant_calling_rna_normal_filtered.map{ it -> [it[1], it[2], it[3]] }
-//
-//        }else{ // will never enter here TODO: cleanup
-//            ch_cram_variant_calling_status_normal = ch_cram_variant_calling_status_dna.normal
-//        }
-//
-//
-//        // Tumor - normal pairs
-//        // Use cross to combine normal with all tumor samples, i.e. multi tumor samples from recurrences
-//        ch_cram_variant_calling_dna_pair = ch_cram_variant_calling_normal_to_cross.cross(ch_cram_variant_calling_dna_pair_to_cross)
-//            .map { normal, tumor ->
-//                def meta = [:]
-//                meta.patient    = normal[0]
-//                meta.normal_id  = normal[1].sample
-//                meta.tumor_id   = tumor[1].sample
-//                meta.status     = tumor[1].status
-//                meta.id         = "${meta.tumor_id}_vs_${meta.normal_id}".toString()
-//                meta.alleles    = null
-//                [meta, normal[2], normal[3], tumor[2], tumor[3]]
-//            }
-//        ch_cram_variant_calling_rna_pair = ch_cram_variant_calling_normal_to_cross.cross(ch_cram_variant_calling_rna_pair_to_cross)
-//            .map { normal, tumor ->
-//                def meta = [:]
-//                meta.patient    = normal[0]
-//                meta.normal_id  = normal[1].sample
-//                meta.tumor_id   = tumor[1].sample
-//                meta.status     = tumor[1].status
-//                meta.id         = "${meta.tumor_id}_vs_${meta.normal_id}".toString()
-//                meta.alleles    = null
-//                [meta, normal[2], normal[3], tumor[2], tumor[3]]
-//            }
-//        PAIR_VARIANT_CALLING_DNA(
-//            params.tools,
-//            ch_cram_variant_calling_dna_pair,
-//            dbsnp,
-//            dbsnp_tbi,
-//            dict,
-//            fasta,
-//            fasta_fai,
-//            germline_resource,
-//            germline_resource_tbi,
-//            intervals,
-//            intervals_bed_gz_tbi,
-//            intervals_bed_combined,
-//            pon,
-//            pon_tbi
-//        )
-//
-//        // PAIR VARIANT CALLING RNA
-//        PAIR_VARIANT_CALLING_RNA(
-//            params.tools,
-//            ch_cram_variant_calling_rna_pair,
-//            dbsnp,
-//            dbsnp_tbi,
-//            dict,
-//            fasta,
-//            fasta_fai,
-//            germline_resource,
-//            germline_resource_tbi,
-//            intervals,
-//            intervals_bed_gz_tbi,
-//            intervals_bed_combined,
-//            pon,
-//            pon_tbi
-//        )
+    PREPARE_SECOND_RUN(ch_input_sample,           // input from CSV if applicable
+                           CORE_RUN.out.maf,
+                           MAPPING.out.bwa_bams, // for dna re-alignments
+                           MAPPING.out.star_bams,  // for rnare-alignments
+                           fasta,
+                           fasta_fai,
+                           dict,
+                           PREPARE_REFERENCE_AND_INTERVALS.out.hisat2_index,
+                           PREPARE_REFERENCE_AND_INTERVALS.out.splicesites
+                           ) // do mapping with hisat2
 
-//
-//        // Gather vcf files for annotation and QC
-//        vcf_to_annotate = Channel.empty()
-//
-//        vcf_to_annotate = vcf_to_annotate.mix(PAIR_VARIANT_CALLING_RNA.out.strelka_vcf)
-//        vcf_to_annotate = vcf_to_annotate.mix(PAIR_VARIANT_CALLING_DNA.out.strelka_vcf)
-//
-//        vcf_to_annotate = vcf_to_annotate.mix(PAIR_VARIANT_CALLING_RNA.out.mutect2_vcf)
-//        vcf_to_annotate = vcf_to_annotate.mix(PAIR_VARIANT_CALLING_DNA.out.mutect2_vcf)
-//
-//        vcf_to_annotate = vcf_to_annotate.mix(PAIR_VARIANT_CALLING_RNA.out.freebayes_vcf)
-//        vcf_to_annotate = vcf_to_annotate.mix(PAIR_VARIANT_CALLING_DNA.out.freebayes_vcf)
-//
-//
-//        // Gather used softwares versions
-//        ch_versions = ch_versions.mix(PAIR_VARIANT_CALLING_DNA.out.versions)
-//        ch_versions = ch_versions.mix(PAIR_VARIANT_CALLING_RNA.out.versions)
-//
-//        //QC
-//        VCF_QC(vcf_to_annotate, intervals_bed_combined)
-//
-//        ch_versions = ch_versions.mix(VCF_QC.out.versions)
-//        ch_reports  = ch_reports.mix(VCF_QC.out.bcftools_stats.collect{meta, stats -> stats})
-//        ch_reports  = ch_reports.mix(VCF_QC.out.vcftools_tstv_counts.collect{ meta, counts -> counts})
-//        ch_reports  = ch_reports.mix(VCF_QC.out.vcftools_tstv_qual.collect{ meta, qual -> qual })
-//        ch_reports  = ch_reports.mix(VCF_QC.out.vcftools_filter_summary.collect{meta, summary -> summary})
-//    }
-// // NORMALIZE
-//    if (params.step in ['mapping', 'markduplicates', 'prepare_recalibration', 'recalibrate', 'normalize']) {
-//        if (params.step == 'normalize') vcf_to_normalize = ch_input_sample
-//        else {
-//            vcf_to_normalize = vcf_to_annotate
-//            }
-//        NORMALIZE_VCF (
-//                        vcf_to_normalize,
-//                        fasta
-//                       )
-//
-//        vcf_normalized = Channel.empty()
-//        vcf_normalized = vcf_normalized.mix(NORMALIZE_VCF.out.vcf)
-//        // TODO: check this works ok
-//        VARIANTCALLING_CSV(vcf_normalized)
-//        ch_versions = ch_versions.mix(NORMALIZE_VCF.out.versions)
-//    }
-//
-//    // CONSENSUS
-//    if (params.step in ['mapping', 'markduplicates', 'prepare_recalibration', 'recalibrate', 'normalize', 'consensus']) {
-//        if (params.step == 'consensus') vcf_to_consensus = ch_input_sample
-//        else {
-//            vcf_to_consensus = vcf_normalized
-//            }
-//        vcf_to_consensus = vcf_normalized.map{ meta, vcf->
-//                                    [[id:meta.id,
-//                                     patient:meta.patient,
-//                                     status:meta.status
-//                                     ], vcf, meta.variantcaller]
-//                                    }.groupTuple()
-//
-//        CONSENSUS (
-//                   vcf_to_consensus
-//                       )
-//        alleles_dna = CONSENSUS.out.vcf_dna.map{
-//                                        meta, vcf, tbi ->
-//                                        vcf}
-//        alleles_rna = CONSENSUS.out.vcf_rna.map{
-//                                        meta, vcf, tbi ->
-//                                        vcf}
-//        ch_cram_variant_calling_dna_pair_con = ch_cram_variant_calling_normal_to_cross
-//            .combine(alleles_dna)
-//            .cross(ch_cram_variant_calling_dna_pair_to_cross)
-//            .map { normal, tumor ->
-//                def meta = [:]
-//                meta.patient    = normal[0]
-//                meta.normal_id  = normal[1].sample
-//                meta.tumor_id   = tumor[1].sample
-//                meta.status     = tumor[1].status
-//                meta.id         = "${meta.tumor_id}_vs_${meta.normal_id}".toString()
-//                meta.alleles    = normal[4]
-//
-//                [meta, normal[2], normal[3], tumor[2], tumor[3]]
-//            }
-//        ch_cram_variant_calling_rna_pair_con = ch_cram_variant_calling_normal_to_cross
-//            .combine(alleles_rna)
-//            .cross(ch_cram_variant_calling_rna_pair_to_cross)
-//            .map { normal, tumor ->
-//                def meta = [:]
-//                meta.patient    = normal[0]
-//                meta.normal_id  = normal[1].sample
-//                meta.tumor_id   = tumor[1].sample
-//                meta.status     = tumor[1].status
-//                meta.id         = "${meta.tumor_id}_vs_${meta.normal_id}".toString()
-//                meta.alleles    = normal[4]
-//
-//                [meta, normal[2], normal[3], tumor[2], tumor[3]]
-//            }
-//         // TODO: can we join this?
-//        // force calls to get consensus with same annotation
-//        GATK_FORCE_CALLS_DNA(
-//            ch_cram_variant_calling_dna_pair_con,  // from previous variant calling
-//            dict,
-//            fasta,
-//            fasta_fai,
-//            germline_resource,
-//            germline_resource_tbi,
-//            intervals,
-//            intervals_bed_gz_tbi,
-//            intervals_bed_combined,
-//            pon,
-//            pon_tbi
-//        )
-//        ch_versions = ch_versions.mix(GATK_FORCE_CALLS_DNA.out.versions)
-//
-//        GATK_FORCE_CALLS_RNA(
-//            ch_cram_variant_calling_rna_pair_con,  // from previous variant calling
-//            dict,
-//            fasta,
-//            fasta_fai,
-//            germline_resource,
-//            germline_resource_tbi,
-//            intervals,
-//            intervals_bed_gz_tbi,
-//            intervals_bed_combined,
-//            pon,
-//            pon_tbi
-//        )
-//        ch_versions = ch_versions.mix(GATK_FORCE_CALLS_RNA.out.versions)
-//
-//        vcf_to_annotate = Channel.empty()
-//        vcf_to_annotate = GATK_FORCE_CALLS_DNA.out.vcf.mix(GATK_FORCE_CALLS_RNA.out.vcf)
-//
-//    }
-//
-//
-//    if (params.step == 'annotate') vcf_to_annotate = ch_input_sample
-//
-//        if (params.tools.split(',').contains('merge') || params.tools.split(',').contains('snpeff') || params.tools.split(',').contains('vep')) {
-//
-//            vep_fasta = (params.vep_include_fasta) ? fasta : []
-//            ANNOTATE(
-//                vcf_to_annotate,
-//                vep_fasta,
-//                params.tools,
-//                snpeff_db,
-//                snpeff_cache,
-//                vep_genome,
-//                vep_species,
-//                vep_cache_version,
-//                vep_cache,
-//                vep_extra_files)
-//
-//            // Gather used softwares versions
-//            ch_versions = ch_versions.mix(ANNOTATE.out.versions)
-//            ch_reports  = ch_reports.mix(ANNOTATE.out.reports)
-//            VCF2MAF(ANNOTATE.out.vcf_ann,
-//                    fasta,
-//                    vep_genome)
-//            maf_to_filter = VCF2MAF.out.maf
-//        }
-//
-//    if (params.step == 'filtering') {
-//        maf_to_filter = ch_input_sample
-//    } else {
-//        BASIC_FILTERING(maf_to_filter,
-//                       whitelist )
-//        BASIC_FILTERING.out.filter_maf.branch{
-//                dna: it[0].status < 2
-//                rna: it[0].status == 2
-//            }.set{maf_to_filter_status}
-//        // Only PASS mutations
-//
-//        //
-//        previous_rna_alignment = ALIGN_STAR.out.bam.groupTuple()
-//        GATK4_MAPPING.out.bam.branch{
-//                        normal: it[0].status == 0
-//                        tumor: it[0].status == 1
-//                    }.set{previous_dna_alignment}
-//        previous_normal_alignment = previous_dna_alignment.normal.groupTuple()
-//        previous_alignment = previous_rna_alignment.mix(previous_normal_alignment)
-//        SAMTOOLS_MERGE(previous_alignment, fasta)
-//        previous_alignment_merged = SAMTOOLS_MERGE.out.bam.map{meta, bam -> [
-//                                                                [id:meta.sample,
-//                                                                data_type:"bam",
-//                                                                patient:meta.patient,
-//                                                                sample:meta.sample,
-//                                                                read_group:meta.read_group,
-//                                                                status:meta.status], bam]}
-//        vcf_to_consensus_dna = vcf_to_consensus.branch{
-//            dna: it[0].status < 2
-//            rna: it[0].status == 2
-//        }.set{vcf_to_consensus_status}
-//        FILTER_RNA(
-//                    maf_to_filter_status.rna,
-//                    previous_alignment_merged,
-//                    vcf_to_consensus_status.dna,
-//                    fasta,
-//                    fasta_fai,
-//                    dict,
-//                    PREPARE_GENOME.out.hisat2_index,
-//                    PREPARE_GENOME.out.splicesites,
-//                    params.tools,
-//                    dbsnp,
-//                    dbsnp_tbi,
-//                    pon,
-//                    pon_tbi,
-//                    germline_resource,
-//                    germline_resource_tbi,
-//                    intervals,
-//                    intervals_for_preprocessing,
-//                    ch_interval_list_split,
-//                    intervals_bed_gz_tbi,
-//                    intervals_bed_combined,
-//                    snpeff_db,
-//                    snpeff_cache,
-//                    vep_fasta,
-//                    vep_genome,
-//                    vep_species,
-//                    vep_cache_version,
-//                    vep_cache,
-//                    vep_extra_files,
-//                    whitelist,
-//                    params.darned,
-//                    params.radar,
-//                    params.nat,
-//                    params.redi,
-//                    ch_reports,
-//                    ch_versions)
-//        ch_versions = ch_versions.mix(FILTER_RNA.out.versions)
-//        ch_reports  = ch_reports.mix(FILTER_RNA.out.reports)
-//    }
-//
-//
+    ch_reports = ch_reports.mix(PREPARE_SECOND_RUN.out.reports)
+    ch_versions = ch_versions.mix(PREPARE_SECOND_RUN.out.versions)
+
+    SECOND_RUN(
+        "markduplicates",                      // step to start with
+        "baserecalibrator,baserecalibrator_report,contamination,learnreadorientation",
+        ch_input_sample,                       // input from CSV if applicable
+        PREPARE_SECOND_RUN.out.ch_bam_mapped, // input from mapping
+        fasta,                                 // fasta reference file
+        fasta_fai,                             // fai for fasta file
+        dict,                                    //
+        dbsnp,
+        dbsnp_tbi,
+        pon,
+        pon_tbi,
+        germline_resource,
+        germline_resource_tbi,
+        intervals,
+        intervals_for_preprocessing,
+        ch_interval_list_split,
+        intervals_bed_gz_tbi,
+        intervals_bed_combined,
+        CORE_RUN.out.vcf_consensus_dna,  // to repeat rescue consensus
+        CORE_RUN.out.vcfs_status_dna  // to repeat rescue consensus
+    )
+
+    ch_reports = ch_reports.mix(SECOND_RUN.out.reports)
+    ch_versions = ch_versions.mix(SECOND_RUN.out.versions)
+
+    FILTERING_RNA(CORE_RUN.out.maf_rna,
+                  SECOND_RUN.out.maf_rna,
+                  fasta)
+    ch_versions = ch_versions.mix(FILTERING_RNA.out.versions)
+
 // REPORTING
 
     ch_version_yaml = Channel.empty()
@@ -620,26 +297,22 @@ workflow RNADNAVAR {
         CUSTOM_DUMPSOFTWAREVERSIONS(ch_versions.unique().collectFile(name: 'collated_versions.yml'))
         ch_version_yaml = CUSTOM_DUMPSOFTWAREVERSIONS.out.mqc_yml.collect()
     }
-//
-//    //
-//    // MODULE: MultiQC
-//    // Present summary of reads, alignment, duplicates, BSQR stats for all samples as well as workflow summary/parameters as single report
-//    //
-//    if (!(params.skip_tools && params.skip_tools.split(',').contains('multiqc'))) {
-//        workflow_summary    = WorkflowRnadnavar.paramsSummaryMultiqc(workflow, summary_params)
-//        ch_workflow_summary = Channel.value(workflow_summary)
-//
-//        ch_multiqc_files =  Channel.empty().mix(ch_version_yaml,
-//                                            ch_workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml'),
-//                                            ch_reports.collect().ifEmpty([]))
-//
-//        ch_multiqc_configs = Channel.from(ch_multiqc_config).mix(ch_multiqc_custom_config).ifEmpty([])
-//
-//        MULTIQC(ch_multiqc_files.collect(), ch_multiqc_configs.collect())
-//        multiqc_report = MULTIQC.out.report.toList()
 
+    // MODULE: MultiQC
+    // Present summary of reads, alignment, duplicates, BSQR stats for all samples as well as workflow summary/parameters as single report
+    if (!(params.skip_tools && params.skip_tools.split(',').contains('multiqc'))) {
+        workflow_summary    = WorkflowRnadnavar.paramsSummaryMultiqc(workflow, summary_params)
+        ch_workflow_summary = Channel.value(workflow_summary)
 
-//    }
+        ch_multiqc_files =  Channel.empty().mix(ch_version_yaml,
+                                            ch_workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml'),
+                                            ch_reports.collect().ifEmpty([]))
+
+        ch_multiqc_configs = Channel.from(ch_multiqc_config).mix(ch_multiqc_custom_config).ifEmpty([])
+
+        MULTIQC(ch_multiqc_files.collect(), ch_multiqc_configs.collect())
+        multiqc_report = MULTIQC.out.report.toList()
+    }
 }
 
 /*
@@ -716,7 +389,7 @@ def extract_csv(csv_file) {
                 System.exit(1)
             }
             [[row.patient.toString(), row.sample.toString()], row]
-        }.groupTuple()
+        }.groupTuple(sort:true)
         .map{ meta, rows ->
             size = rows.size()
             [rows, size]
