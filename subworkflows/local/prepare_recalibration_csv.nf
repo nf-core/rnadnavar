@@ -12,28 +12,30 @@ workflow PREPARE_RECALIBRATION_CSV {
         if (!(skip_tools && (skip_tools.split(',').contains('markduplicates')))) {
             cram_table_bqsr.collectFile(keepHeader: true, skip: 1, sort: true, storeDir: "${params.outdir}/csv") { meta, cram, crai, table ->
                 patient = meta.patient
+                id = meta.id
+                lane    = meta.lane
                 sample  = meta.sample
-                sex     = meta.sex
                 status  = meta.status
                 suffix_aligned = params.save_output_as_bam ? "bam" : "cram"
                 suffix_index   = params.save_output_as_bam ? "bam.bai" : "cram.crai"
-                cram = "${params.outdir}/preprocessing/markduplicates/${sample}/${cram.baseName}.${suffix_aligned}"
-                crai = "${params.outdir}/preprocessing/markduplicates/${sample}/${crai.baseName.minus(".cram")}.${suffix_index}"
-                table = "${params.outdir}/preprocessing/recal_table/${sample}/${sample}.recal.table"
-                ["markduplicates.csv", "patient,sex,status,sample,cram,crai,table\n${patient},${sex},${status},${sample},${cram},${crai},${table}\n"]
+                cram = status <2 ? "${params.outdir}/preprocessing/markduplicates/${patient}/${id}/${cram.baseName}.${suffix_aligned}" : "${params.outdir}/preprocessing/splitncigar/${patient}/${id}/${cram.baseName}.${suffix_aligned}"
+                crai = status <2 ? "${params.outdir}/preprocessing/markduplicates/${patient}/${id}/${crai.baseName.minus(".cram")}.${suffix_index}" : "${params.outdir}/preprocessing/splitncigar/${patient}/${id}/${crai.baseName.minus(".cram")}.${suffix_index}"
+                table = "${params.outdir}/preprocessing/recal_table/${patient}/${id}/${id}.recal.table"
+                ["markduplicates.csv", "patient,status,sample,lane,fastq_1,fastq_2,bam,bai,cram,crai,table,vcf\n${patient},${status},${sample},${lane},,,,,${cram},${crai},${table},\n"]
             }
         } else {
             cram_table_bqsr.collectFile(keepHeader: true, skip: 1, sort: true, storeDir: "${params.outdir}/csv") { meta, cram, crai, table ->
                 patient = meta.patient
+                id = meta.id
+                lane    = meta.lane
                 sample  = meta.sample
-                sex     = meta.sex
                 status  = meta.status
                 suffix_aligned = params.save_output_as_bam ? "bam" : "cram"
                 suffix_index   = params.save_output_as_bam ? "bam.bai" : "cram.crai"
-                cram = "${params.outdir}/preprocessing/${sample}/mapped/${cram.baseName}.${suffix_aligned}"
-                crai = "${params.outdir}/preprocessing/${sample}/mapped/${crai.baseName.minus(".cram")}.${suffix_index}"
-                table = "${params.outdir}/preprocessing/${sample}/recal_table/${sample}.recal.table"
-                ["sorted.csv", "patient,sex,status,sample,cram,crai,table\n${patient},${sex},${status},${sample},${cram},${crai},${table}\n"]
+                cram = status <2 ? "${params.outdir}/preprocessing/mapped/${patient}/${id}/${cram.baseName}.${suffix_aligned}" : "${params.outdir}/preprocessing/splitncigar/${patient}/${id}/${cram.baseName}.${suffix_aligned}"
+                crai = status <2 ? "${params.outdir}/preprocessing/mapped/${patient}/${id}/${crai.baseName.minus(".cram")}.${suffix_index}" : "${params.outdir}/preprocessing/splitncigar/${patient}/${id}/${crai.baseName.minus(".cram")}.${suffix_index}"
+                table = "${params.outdir}/preprocessing/${patient}/${id}/recal_table/${id}.recal.table"
+                ["sorted.csv", "ppatient,status,sample,lane,fastq_1,fastq_2,bam,bai,cram,crai,table,vcf\n${patient},${status},${sample},${lane},,,,,${cram},${crai},${table},\n"]
             }
         }
 }
