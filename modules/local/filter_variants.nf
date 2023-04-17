@@ -24,7 +24,7 @@ process BASIC_FILTERING {
         def prefix = task.ext.prefix ?: "${meta.id}"
 
         """
-        python filter_mutations.py -i $maf --output ${prefix}.maf --ref $ref $args
+        filter_mutations.py -i $maf --output ${prefix}.maf --ref $ref $args
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
             python: \$(echo \$(python --version 2>&1) | sed 's/^.*Python (//;s/).*//')
