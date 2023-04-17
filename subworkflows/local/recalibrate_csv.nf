@@ -11,10 +11,11 @@ workflow RECALIBRATE_CSV {
         cram_recalibrated_index.collectFile(keepHeader: true, skip: 1, sort: true, storeDir: "${params.outdir}/csv") { meta, file, index ->
             patient = meta.patient
             sample  = meta.sample
-            sex     = meta.sex
             status  = meta.status
-            file = "${params.outdir}/preprocessing/recalibrated/${sample}/${file.name}"
-            index = "${params.outdir}/preprocessing/recalibrated/${sample}/${index.name}"
-            ["recalibrated.csv", "patient,sex,status,sample,cram,crai\n${patient},${sex},${status},${sample},${file},${index}\n"]
+            id      = meta.id
+            lane    = meta.lane
+            file = "${params.outdir}/preprocessing/recalibrated/${patient}/${id}/${file.name}"
+            index = "${params.outdir}/preprocessing/recalibrated/${patient}/${id}/${index.name}"
+            ["recalibrated.csv","patient,status,sample,lane,fastq_1,fastq_2,bam,bai,cram,crai,table,vcf\n${patient},${status},${sample},${lane},,,,,${file},${index},,\n"]
         }
 }
