@@ -5,8 +5,6 @@
 include { RUN_CONSENSUS                                    } from '../../modules/local/run_consensus'
 include { RUN_CONSENSUS as RUN_CONSENSUS_RESCUE_DNA        } from '../../modules/local/run_consensus'
 include { RUN_CONSENSUS as RUN_CONSENSUS_RESCUE_RNA        } from '../../modules/local/run_consensus'
-include { TABIX_BGZIPTABIX as TABIX_BGZIPTABIX_DNA         } from '../../modules/nf-core/modules/tabix/bgziptabix/main'
-include { TABIX_BGZIPTABIX as TABIX_BGZIPTABIX_RNA         } from '../../modules/nf-core/modules/tabix/bgziptabix/main'
 include { PAIR_VARIANT_CALLING_MUTECT2 as GATK_FORCE_CALLS } from './force_mutect_pair_variant_calling'
 
 include { GATK_TUMOR_ONLY_SOMATIC_VARIANT_CALLING as GATK_TUMOR_ONLY_SOMATIC_VARIANT_CALLING_FORCE } from '../nf-core/gatk4/tumor_only_somatic_variant_calling/main'
