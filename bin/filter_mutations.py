@@ -8,7 +8,6 @@ import argparse
 import pandas as pd
 import subprocess
 import pysam
-import re
 
 
 def argparser():
@@ -27,7 +26,9 @@ def argparser():
 
 
 def read_whitelist_bed(bed_file):
-    """Columns should be chrom, start, end, ref and alt"""
+    """
+    Columns should be chrom, start, end, ref and alt to read BED file with variants for whitelisting
+    """
     if not bed_file:
         variants = []
     else:
@@ -48,7 +49,9 @@ def read_whitelist_bed(bed_file):
 
 
 def read_blacklist_bed(bed_file):
-    """Columns should be chrom, start, end"""
+    """
+    Columns should be chrom, start, end to read BED file with regions that will be considered in blacklisting
+    """
 
     bed = pd.read_csv(bed_file, sep="\t", comment="#", header=None)
     assert len(
@@ -72,29 +75,28 @@ def read_maf(maf_file):
 
 
 def noncoding(maf, noncoding):
+    """
+    Classifies as noncoding TRUE if first consequence is in noncoding list
+    """
     maf["noncoding"] = maf["Consequence"].apply(
         lambda consequence: consequence.split('&')[0].split(',')[0] in noncoding)
-    # change filter accordingly
-    # maf.loc[maf["noncoding"], 'FILTER'] = maf["FILTER"].apply(add_to_filter, args=["noncoding"])
     return maf
 
 
-def remove_ig_and_psedo(maf, ig_list):
-    """Add IG and pseudogene filters"""
+def remove_ig_and_pseudo(maf):
+    """
+    Add IG and pseudogene filters
+    """
     # fill na values
     maf[['BIOTYPE', 'SYMBOL']] = maf[['BIOTYPE', 'SYMBOL']].fillna(value="")
-    # mask variants that were annotated as IG gene or pseudogene
-    # mask_ig = (maf["SYMBOL"].isin(ig_list))
-    # mask_ps = (maf["BIOTYPE"].str.contains('pseudogene'))
-    maf["ig_pseudo"] = (maf["SYMBOL"].isin(ig_list)) | (maf["BIOTYPE"].str.contains('pseudogene'))
-    # change filter accordingly
-    # maf.loc[mask_ig, 'FILTER'] = maf["FILTER"].apply(add_to_filter, args=["ig_gene"])
-    # maf.loc[mask_ps, 'FILTER'] = maf["FILTER"].apply(add_to_filter, args=["pseudogene"])
+    maf["ig_pseudo"] = maf["BIOTYPE"].str.contains('IG_C_gene|IG_D_gene|IG_J_gene|IG_V_gene|TR_C_gene|TR_J_gene|TR_V_gene|pseudogene')
     return maf
 
 
 def filter_homopolymer(ref_context, alt, hp_length=6):
-    """Checks if the variant is in a homopolymer context"""
+    """
+    Checks if the variant is in a homopolymer context
+    """
     homopolymer = False
     if len(alt) > 1:
         alt = alt[1:]  # if insertion the check will be done
@@ -130,14 +132,6 @@ def add_context(chrom, pos, ref, genome, flank=10):
     return context
 
 
-def add_to_filter(current_filter, new_filter):
-    if new_filter:
-        if current_filter == "PASS":
-            current_filter = new_filter[:]
-        else:
-            current_filter += f';{new_filter}'
-    return current_filter
-
 
 def remove_homopolymers(maf, ref):
     """
@@ -155,12 +149,13 @@ def remove_homopolymers(maf, ref):
     maf["homopolymer"] = maf.apply(lambda row: filter_homopolymer(row["CONTEXT"],
                                                                   row["Tumor_Seq_Allele2"]),
                                    axis=1)
-    # change filter accordingly
-    # maf.loc[maf["homopolymer"], 'FILTER'] = maf["FILTER"].apply(add_to_filter, args=["homopolymer"])
     return maf
 
 
 def remove_muts_in_range(df, blacklist):
+    """
+    If overlap with a blacklist region will return a dataframe with the information
+    """
     df["blacklist"] = False
     df["blk_reason"] = ""
     reason = ""
@@ -176,44 +171,21 @@ def remove_muts_in_range(df, blacklist):
     return df
 
 
-# def adjust_filters():
-#     """Adjust filter for variants that have been called more than once. Some variants might FAIL/PASS
-#     when when low coverage. We leverage the information of the cohort to review if this was a fair filter"""
-
 def filtering(maf, gnomad_thr, whitelist, blacklist, filters):
+    """
+    Adds filters for gnomad, blacklisting, variant calling filters. Adds muts to whitelist if match.
+    """
     if "PASS" not in filters:
-        filters += ["PASS"]
-    af_columns = [x for x in maf.columns if x.endswith("_AF") and x != "t_AF" and x != "n_AF"]
-    maf["whitelist"] = maf['DNAchange'].isin(whitelist)
-    maf = remove_muts_in_range(df=maf, blacklist=blacklist)
-    maf["ingnomAD"] = maf["MAX_AF"] >= gnomad_thr
+        filters += ["PASS"]  # a PASS is always allowed
+    maf["whitelist"] = maf['DNAchange'].isin(whitelist)  # whitelist
+    maf = remove_muts_in_range(df=maf, blacklist=blacklist)  # blacklist
+    maf["ingnomAD"] = maf["MAX_AF"] >= gnomad_thr  # gnomad
 
     return maf
 
 
-def read_vcf(path):
-    """TODO: add source"""
-    with open(path, 'r') as f:
-        lines = [l for l in f if not l.startswith('##')]
-    return pd.read_csv(
-        io.StringIO(''.join(lines)),
-        dtype={'#CHROM': str, 'POS': int, 'ID': str, 'REF': str, 'ALT': str,
-               'QUAL': str, 'FILTER': str, 'INFO': str},
-        sep='\t'
-    ).rename(columns={'#CHROM': 'CHROM'})
 
-
-def match_ref_alt_2maf_format(pos_ref_alt):
-    pos, ref, alt = pos_ref_alt
-    sol = str(pos) + ref + ">" + alt
-    if len(ref) < len(alt) and len(ref) == 1:  # INS
-        sol = str(pos) + "->" + alt[1:]
-    elif len(ref) > len(alt) and len(alt) == 1:  # DEL
-        sol = str(pos + 1) + ref[1:] + ">-"
-    return sol
-
-
-def add_ravex_filters(maf, filters, noncoding=False, homopolymer=False, ig_pseudo=False, min_alt_reads=3,
+def add_ravex_filters(maf, filters, noncoding=False, homopolymer=False, ig_pseudo=False, min_alt_reads=2,
                       consensus=True):
     maf["RaVeX_FILTER"] = "PASS"
     maf["Existing_variation"] = maf["Existing_variation"].fillna("")
@@ -252,6 +224,7 @@ def add_ravex_filters(maf, filters, noncoding=False, homopolymer=False, ig_pseud
 def dedup_maf(dnachange, maf):
     """If more than one caller, then we need to dedup the entries. We select according to the caller we trust more:
     mutect2, strelka, sage, others for SNVs, strelka, mutect2, sage for indels
+    TODO: this is too slow, need to think on a better implementation
     """
     maf_variant = maf[maf["DNAchange"] == dnachange]
 
@@ -293,7 +266,6 @@ def main():
                       'non_coding_transcript_variant', 'non_coding_transcript_exon_variant',
                       'mature_miRNA_variant', 'regulatory_region_variant',
                       'IGR', 'INTRON', 'RNA']
-    # we need to add COSMIC	CENTERS	CONTEXT	DBVS	NCALLERS
     args = argparser()
     maf = read_maf(args.input)
     maf = filtering(maf=maf, gnomad_thr=args.gnomad_thr,
@@ -303,8 +275,7 @@ def main():
     # tag noncoding
     maf = noncoding(maf=maf, noncoding=noncoding_list)
     # tag IG and pseudo
-    maf = remove_ig_and_psedo(maf=maf,
-                              ig_list=['IGH', 'IGL', 'IGK', 'TRBV', 'TRAJ', 'pseudo'])
+    maf = remove_ig_and_pseudo(maf=maf)
     # tag homopolymers
     maf = remove_homopolymers(maf=maf, ref=args.ref)
     # tag consensus
