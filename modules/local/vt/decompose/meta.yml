@@ -30,14 +30,14 @@ output:
       description: |
         Groovy Map containing sample information
         e.g. [ id:'test', single_end:false ]
-  - version:
-      type: file
-      description: File containing software versions
-      pattern: "versions.yml"
   - vcf:
       type: file
       description: Decomposed VCF file
       pattern: "*.{vcf.gz}"
+  - version:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
 
 authors:
   - "@RaqManzano"
