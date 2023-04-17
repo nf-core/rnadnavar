@@ -8,7 +8,6 @@ options(warn=-1)
 
 suppressPackageStartupMessages(library(rtracklayer))
 suppressPackageStartupMessages(library(data.table))
-suppressPackageStartupMessages(library(parallel))
 suppressPackageStartupMessages(library(plyr))
 suppressPackageStartupMessages(library(ggpubr))
 suppressPackageStartupMessages(library(ComplexHeatmap))
@@ -182,16 +181,14 @@ what.caller.called <- function(row, consensus, variants){
   }
   list(callers=var.callers, filters=filters)
 }
-# Parallel step
-cl <- makeCluster(detectCores())
-for (c in callers){
+
+     for (c in callers){
   message("- Annotating calls from ", c)
-  values <-  parApply(cl = cl, X = muts[[c]], MARGIN = 1, FUN = what.caller.called, consensus=con.vars.ths, variants=overlapping.vars)
+  values <-  apply(X = muts[[c]], MARGIN = 1, FUN = what.caller.called, consensus=con.vars.ths, variants=overlapping.vars)
   muts[[c]] <- cbind( muts[[c]], as.data.frame(do.call(rbind, values)))
   muts[[c]]$callers <- unlist(muts[[c]]$callers )
   muts[[c]]$filters <- unlist(muts[[c]]$filters )
 }
-stopCluster(cl)
 
 all.muts <- do.call(rbind.fill, muts)
 
