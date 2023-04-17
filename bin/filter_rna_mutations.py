@@ -7,6 +7,7 @@ import argparse
 import pandas as pd
 from liftover import ChainFile
 from capy import mut
+import numpy as np
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
@@ -110,10 +111,11 @@ def add_hg19_coords_with_liftover(M, chain_file):
     converter = ChainFile(chain_file, 'hg38', 'hg19')
     starting_size = M.shape[0]
     M["coordinates19"] = M.apply(lambda x: converter[x["Chromosome"]][x["Start_Position"]], axis=1)
-    tmp = pd.DataFrame(M['coordinates19'].tolist(), index=M.index)
+    # Replace with tuple of None's when position has been deleted in new reference genome
+    tmp = pd.DataFrame(M['coordinates19'].tolist(), index=M.index).apply(lambda ds: ds.map(lambda x: x if x != None else (None, None, None)))
     tmp[['Chromosome19', 'Start_Position19', "STRAND19"]] = pd.DataFrame(tmp[0].tolist(), index=M.index)
     liftover_size = tmp.shape[0]
-    assert starting_size == liftover_size, "Liftovered positions are not the same numer as in original MAF"
+    assert starting_size == liftover_size, "Liftovered positions are not the same number as in original MAF"
     M = pd.concat([M, tmp], axis=1).drop(0, axis=1)
     return M
 
