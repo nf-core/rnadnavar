@@ -122,28 +122,13 @@ ch_multiqc_custom_config = params.multiqc_config ? Channel.fromPath(params.multi
 include { CORE_RUN                                            } from '../subworkflows/local/core_workflow_pass'
 include { CORE_RUN as SECOND_RUN                              } from '../subworkflows/local/core_workflow_pass'
 
-// Create samplesheets to restart from different steps
-//include { GATK_PREPROCESSING                                   } from '../subworkflows/local/gatk_preprocessing'
 // Build the genome index and other reference files
-include { PREPARE_REFERENCE_AND_INTERVALS                                       } from '../subworkflows/local/prepare_reference_and_intervals'
+include { PREPARE_REFERENCE_AND_INTERVALS                     } from '../subworkflows/local/prepare_reference_and_intervals'
 include { MAPPING                                             } from '../subworkflows/local/mapping'
-
-// Variant calling on tumor/normal pair TODO: add tumour only for next version
-//include { VARIANT_CALLING            } from '../subworkflows/local/variant_calling'
-
-
-// VCF normalization
-// TODO: this produces a warning? unknown recognition error type: groovyjarjarantlr4.v4.runtime.LexerNoViableAltException
-//include { NORMALIZE                                        } from '../subworkflows/local/normalize_vcf_variants'
-// Consensus
-//include { CONSENSUS                                            } from '../subworkflows/local/consensus'
-
-// Annotation
-//include { ANNOTATE                                             } from '../subworkflows/local/annotate'
 
 // Filtering
 include { PREPARE_SECOND_RUN     } from '../subworkflows/local/prepare_second_run'
-include {FILTERING_RNA            } from '../subworkflows/local/rna_filtering'
+include { FILTERING_RNA          } from '../subworkflows/local/rna_filtering'
 // REPORTING VERSIONS OF SOFTWARE USED
 include { CUSTOM_DUMPSOFTWAREVERSIONS                          } from '../modules/nf-core/modules/custom/dumpsoftwareversions/main'
 
