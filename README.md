@@ -56,6 +56,22 @@ On release, automated continuous integration tests run the pipeline on a full-si
 9. Realignment [OPT]
 10. RNA filtering
 
+## Note for beta testers
+
+Profiles have not been tested yet. At the moment to run 
+the pipeline you will need:
+
+- DNA and RNA tumour BAM/FASTQ files and DNA normal BAM 
+  file 
+  (this is what I have been testing so far)
+- Reference files
+  - Use the same reference file you used for your BAM file
+  - There are other reference files for some of the 
+    filtering steps. Those files are optional so should 
+    not be required for testing, however if you want to 
+    run it with everything let me know and I can provide 
+    them for you.
+
 
 ## Quick Start
 
@@ -66,6 +82,7 @@ On release, automated continuous integration tests run the pipeline on a full-si
 3. Download the pipeline and test it on a minimal dataset with a single command:
 
    ```console
+   # Not working/tested yet - it is the todo list
    nextflow run nf-core/rnadnavar -profile test,YOURPROFILE --outdir <OUTDIR>
    ```
 
@@ -81,7 +98,9 @@ On release, automated continuous integration tests run the pipeline on a full-si
    <!-- TODO nf-core: Update the example "typical command" below used to run the pipeline -->
 
    ```console
-   nextflow run nf-core/rnadnavar --input samplesheet.csv --outdir <OUTDIR> --genome GRCh37 -profile <docker/singularity/podman/shifter/charliecloud/conda/institute>
+   nextflow run nf-core/rnadnavar --input samplesheet.
+   csv --outdir <OUTDIR> --genome GRCh38 -profile 
+   <docker/singularity/to/add/test/here>
    ```
 
 ## Documentation
