@@ -75,7 +75,7 @@ workflow CONSENSUS {
                                              patient:meta.patient,
                                              status:meta.status,
                                              ncallers:ncallers
-                                             ], ncallers), vcf, meta.variantcaller]}
+                                             ], ncallers), vcf, meta.variantcaller]} // groupKey should avoid the groupTuple wait but it does not seem to work atm
                                      .groupTuple() // makes the whole pipeline wait for all processes to finish
 
             vcf_to_consensus.dump(tag:"[STEP5 CONSENSUS] - vcf_to_consensus1")
