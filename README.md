@@ -1,10 +1,8 @@
 # :warning: UNDER ACTIVE DEVELOPMENT :warning: 
 
 Hi beta-tester, thanks for agreeing to help out in this 
-repo. I have created a [project](https://github.
-com/users/RaqManzano/projects/2) to add issues/tasks. 
-Plese feel free to use the [issues tab](https://github.
-com/RaqManzano/nfcore_rnadnavar/issues). I am currently 
+repo. I have created a [project](https://github.com/users/RaqManzano/projects/2) to add issues/tasks. 
+Plese feel free to use the [issues tab](https://github.com/RaqManzano/nfcore_rnadnavar/issues). I am currently 
 working on a draft for this methods so if you end up 
 using this pipeline or bits of it I would appreciate 
 your citation (to be added).
