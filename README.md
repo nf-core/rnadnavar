@@ -1,13 +1,14 @@
 # :warning: UNDER ACTIVE DEVELOPMENT :warning: 
 
-TODO:
+Hi beta-tester, thanks for agreeing to help out in this 
+repo. I have created a [project](https://github.
+com/users/RaqManzano/projects/2) to add issues/tasks. 
+Plese feel free to use the [issues tab](https://github.
+com/RaqManzano/nfcore_rnadnavar/issues). I am currently 
+working on a draft for this methods so if you end up 
+using this pipeline or bits of it I would appreciate 
+your citation (to be added).
 
-- [ ] Review pipeline format to make sure it follows nf-core best practices
-  - [ ] Review modules.config
-  - [ ] Review changes in pre-existing modules/subworkflows
-- [ ] Set up proper tests
-- [ ] Cleaning up
-  - [ ] Remove modules/subworkflows that are no longer necessary
 
 
 
@@ -117,9 +118,10 @@ The nf-core/rnadnavar pipeline comes with documentation about the pipeline [usag
 
 ## Credits
 
-nf-core/rnadnavar was originally written by Raquel Manzano-Garcia, Praveen Raj, Maxime U Garcia.
+nf-core/rnadnavar was originally written by Raquel Manzano-Garcia.
 
 We thank the following people for their extensive assistance in the development of this pipeline:
+TBC
 
 <!-- TODO nf-core: If applicable, make list of people who have also contributed -->
 
