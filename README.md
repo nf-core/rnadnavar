@@ -71,6 +71,14 @@ the pipeline you will need:
     not be required for testing, however if you want to 
     run it with everything let me know and I can provide 
     them for you.
+- I recommend that for starting thing you generate a 
+  profile similar to the example I have in 
+  `config/tcga_train_set.config` and a input table like 
+  `assets/TargetsFileTCGA1Sample.csv`
+- Note that RNA only mode has not been tested yet. At 
+  the moment everything run with DNA-RNA in parallel. I 
+  suspect it should be okay until the consensus step, 
+  which might require some changes to allow RNA only data.
 
 
 ## Quick Start
