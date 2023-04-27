@@ -27,33 +27,7 @@ your citation (to be added).
 [![Follow on Twitter](http://img.shields.io/badge/twitter-%40nf__core-1DA1F2?logo=twitter)](https://twitter.com/nf_core)
 [![Watch on YouTube](http://img.shields.io/badge/youtube-nf--core-FF0000?logo=youtube)](https://www.youtube.com/c/nf-core)
 
-## Introduction
 
-<!-- TODO nf-core: Write a 1-2 sentence summary of what data the pipeline is for and what it does -->
-
-**nf-core/rnadnavar** is a bioinformatics best-practice analysis pipeline for Pipeline for RNA and DNA integrated analysis for somatic mutation detection.
-
-The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool to run tasks across multiple compute infrastructures in a very portable manner. It uses Docker/Singularity containers making installation trivial and results highly reproducible. The [Nextflow DSL2](https://www.nextflow.io/docs/latest/dsl2.html) implementation of this pipeline uses one container per process which makes it much easier to maintain and update software dependencies. Where possible, these processes have been submitted to and installed from [nf-core/modules](https://github.com/nf-core/modules) in order to make them available to all nf-core pipelines, and to everyone within the Nextflow community!
-
-<!-- TODO nf-core: Add full-sized test dataset and amend the paragraph below if applicable -->
-
-On release, automated continuous integration tests run the pipeline on a full-sized dataset on the AWS cloud infrastructure. This ensures that the pipeline runs on AWS, has sensible resource allocation defaults set to run on real-world datasets, and permits the persistent storage of results to benchmark between pipeline releases and other analysis sources. The results obtained from the full-sized test can be viewed on the [nf-core website](https://nf-co.re/rnadnavar/results).
-
-## Pipeline summary
-
-<!-- TODO nf-core: Fill in short bullet-pointed list of the default steps in the pipeline -->
-
-1. Read QC ([`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))
-2. Present QC for raw reads ([`MultiQC`](http://multiqc.info/))
-3. Alignment (BWA/STAR)
-3. GATK pre-processing
-4. Variant calling
-5. Normalise calls
-6. Annotation
-7. Consensus
-8. Filtering
-9. Realignment [OPT]
-10. RNA filtering
 
 ## Note for beta testers
 
@@ -80,11 +54,57 @@ the pipeline you will need:
   which might require some changes to allow RNA only data.
 
 
+## Introduction
+
+The **nf-core/rnadnavar** is a bioinformatics best-practice 
+analysis pipeline for Pipeline for RNA and DNA 
+integrated analysis for somatic mutation detection.
+
+Initially designed for cancer research, the pipeline  
+uses different variant calling algorithms and applies a 
+consensus approach. A final filtering stage, should 
+provide a set of annotated somatic variants.
+
+The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool to run tasks across 
+multiple compute infrastructures in a very portable 
+manner. It uses Docker/Singularity containers making 
+installation trivial and results highly reproducible. 
+The [Nextflow DSL2](https://www.nextflow.io/docs/latest/dsl2.html) implementation of this 
+pipeline uses one container per process which makes it 
+much easier to maintain and update software 
+dependencies. Where possible, these processes have been 
+submitted to and installed from [nf-core/modules](https://github.com/nf-core/modules) in order to make them available to all nf-core pipelines, and to everyone within the Nextflow community!
+
+On release, automated continuous integration tests run the pipeline on a full-sized dataset on the AWS cloud infrastructure. This ensures that the pipeline runs on AWS, has sensible resource allocation defaults set to run on real-world datasets, and permits the persistent storage of results to benchmark between pipeline releases and other analysis sources. The results obtained from the full-sized test can be viewed on the [nf-core website](https://nf-co.re/rnadnavar/results).
+
+
+## Pipeline summary
+
+<!-- TODO nf-core: Fill in short bullet-pointed list of the default steps in the pipeline -->
+
+1. Read QC ([`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))
+2. Present QC for raw reads ([`MultiQC`](http://multiqc.info/))
+3. Alignment (BWA/STAR)
+3. GATK pre-processing
+4. Variant calling
+5. Normalise calls
+6. Annotation
+7. Consensus
+8. Filtering
+9. Realignment [OPT]
+10. RNA filtering
+
+<p align="center">
+    <img title="Sarek Workflow" 
+src="docs/images/rnadnavar_schemav2.png">
+</p>
+
+
 ## Quick Start
 
 1. Install [`Nextflow`](https://www.nextflow.io/docs/latest/getstarted.html#installation) (`>=21.10.3`)
 
-2. Install any of [`Docker`](https://docs.docker.com/engine/installation/), [`Singularity`](https://www.sylabs.io/guides/3.0/user-guide/) (you can follow [this tutorial](https://singularity-tutorial.github.io/01-installation/)), [`Podman`](https://podman.io/), [`Shifter`](https://nersc.gitlab.io/development/shifter/how-to-use/) or [`Charliecloud`](https://hpc.github.io/charliecloud/) for full pipeline reproducibility _(you can use [`Conda`](https://conda.io/miniconda.html) both to install Nextflow itself and also to manage software within pipelines. Please only use it within pipelines as a last resort; see [docs](https://nf-co.re/usage/configuration#basic-configuration-profiles))_.
+2. Install any of [`Docker`](https://docs.docker.com/engine/installation/), [`Singularity`](https://www.sylabs.io/guides/3.0/user-guide/) (you can follow [this tutorial](https://singularity-tutorial.github.io/01-installation/)), [`Podman`](https://podman.io/), [`Shifter`](https://nersc.gitlab.io/development/shifter/how-to-use/) or [`Charliecloud`](https://hpc.github.io/charliecloud/) for full pipeline reproducibility _(you can use [`Conda`](https://conda.io/miniconda.html) both to install Nextflow itself and also to manage software within pipelines. Please only use it within pipelines as a last resort; see [docs](https://github.com/RaqManzano/nfcore_rnadnavar/blob/dev/docs/usage.md))_.
 
 3. Download the pipeline and test it on a minimal dataset with a single command:
 
@@ -112,13 +132,20 @@ the pipeline you will need:
 
 ## Documentation
 
-The nf-core/rnadnavar pipeline comes with documentation about the pipeline [usage](https://nf-co.re/rnadnavar/usage), [parameters](https://nf-co.re/rnadnavar/parameters) and [output](https://nf-co.re/rnadnavar/output).
+The nf-core/rnadnavar pipeline comes with documentation about the pipeline [usage](https://github.com/RaqManzano/nfcore_rnadnavar/blob/dev/docs/usage.md), [parameters](https://nf-co.re/rnadnavar/parameters) and [output](https://nf-co.re/rnadnavar/output).
 
 ## Credits
 
-nf-core/rnadnavar was originally written by Raquel Manzano-Garcia.
+The nf-core/rnadnavar was originally written by Raquel 
+Manzano Garcia at Cancer Research UK Cambridge Institute 
+with the initial and continuous support of Maxime U 
+Garcia. The workflow is based on 
+[RNA-MuTect](https://github.
+com/broadinstitute/RNA_MUTECT_1.0-1) which was 
+originally published by [Yizhak, *et al* 2019 (Science)]
+(https://www.science.org/doi/10.1126/science.aaw0726)
 
-We thank the following people for their extensive assistance in the development of this pipeline:
+We thank the following people for their assistance in the development of this pipeline:
 TBC
 
 <!-- TODO nf-core: If applicable, make list of people who have also contributed -->
