@@ -6,8 +6,6 @@ include { RUN_MANTA_SOMATIC                         } from '../nf-core/variantca
 include { RUN_FREEBAYES as RUN_FREEBAYES_SOMATIC    } from '../nf-core/variantcalling/freebayes/main.nf'
 include { RUN_SAGE as RUN_SAGE_SOMATIC              } from '../nf-core/variantcalling/sage/main.nf'
 include { RUN_STRELKA_SOMATIC                       } from '../nf-core/variantcalling/strelka/somatic/main.nf'
-include { RUN_MPILEUP as RUN_MPILEUP_NORMAL         } from '../nf-core/variantcalling/mpileup/main'
-include { RUN_MPILEUP as RUN_MPILEUP_TUMOR          } from '../nf-core/variantcalling/mpileup/main'
 
 workflow PAIR_VARIANT_CALLING {
     take:
