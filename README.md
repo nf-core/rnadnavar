@@ -31,8 +31,12 @@ your citation (to be added).
 
 ## Note for beta testers
 
-Profiles have not been tested yet. At the moment to run 
-the pipeline you will need:
+Profiles have not been tested yet, please use the `-c` 
+option as `nextflow run main -c conf/tcga_train_set.
+config`. Change the config option so it works on your 
+end, I left as an example the one I am using for my 
+analysis.
+At the moment to run  the pipeline you will need:
 
 - DNA and RNA tumour BAM/FASTQ files and DNA normal BAM 
   file 
@@ -140,10 +144,8 @@ The nf-core/rnadnavar was originally written by Raquel
 Manzano Garcia at Cancer Research UK Cambridge Institute 
 with the initial and continuous support of Maxime U 
 Garcia. The workflow is based on 
-[RNA-MuTect](https://github.
-com/broadinstitute/RNA_MUTECT_1.0-1) which was 
-originally published by [Yizhak, *et al* 2019 (Science)]
-(https://www.science.org/doi/10.1126/science.aaw0726)
+[RNA-MuTect](https://github.com/broadinstitute/RNA_MUTECT_1.0-1) which was 
+originally published by [Yizhak, *et al* 2019 (Science)](https://www.science.org/doi/10.1126/science.aaw0726)
 
 We thank the following people for their assistance in the development of this pipeline:
 TBC
