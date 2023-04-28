@@ -374,7 +374,7 @@ def extract_csv(csv_file) {
                 System.exit(1)
             }
             [[row.patient.toString(), row.sample.toString()], row]
-        }.groupTuple(sort:true)
+        }.groupTuple()
         .map{ meta, rows ->
             size = rows.size()
             [rows, size]
@@ -402,7 +402,7 @@ def extract_csv(csv_file) {
         // 1. the sample-sheet only contains normal-samples, but some of the requested tools require tumor-samples, and
         // 2. the sample-sheet only contains tumor-samples, but some of the requested tools require normal-samples.
         if ((sample_count_normal == sample_count_all) && params.tools) { // In this case, the sample-sheet contains no tumor-samples
-            def tools_tumor = ['sage', 'controlfreec', 'mutect2', 'strelka2']  // This will be applied to tumour DNA and tumour RNA
+            def tools_tumor = ['sage', 'mutect2', 'strelka2']  // This will be applied to tumour DNA and tumour RNA
             def tools_tumor_asked = []
             tools_tumor.each{ tool ->
                 if (params.tools.split(',').contains(tool)) tools_tumor_asked.add(tool)
