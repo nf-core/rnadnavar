@@ -2,8 +2,6 @@
 // PAIRED VARIANT CALLING
 //
 include { GATK_TUMOR_NORMAL_SOMATIC_VARIANT_CALLING } from '../../subworkflows/nf-core/gatk4/tumor_normal_somatic_variant_calling/main'
-include { RUN_MPILEUP as RUN_MPILEUP_NORMAL         } from '../nf-core/variantcalling/mpileup/main'
-include { RUN_MPILEUP as RUN_MPILEUP_TUMOR          } from '../nf-core/variantcalling/mpileup/main'
 include { VT_DECOMPOSE                              } from '../../modules/local/vt/decompose/main'
 include { VCF_QC                                    } from '../nf-core/vcf_qc'
 
