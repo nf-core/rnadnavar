@@ -76,7 +76,7 @@ def add_rnaediting_sites(maf, rnaeditingsites, realignment):
         for pon_col in pon_cols:
             if row[pon_col]:
                 ravex_filter += ["rna_pon" + pon_col[-5:]]
-        if not ravex_filter:
+        if not ravex_filter or row["whitelist"]:
             ravex_filter = ["PASS"]
         ravex_filter = ";".join(ravex_filter)
         maf.at[idx, "RaVeX_FILTER"] = ravex_filter
