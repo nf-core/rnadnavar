@@ -71,7 +71,7 @@ workflow PREPARE_SECOND_RUN {
             bed.dump(tag:"[STEP8: RNA_FILTERING] bed1")
             // Match metadata for tumor and normal samples - this file comes from variant calling
             bed_normal = bed_status.rna.map{meta, bed ->
-                    def (tumor_id, normal_id) = meta.rna_id.tokenize( '_vs_' )
+                    def (tumor_id, normal_id) = meta.rna_id.split( '_vs_' )
                                  [[
                     id:         normal_id + "_2pass",
                     patient:    meta.patient,
@@ -79,7 +79,7 @@ workflow PREPARE_SECOND_RUN {
                     ],
                 bed]}
             bed_tumor = bed_status.rna.map{meta, bed ->
-                    def (tumor_id, normal_id) = meta.rna_id.tokenize( '_vs_' )
+                    def (tumor_id, normal_id) = meta.rna_id.split( '_vs_' )
                                  [[
                     id:         tumor_id + "_2pass" ,
                     patient:    meta.patient,

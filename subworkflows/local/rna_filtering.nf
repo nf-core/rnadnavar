@@ -32,9 +32,9 @@ workflow FILTERING_RNA {
                                     meta.first_id   = first[1].id
                                     meta.second_id  = second[1].id
                                     meta.status     = first[1].status
-                                    meta.tumor_id   = first[1].rna_id.tokenize("_vs_")[0]
+                                    meta.tumor_id   = first[1].rna_id.split("_vs_")[0]
                                     meta.id         = first[1].id
-                                    meta.normal_id  = first[1].rna_id.tokenize("_vs_")[1]
+                                    meta.normal_id  = first[1].rna_id.split("_vs_")[1]
                                     [meta, first[2], second[2]]
                                     }
         } else {
