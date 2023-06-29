@@ -148,23 +148,7 @@ workflow MAPPING {
             // Grouping the bams from the same samples not to stall the workflow
             star_bams = ALIGN_STAR.out.bam.groupTuple()
             ch_bam_mapped_rna = ALIGN_STAR.out.bam.map{ meta, bam ->
-                numLanes = meta.numLanes ?: 1
-                size     = meta.size     ?: 1
-                // remove no longer necessary fields:
-                //   read_group: Now in the BAM header
-                //     numLanes: Was only needed for mapping
-                //         size: Was only needed for mapping
-                lane = ( meta.read_group =~ /PU:(\S+?)(\\t|\s|\"|$)/ )[0][1]
-                new_meta = [
-                            id:meta.sample, // update ID to be based on the sample name
-                            data_type:"bam", // update data_type
-                            patient:meta.patient,
-                            sample:meta.sample,
-                            status:meta.status,
-                            lane:lane
-                        ]
-                // Use groupKey to make sure that the correct group can advance as soon as it is complete
-                [ groupKey(new_meta, numLanes * size), bam]
+                [ groupKey( meta - meta.subMap('num_lanes', 'read_group', 'size') + [ data_type:'bam', id:meta.sample ], (meta.num_lanes ?: 1) * (meta.size ?: 1)), bam ]
             }.groupTuple()
             // Gather QC reports
             ch_reports           = ch_reports.mix(ALIGN_STAR.out.stats.collect{it[1]}.ifEmpty([]))
