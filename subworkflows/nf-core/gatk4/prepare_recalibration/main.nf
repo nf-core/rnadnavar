@@ -4,85 +4,51 @@
 // For all modules here:
 // A when clause condition is defined in the conf/modules.config to determine if the module should be run
 
-include { GATK4_BASERECALIBRATOR  as BASERECALIBRATOR  } from '../../../../modules/nf-core/modules/gatk4/baserecalibrator/main'
-include { GATK4_GATHERBQSRREPORTS as GATHERBQSRREPORTS } from '../../../../modules/nf-core/modules/gatk4/gatherbqsrreports/main'
+include { GATK4_BASERECALIBRATOR    } from '../../../../modules/nf-core/modules/gatk4/baserecalibrator/main'
+include { GATK4_GATHERBQSRREPORTS   } from '../../../../modules/nf-core/modules/gatk4/gatherbqsrreports/main'
 
-workflow PREPARE_RECALIBRATION {
+workflow BAM_BASERECALIBRATOR {
     take:
-        cram            // channel: [mandatory] meta, cram_markduplicates, crai
-        dict            // channel: [mandatory] dict
-        fasta           // channel: [mandatory] fasta
-        fasta_fai       // channel: [mandatory] fasta_fai
-        intervals       // channel: [mandatory] intervals, num_intervals
-        known_sites     // channel: [optional]  known_sites
-        known_sites_tbi // channel: [optional]  known_sites_tbi
+    cram            // channel: [mandatory] [ meta, cram_markduplicates, crai ]
+    dict            // channel: [mandatory] [ dict ]
+    fasta           // channel: [mandatory] [ fasta ]
+    fasta_fai       // channel: [mandatory] [ fasta_fai ]
+    intervals       // channel: [mandatory] [ intervals, num_intervals ] (or [ [], 0 ] if no intervals)
+    known_sites     // channel: [optional]  [ known_sites ]
+    known_sites_tbi // channel: [optional]  [ known_sites_tbi ]
 
     main:
-        ch_versions = Channel.empty()
+    versions = Channel.empty()
 
-        cram_intervals = cram.combine(intervals)
-            .map{ meta, cram, crai, intervals, num_intervals ->
+    // Combine cram and intervals for spread and gather strategy
+    cram_intervals = cram.combine(intervals)
+        // Move num_intervals to meta map
+        .map{ meta, cram, crai, intervals, num_intervals -> [ meta + [ num_intervals:num_intervals ], cram, crai, intervals ] }
 
-                //If no interval file provided (0) then add empty list
-                intervals_new = num_intervals == 0 ? [] : intervals
+    // RUN BASERECALIBRATOR
+    GATK4_BASERECALIBRATOR(cram_intervals, fasta, fasta_fai, dict, known_sites, known_sites_tbi)
 
-                [[
-                    data_type:      meta.data_type,
-                    id:             meta.id,
-                    num_intervals:  num_intervals,
-                    patient:        meta.patient,
-                    sample:         meta.sample,
-                    status:         meta.status,
-                ],
-                cram, crai, intervals_new]
-            }
+    // Figuring out if there is one or more table(s) from the same sample
+    table_to_merge = GATK4_BASERECALIBRATOR.out.table.map{ meta, table -> [ groupKey(meta, meta.num_intervals), table ] }.groupTuple().branch{
+        // Use meta.num_intervals to asses number of intervals
+        single:   it[0].num_intervals <= 1
+        multiple: it[0].num_intervals > 1
+    }
 
-        // Run Baserecalibrator
-        BASERECALIBRATOR(cram_intervals, fasta, fasta_fai, dict, known_sites, known_sites_tbi)
+    // Only when using intervals
+    GATK4_GATHERBQSRREPORTS(table_to_merge.multiple)
 
-        // Figuring out if there is one or more table(s) from the same sample
-        table_to_merge = BASERECALIBRATOR.out.table
-            .map{ meta, table ->
+    // Mix intervals and no_intervals channels together
+    table_bqsr = GATK4_GATHERBQSRREPORTS.out.table.mix(table_to_merge.single.map{ meta, table -> [ meta, table[0] ] })
+        // Remove no longer necessary field: num_intervals
+        .map{ meta, table -> [ meta - meta.subMap('num_intervals'), table ] }
 
-                    new_meta = [
-                                    data_type:      meta.data_type,
-                                    id:             meta.id,
-                                    num_intervals:  meta.num_intervals,
-                                    patient:        meta.patient,
-                                    sample:         meta.sample,
-                                    status:         meta.status,
-                                ]
-
-                    [groupKey(new_meta, meta.num_intervals), table]
-            }.groupTuple(sort:true)
-        .branch{
-            //Warning: size() calculates file size not list length here, so use num_intervals instead
-            single:   it[0].num_intervals <= 1
-            multiple: it[0].num_intervals > 1
-        }
-
-        // STEP 3.5: MERGING RECALIBRATION TABLES
-
-        // Merge the tables only when we have intervals
-        GATHERBQSRREPORTS(table_to_merge.multiple)
-        table_bqsr = table_to_merge.single.mix(GATHERBQSRREPORTS.out.table)
-                                            .map{ meta, table ->
-                                                // remove no longer necessary fields to make sure joining can be done correctly: num_intervals
-                                                [[
-                                                    data_type:  meta.data_type,
-                                                    id:         meta.id,
-                                                    patient:    meta.patient,
-                                                    sample:     meta.sample,
-                                                    status:     meta.status,
-                                                ],
-                                                table]
-                                            }
-
-        // Gather versions of all tools used
-        ch_versions = ch_versions.mix(BASERECALIBRATOR.out.versions)
-        ch_versions = ch_versions.mix(GATHERBQSRREPORTS.out.versions)
+    // Gather versions of all tools used
+    versions = versions.mix(GATK4_BASERECALIBRATOR.out.versions)
+    versions = versions.mix(GATK4_GATHERBQSRREPORTS.out.versions)
 
     emit:
-        table_bqsr = table_bqsr
-        versions   = ch_versions // channel: [versions.yml]
+    table_bqsr // channel: [ meta, table ]
+
+    versions   // channel: [ versions.yml ]
 }

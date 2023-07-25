@@ -5,7 +5,7 @@
 include { BAM_MERGE_INDEX_SAMTOOLS as MERGE_ALIGN     } from './bam_merge_index_samtools/main'
 include { MAF2BED                                     } from '../../modules/local/maf2bed'
 include { EXTRACT_READ_IDS                            } from '../../modules/local/extract_reads'
-include { ALIGNMENT_TO_FASTQ as ALIGN2FQ              } from '../nf-core/alignment_to_fastq'
+include { BAM_CONVERT_SAMTOOLS as ALIGN2FQ              } from '../nf-core/alignment_to_fastq'
 include { ALIGN_HISAT2                                } from '../nf-core/align_hisat2'
 include { GATK4_FILTERSAMREADS                        } from '../../modules/nf-core/modules/gatk4/filtersamreads/main'
 
@@ -151,7 +151,11 @@ workflow PREPARE_SECOND_RUN {
             GATK4_FILTERSAMREADS.out.bam.dump(tag:'[STEP8: RNA_FILTERING] filtered_bam')
 
     //STEP D: Get FQs for re-alignment
-            ALIGN2FQ(GATK4_FILTERSAMREADS.out.bam, []) // bam -> fq
+            // bam -> fq
+            ALIGN2FQ(GATK4_FILTERSAMREADS.out.bam,
+                                [ [ id:"fasta" ], [] ], // fasta
+                                [ [ id:'null' ], [] ],  // fasta_fai
+                                false)
             ALIGN2FQ.out.reads.dump(tag:'[STEP8: RNA_FILTERING] fastq_for_realignment')
 
     //STEP E: HISAT2 re-alignment

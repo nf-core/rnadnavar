@@ -56,7 +56,7 @@ workflow PREPARE_REFERENCE_AND_INTERVALS {
         known_sites_snps_tbi = dbsnp_tbi.concat(known_snps_tbi).collect()
 
     // STEP 0.B: Build intervals if needed
-        PREPARE_INTERVALS(fasta_fai)
+        PREPARE_INTERVALS(fasta_fai, params.intervals, params.no_intervals)
         ch_versions = ch_versions.mix(PREPARE_INTERVALS.out.versions)
 
         // Intervals for speed up preprocessing/variant calling by spread/gather

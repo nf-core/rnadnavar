@@ -5,13 +5,13 @@ include { SAMTOOLS_CONVERT as SAMTOOLS_CRAMTOBAM               } from '../../mod
 include { SAMTOOLS_CONVERT as SAMTOOLS_CRAMTOBAM_RECAL         } from '../../modules/nf-core/modules/samtools/convert/main'
 include { SAMTOOLS_CONVERT as SAMTOOLS_CRAMTOBAM_SNCR          } from '../../modules/nf-core/modules/samtools/convert/main'
 include { SAMTOOLS_CONVERT as SAMTOOLS_BAMTOCRAM               } from '../../modules/nf-core/modules/samtools/convert/main'
-include { MARKDUPLICATES                                       } from '../nf-core/gatk4/markduplicates/main'
+include { BAM_MARKDUPLICATES as MARKDUPLICATES                 } from '../nf-core/gatk4/markduplicates/main'
 include { MARKDUPLICATES_CSV                                   } from '../local/markduplicates_csv'
 include { SPLITNCIGAR                                          } from '../nf-core/splitncigar'        // Splits reads that contain Ns in their cigar string
 include { BAM_TO_CRAM                                          } from '../nf-core/bam_to_cram'
 include { BAM_TO_CRAM as BAM_TO_CRAM_SNCR                      } from '../nf-core/bam_to_cram'
 include { CRAM_QC                                              } from '../nf-core/cram_qc'
-include { PREPARE_RECALIBRATION                                } from '../nf-core/gatk4/prepare_recalibration/main'
+include { BAM_BASERECALIBRATOR                                 } from '../nf-core/gatk4/prepare_recalibration/main'
 include { PREPARE_RECALIBRATION_CSV                            } from '../local/prepare_recalibration_csv'
 include { RECALIBRATE                                          } from '../nf-core/gatk4/recalibrate/main'
 include { RECALIBRATE_CSV                                      } from '../local/recalibrate_csv'
@@ -104,7 +104,7 @@ workflow GATK_PREPROCESSING {
                         intervals_for_preprocessing)
                     ch_cram_markduplicates = MARKDUPLICATES.out.cram
                     // Gather QC reports
-                    ch_reports  = ch_reports.mix(MARKDUPLICATES.out.qc.collect{meta, report -> report})
+                    ch_reports  = ch_reports.mix(MARKDUPLICATES.out.reports.collect{ meta, report -> report })
                     // Gather used softwares versions
                     ch_versions = ch_versions.mix(MARKDUPLICATES.out.versions)
                     }
@@ -225,7 +225,7 @@ workflow GATK_PREPROCESSING {
                     ch_table_bqsr = Channel.empty()
 
                     ch_cram_for_prepare_recalibration.dump(tag:"[STEP2_GATKPREPROCESSING] cram_input_for_recal")
-                    PREPARE_RECALIBRATION(
+                    BAM_BASERECALIBRATOR(
                         ch_cram_for_prepare_recalibration,
                         dict,
                         fasta,
@@ -234,9 +234,9 @@ workflow GATK_PREPROCESSING {
                         germline_resource,
                         germline_resource_tbi)
 
-                    ch_table_bqsr = PREPARE_RECALIBRATION.out.table_bqsr
+                    ch_table_bqsr = BAM_BASERECALIBRATOR.out.table_bqsr
                     // Gather used softwares versions
-                    ch_versions = ch_versions.mix(PREPARE_RECALIBRATION.out.versions)
+                    ch_versions = ch_versions.mix(BAM_BASERECALIBRATOR.out.versions)
 
 
                     ch_reports  = ch_reports.mix(ch_table_bqsr.collect{ meta, table -> table})

@@ -4,8 +4,8 @@
 // For all modules here:
 // A when clause condition is defined in the conf/modules.config to determine if the module should be run
 
-include { SAMTOOLS_INDEX as INDEX_MERGE_BAM } from '../../../modules/nf-core/samtools/index/main'
-include { SAMTOOLS_MERGE as MERGE_BAM       } from '../../../modules/nf-core/samtools/merge/main'
+include { SAMTOOLS_INDEX as INDEX_MERGE_BAM } from '../../../modules/nf-core/modules/samtools/index/main'
+include { SAMTOOLS_MERGE as MERGE_BAM       } from '../../../modules/nf-core/modules/samtools/merge/main'
 
 workflow BAM_MERGE_INDEX_SAMTOOLS {
     take:
@@ -15,12 +15,14 @@ workflow BAM_MERGE_INDEX_SAMTOOLS {
     versions = Channel.empty()
 
     // Figuring out if there is one or more bam(s) from the same sample
+    bam.dump(tag:"bam")
     bam_to_merge = bam.branch{ meta, bam ->
         // bam is a list, so use bam.size() to asses number of intervals
         single:   bam.size() <= 1
             return [ meta, bam[0] ]
         multiple: bam.size() > 1
     }
+    bam_to_merge.dump(tag:"bam_to_merge")
 
     // Only when using intervals
     MERGE_BAM(bam_to_merge.multiple, [ [ id:'null' ], []], [ [ id:'null' ], []])
