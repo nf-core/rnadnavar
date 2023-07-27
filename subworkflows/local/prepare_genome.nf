@@ -50,7 +50,7 @@ workflow PREPARE_GENOME {
     DRAGMAP_HASHTABLE(fasta) // If aligner is dragmap
 
     GATK4_CREATESEQUENCEDICTIONARY(fasta)
-    SAMTOOLS_FAIDX(fasta.map{ it -> [[id:it[0].getName()], it] })
+    SAMTOOLS_FAIDX(fasta.map{ fasta -> [ [ id:fasta.baseName ], fasta ] }, [['id':null], []])
 
     //
     // Uncompress GTF annotation file or create from GFF3 if required

@@ -13,6 +13,7 @@ workflow ALIGN_STAR {
         star_ignore_sjdbgtf     // value:   ignore gtf
         seq_platform            // value:   sequencing platform
         seq_center              // value:   sequencing centre
+        fasta
 
     main:
 
@@ -29,7 +30,8 @@ workflow ALIGN_STAR {
         ch_versions = ch_versions.mix(STAR_ALIGN.out.versions.first())
         // Sort, index BAM file and run samtools stats, flagstat and idxstats
         BAM_SORT_SAMTOOLS (
-            STAR_ALIGN.out.bam
+            STAR_ALIGN.out.bam,
+            fasta
         )
         ch_versions = ch_versions.mix(BAM_SORT_SAMTOOLS.out.versions.first())
 

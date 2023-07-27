@@ -7,6 +7,7 @@ include { VARIANTCALLING_CSV                                   } from './variant
 workflow VARIANT_CALLING {
 
     take:
+        tools
         ch_cram_variant_calling
         fasta
         fasta_fai
@@ -102,14 +103,16 @@ workflow VARIANT_CALLING {
     //        ch_cram_variant_calling_pair.dump(tag:"[STEP3_VARIANTCALLING] all_vcfs")
 
         //QC
-        VCF_QC(vcf_to_normalize, intervals_bed_combined)
-        VARIANTCALLING_CSV(vcf_to_normalize)
+        if (tools.split(',').contains('vcf_qc')) {
+            VCF_QC(vcf_to_normalize, intervals_bed_combined)
+            VARIANTCALLING_CSV(vcf_to_normalize)
 
-        ch_versions = ch_versions.mix(VCF_QC.out.versions)
-        ch_reports  = ch_reports.mix(VCF_QC.out.bcftools_stats.collect{meta, stats -> stats})
-        ch_reports  = ch_reports.mix(VCF_QC.out.vcftools_tstv_counts.collect{ meta, counts -> counts})
-        ch_reports  = ch_reports.mix(VCF_QC.out.vcftools_tstv_qual.collect{ meta, qual -> qual })
-        ch_reports  = ch_reports.mix(VCF_QC.out.vcftools_filter_summary.collect{meta, summary -> summary})
+            ch_versions = ch_versions.mix(VCF_QC.out.versions)
+            ch_reports  = ch_reports.mix(VCF_QC.out.bcftools_stats.collect{meta, stats -> stats})
+            ch_reports  = ch_reports.mix(VCF_QC.out.vcftools_tstv_counts.collect{ meta, counts -> counts})
+            ch_reports  = ch_reports.mix(VCF_QC.out.vcftools_tstv_qual.collect{ meta, qual -> qual })
+            ch_reports  = ch_reports.mix(VCF_QC.out.vcftools_filter_summary.collect{meta, summary -> summary})
+        }
 
 
     emit:

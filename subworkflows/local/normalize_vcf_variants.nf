@@ -7,12 +7,14 @@ include { VT_NORMALIZE } from '../../modules/local/vt/normalize/main'
 
 workflow NORMALIZE {
     take:
+        tools
         vcf
         fasta
         ch_input_sample
 
     main:
         ch_versions = Channel.empty()
+        ch_vcf_norm = Channel.empty()
 
         if (params.step in ['mapping', 'markduplicates', 'splitncigar', 'prepare_recalibration', 'recalibrate', 'variant_calling', 'normalize'] ) {
             if (params.step == 'normalize')
@@ -22,21 +24,23 @@ workflow NORMALIZE {
                 vcf_to_normalize = vcf
                 }
             vcf_to_normalize.dump(tag:'[STEP4] vcf_to_normalize')
-            ch_vcf_decomp  = Channel.empty()
-            ch_vcf_norm  = Channel.empty()
-            // Separate variants
-            VT_DECOMPOSE(vcf)
+            if (tools.split(',').contains('normalise') | tools.split(',').contains('normalize') ) {
+                ch_vcf_decomp  = Channel.empty()
+                ch_vcf_norm  = Channel.empty()
+                // Separate variantss
+                VT_DECOMPOSE(vcf)
 
-            ch_vcf_decomp = ch_vcf_decomp.mix(VT_DECOMPOSE.out.vcf)
-            ch_versions = ch_versions.mix(VT_DECOMPOSE.out.versions.first())
+                ch_vcf_decomp = ch_vcf_decomp.mix(VT_DECOMPOSE.out.vcf)
+                ch_versions = ch_versions.mix(VT_DECOMPOSE.out.versions.first())
 
-            // Normalize variants
-            VT_NORMALIZE(ch_vcf_decomp,
-                         fasta)
+                // Normalize variants
+                VT_NORMALIZE(ch_vcf_decomp,
+                             fasta)
 
-            ch_vcf_norm = ch_vcf_norm.mix(VT_NORMALIZE.out.vcf)
-            ch_versions = ch_versions.mix(VT_NORMALIZE.out.versions.first())
-            ch_vcf_norm.dump(tag:'[STEP4] vcf_normalized')
+                ch_vcf_norm = ch_vcf_norm.mix(VT_NORMALIZE.out.vcf)
+                ch_versions = ch_versions.mix(VT_NORMALIZE.out.versions.first())
+                ch_vcf_norm.dump(tag:'[STEP4] vcf_normalized')
+            }
         }
 
     emit:

@@ -1,9 +1,9 @@
-include { ALIGNMENT_TO_FASTQ as BAM_TO_FASTQ  } from '../nf-core/alignment_to_fastq'
+include { BAM_CONVERT_SAMTOOLS as CONVERT_FASTQ_INPUT  } from '../nf-core/alignment_to_fastq'
 include { RUN_FASTQC                          } from '../nf-core/run_fastqc'
 include { FASTP                               } from '../../modules/nf-core/modules/fastp/main'
 include { GATK4_MAPPING                       } from '../nf-core/gatk4/mapping/main'
 include { ALIGN_STAR                          } from '../nf-core/align_star'
-include { MERGE_INDEX_BAM                     } from '../nf-core/merge_index_bam'
+include { BAM_MERGE_INDEX_SAMTOOLS            } from '../nf-core/merge_index_bam'
 include { MAPPING_CSV                         } from '../local/mapping_csv'
 
 
@@ -33,11 +33,15 @@ workflow MAPPING {
             }.set{ch_input_sample_type}
 
             // STEP 1.A: convert any bam input to fastq
-            BAM_TO_FASTQ(ch_input_sample_type.bam, [])
-            ch_versions = ch_versions.mix(BAM_TO_FASTQ.out.versions)
+            CONVERT_FASTQ_INPUT(ch_input_sample_type.bam,
+                                [ [ id:"fasta" ], [] ], // fasta
+                                [ [ id:'null' ], [] ],  // fasta_fai
+                                false
+            )
+            ch_versions = ch_versions.mix(CONVERT_FASTQ_INPUT.out.versions)
             // gather fastq (from input or converted with BAM_TO_FASTQ)
             // Theorically this could work on mixed input (fastq for one sample and bam for another)
-            ch_input_fastq = ch_input_sample_type.fastq.mix(BAM_TO_FASTQ.out.reads)
+            ch_input_fastq = ch_input_sample_type.fastq.mix(CONVERT_FASTQ_INPUT.out.reads)
 
 
             // STEP 1.B: QC
@@ -113,24 +117,8 @@ workflow MAPPING {
             // Grouping the bams from the same samples
             bwa_bams = GATK4_MAPPING.out.bam
             ch_bam_mapped_dna = GATK4_MAPPING.out.bam.map{ meta, bam ->
-                numLanes = meta.numLanes ?: 1
-                size     = meta.size     ?: 1
-                // remove no longer necessary fields:
-                //   read_group: Now in the BAM header
-                //     numLanes: Was only needed for mapping
-                //         size: Was only needed for mapping
-                lane = ( meta.read_group =~ /PU:(\S+?)(\\t|\s|\"|$)/ )[0][1]
+                                [ groupKey( meta - meta.subMap('num_lanes', 'read_group', 'size') + [ data_type:'bam', id:meta.sample ], (meta.num_lanes ?: 1) * (meta.size ?: 1)), bam ]
 
-                new_meta = [
-                            id:meta.sample,        // update ID to be based on the sample name
-                            data_type:"bam",       // update data_type
-                            patient:meta.patient,
-                            sample:meta.sample,
-                            status:meta.status,
-                            lane:lane
-                        ]
-                // Use groupKey to make sure that the correct group can advance as soon as it is complete
-                [ groupKey(new_meta, numLanes * size), bam]
             }.groupTuple()
 
 
@@ -143,28 +131,13 @@ workflow MAPPING {
                 gtf,
                 params.star_ignore_sjdbgtf,
                 params.seq_platform ? params.seq_platform : [],
-                params.seq_center ? params.seq_center : []
+                params.seq_center ? params.seq_center : [],
+                [ [ id:"fasta" ], [] ] // fasta
             )
             // Grouping the bams from the same samples not to stall the workflow
-            star_bams = ALIGN_STAR.out.bam.groupTuple()
+            star_bams = ALIGN_STAR.out.bam.groupTuple(sort: true)
             ch_bam_mapped_rna = ALIGN_STAR.out.bam.map{ meta, bam ->
-                numLanes = meta.numLanes ?: 1
-                size     = meta.size     ?: 1
-                // remove no longer necessary fields:
-                //   read_group: Now in the BAM header
-                //     numLanes: Was only needed for mapping
-                //         size: Was only needed for mapping
-                lane = ( meta.read_group =~ /PU:(\S+?)(\\t|\s|\"|$)/ )[0][1]
-                new_meta = [
-                            id:meta.sample, // update ID to be based on the sample name
-                            data_type:"bam", // update data_type
-                            patient:meta.patient,
-                            sample:meta.sample,
-                            status:meta.status,
-                            lane:lane
-                        ]
-                // Use groupKey to make sure that the correct group can advance as soon as it is complete
-                [ groupKey(new_meta, numLanes * size), bam]
+                [ groupKey( meta - meta.subMap('num_lanes', 'read_group', 'size') + [ data_type:'bam', id:meta.sample ], (meta.num_lanes ?: 1) * (meta.size ?: 1)), bam ]
             }.groupTuple()
             // Gather QC reports
             ch_reports           = ch_reports.mix(ALIGN_STAR.out.stats.collect{it[1]}.ifEmpty([]))
@@ -173,17 +146,32 @@ workflow MAPPING {
 
             // mix dna and rna in one channel
             ch_bam_mapped = ch_bam_mapped_dna.mix(ch_bam_mapped_rna)
+            // Grouping the bams from the same samples not to stall the workflow
+            bam_mapped = ch_bam_mapped.map{ meta, bam ->
+
+            // Update meta.id to be meta.sample, ditching sample-lane that is not needed anymore
+            // Update meta.data_type
+            // Remove no longer necessary fields:
+            //   read_group: Now in the BAM header
+            //    num_lanes: only needed for mapping
+            //         size: only needed for mapping
+
+            // Use groupKey to make sure that the correct group can advance as soon as it is complete
+            // and not stall the workflow until all reads from all channels are mapped
+            [ groupKey( meta - meta.subMap('num_lanes', 'read_group', 'size') + [ data_type:'bam', id:meta.sample ], (meta.num_lanes ?: 1) * (meta.size ?: 1)),
+            bam ]
+            }.groupTuple().map{meta, bam -> [meta, bam.flatten()]}
             // gatk4 markduplicates can handle multiple bams as input, so no need to merge/index here
             // Except if and only if skipping markduplicates or saving mapped bams
             if (params.save_bam_mapped || (params.skip_tools && params.skip_tools.split(',').contains('markduplicates'))) {
-
                 // bams are merged (when multiple lanes from the same sample), indexed and then converted to cram
-                MERGE_INDEX_BAM(ch_bam_mapped)
+                bam_mapped.dump(tag:"bam_mapped")
+                BAM_MERGE_INDEX_SAMTOOLS(bam_mapped)
                 // Create CSV to restart from this step
-                MAPPING_CSV(MERGE_INDEX_BAM.out.bam_bai.transpose())
+                MAPPING_CSV(BAM_MERGE_INDEX_SAMTOOLS.out.bam_bai.transpose())
 
                 // Gather used softwares versions
-                ch_versions = ch_versions.mix(MERGE_INDEX_BAM.out.versions)
+                ch_versions = ch_versions.mix(BAM_MERGE_INDEX_SAMTOOLS.out.versions)
             }
         }
         else {
@@ -201,11 +189,10 @@ workflow MAPPING {
             bwa_bams = ch_input_sample_class.dna
         }
 
-
     emit:
         star_bams      = star_bams      //second pass with RG tags
         bwa_bams       = bwa_bams       // second pass with RG tags
-        ch_bam_mapped  = ch_bam_mapped  // for preprocessing
+        ch_bam_mapped  = bam_mapped     // for preprocessing
         reports        = ch_reports
         versions       = ch_versions
 

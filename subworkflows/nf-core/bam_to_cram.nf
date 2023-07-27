@@ -31,7 +31,8 @@ workflow BAM_TO_CRAM {
 
         // Reports on cram
         SAMTOOLS_STATS_CRAM(cram_indexed, fasta)
-        MOSDEPTH(cram_indexed, intervals_bed_combined, fasta)
+        // TODO: cram_indexed can accept bed file at the end - not implemented yet
+        MOSDEPTH(cram_indexed, fasta)
 
         // Gather all reports generated
         qc_reports = qc_reports.mix(SAMTOOLS_STATS_CRAM.out.stats)
