@@ -131,7 +131,8 @@ workflow MAPPING {
                 gtf,
                 params.star_ignore_sjdbgtf,
                 params.seq_platform ? params.seq_platform : [],
-                params.seq_center ? params.seq_center : []
+                params.seq_center ? params.seq_center : [],
+                [ [ id:"fasta" ], [] ] // fasta
             )
             // Grouping the bams from the same samples not to stall the workflow
             star_bams = ALIGN_STAR.out.bam.groupTuple(sort: true)
