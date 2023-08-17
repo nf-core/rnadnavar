@@ -110,12 +110,71 @@
                     "help_text": "If you use AWS iGenomes, this has already been set for you appropriately.\n\nIf you wish to recompute indices available on igenomes, set `--bwamem2 false`.\n\n> **NB** If none provided, will be generated automatically from the FASTA reference, if `--aligner bwa-mem2` is specified. Combine with `--save_reference` to save for future runs.",
                     "hidden": true
                 },
+                "star_index": {
+                    "type": "string",
+                    "description": "Path to STAR index folder or compressed file (tar.gz)",
+                    "help_text": "This parameter can be used if there is an pre-defined STAR index available. You can either give the full path to the index directory or a compressed file in tar.gz format."
+                },
+                "star_twopass": {
+                    "type": "boolean",
+                    "description": "Enable STAR 2-pass mapping mode.",
+                    "help_text": "This parameter enables STAR to perform 2-pass mapping. Default true."
+                },
+                "star_ignore_sjdbgtf": {
+                    "type": "boolean",
+                    "description": "Do not use GTF file during STAR index buidling step",
+                    "help_text": "Do not use parameter --sjdbGTFfile <GTF file> during the STAR genomeGenerate process."
+                },
+                "star_max_memory_bamsort": {
+                    "type": "integer",
+                    "default": 0,
+                    "description": "Option to limit RAM when sorting BAM file. Value to be specified in bytes. If 0, will be set to the genome index size.",
+                    "help_text": "This parameter specifies the maximum available RAM (bytes) for sorting BAM during STAR alignment."
+                },
+                "star_bins_bamsort": {
+                    "type": "integer",
+                    "default": 50,
+                    "description": "Specifies the number of genome bins for coordinate-sorting",
+                    "help_text": "This parameter specifies the number of bins to be used for coordinate sorting during STAR alignment step."
+                },
+                "star_max_collapsed_junc": {
+                    "type": "integer",
+                    "default": 1000000,
+                    "description": "Specifies the maximum number of collapsed junctions"
+                },
+                "read_length": {
+                    "type": "number",
+                    "default": 151.0,
+                    "description": "Read length",
+                    "help_text": "Specify the read length for the STAR aligner."
+                },
                 "nucleotides_per_second": {
                     "type": "number",
                     "fa_icon": "fas fa-clock",
                     "description": "Estimate interval size.",
                     "help_text": "Intervals are parts of the chopped up genome used to speed up preprocessing and variant calling. See `--intervals` for more info. \n\nChanging this parameter, changes the number of intervals that are grouped and processed together. Bed files from target sequencing can contain thousands or small intervals. Spinning up a new process for each can be quite resource intensive. Instead it can be desired to process small intervals together on larger nodes. \nIn order to make use of this parameter, no runtime estimate can be present in the bed file (column 5). ",
                     "default": 1000.0
+                },
+                "dbsnp": {
+                    "type": "string",
+                    "fa_icon": "fas fa-file",
+                    "description": "Path to dbsnp file.",
+                    "hidden": true,
+                    "help_text": "If you use AWS iGenomes, this has already been set for you appropriately."
+                },
+                "dbsnp_tbi": {
+                    "type": "string",
+                    "fa_icon": "fas fa-file",
+                    "description": "Path to dbsnp index.",
+                    "help_text": "If you use AWS iGenomes, this has already been set for you appropriately.\n\n> **NB** If none provided, will be generated automatically from the dbsnp file. Combine with `--save_reference` to save for future runs.",
+                    "hidden": true
+                },
+                "dict": {
+                    "type": "string",
+                    "fa_icon": "fas fa-file",
+                    "description": "Path to FASTA dictionary file.",
+                    "help_text": "If you use AWS iGenomes, this has already been set for you appropriately.\n\n> **NB** If none provided, will be generated automatically from the FASTA reference. Combine with `--save_reference` to save for future runs.",
+                    "hidden": true
                 },
                 "fasta": {
                     "type": "string",
@@ -124,12 +183,14 @@
                     "mimetype": "text/plain",
                     "pattern": "^\\S+\\.fn?a(sta)?(\\.gz)?$",
                     "description": "Path to FASTA genome file.",
-                    "help_text": "This parameter is *mandatory* if `--genome` is not specified. If you don't have a BWA index available this will be generated for you automatically. Combine with `--save_reference` to save BWA index for future runs.",
+                    "help_text": "If you use AWS iGenomes, this has already been set for you appropriately.\n\nThis parameter is *mandatory* if `--genome` is not specified.",
                     "fa_icon": "far fa-file-code"
                 },
                 "fasta_fai": {
                     "type": "string",
-                    "default": "None"
+                    "fa_icon": "fas fa-file",
+                    "help_text": "If you use AWS iGenomes, this has already been set for you appropriately.\n\n> **NB** If none provided, will be generated automatically from the FASTA reference. Combine with `--save_reference` to save for future runs.",
+                    "description": "Path to FASTA reference index."
                 },
                 "germline_resource": {
                     "type": "string",
@@ -145,6 +206,20 @@
                     "help_text": "If you use AWS iGenomes, this has already been set for you appropriately.\n\n> **NB** If none provided, will be generated automatically from the Germline Resource file, if provided. Combine with `--save_reference` to save for future runs.",
                     "hidden": true
                 },
+                "known_indels": {
+                    "type": "string",
+                    "fa_icon": "fas fa-copy",
+                    "description": "Path to known indels file.",
+                    "hidden": true,
+                    "help_text": "If you use AWS iGenomes, this has already been set for you appropriately."
+                },
+                "known_indels_tbi": {
+                    "type": "string",
+                    "fa_icon": "fas fa-copy",
+                    "description": "Path to known indels file index.",
+                    "help_text": "If you use AWS iGenomes, this has already been set for you appropriately.\n\n> **NB** If none provided, will be generated automatically from the known index file, if provided. Combine with `--save_reference` to save for future runs.",
+                    "hidden": true
+                },
                 "known_snps": {
                     "type": "string",
                     "fa_icon": "fas fa-copy",
@@ -156,15 +231,51 @@
                     "description": "Path to known snps file snps.",
                     "help_text": "If you use AWS iGenomes, this has already been set for you appropriately.\n\n> **NB** If none provided, will be generated automatically from the known index file, if provided. Combine with `--save_reference` to save for future runs."
                 },
+                "vep_genome": {
+                    "type": "string",
+                    "fa_icon": "fas fa-microscope",
+                    "description": "VEP genome.",
+                    "help_text": "If you use AWS iGenomes, this has already been set for you appropriately.\nThis is used to specify the genome when using the container with pre-downloaded cache.",
+                    "hidden": true
+                },
+                "vep_species": {
+                    "type": "string",
+                    "fa_icon": "fas fa-microscope",
+                    "description": "VEP species.",
+                    "help_text": "If you use AWS iGenomes, this has already been set for you appropriately.\nAlternatively species listed in Ensembl Genomes caches can be used.",
+                    "hidden": true
+                },
+                "vep_cache_version": {
+                    "type": "number",
+                    "fa_icon": "fas fa-tag",
+                    "description": "VEP cache version.",
+                    "help_text": "If you use AWS iGenomes, this has already been set for you appropriately.\nAlternatively cache version can be use to specify the correct Ensembl Genomes version number as these differ from the concurrent Ensembl/VEP version numbers",
+                    "hidden": true
+                },
+                "vep_version": {
+                    "type": "string",
+                    "fa_icon": "fas fa-tag",
+                    "description": "VEP version.",
+                    "help_text": "If you use AWS iGenomes, this has already been set for you appropriately.\nThis is used to specify the VEP version when using the container with pre-downloaded cache.",
+                    "hidden": true
+                },
                 "save_reference": {
                     "type": "boolean",
                     "fa_icon": "fas fa-download",
                     "description": "Save built references.",
                     "help_text": "Set this parameter, if you wish to save all computed reference files. This is useful to avoid re-computation on future runs."
                 },
-                "dict": {
-                    "type": "string",
-                    "default": "None"
+                "build_only_index": {
+                    "type": "boolean",
+                    "fa_icon": "fas fa-download",
+                    "description": "Only built references.",
+                    "help_text": "Set this parameter, if you wish to compute and save all computed reference files. No alignment or any other downstream steps will be performed."
+                },
+                "download_cache": {
+                    "type": "boolean",
+                    "fa_icon": "fas fa-download",
+                    "description": "Download annotation cache.",
+                    "help_text": "Set this parameter, if you wish to download annotation cache."
                 },
                 "igenomes_base": {
                     "type": "string",
@@ -181,6 +292,14 @@
                     "hidden": true,
                     "help_text": "Do not load `igenomes.config` when running the pipeline. You may choose this option if you observe clashes between custom parameters and those supplied in `igenomes.config`."
                 },
+                "hisat2_build_memory": {
+                    "type": "string",
+                    "default": "200.GB",
+                    "fa_icon": "fas fa-memory",
+                    "pattern": "^\\d+(\\.\\d+)?\\.?\\s*(K|M|G|T)?B$",
+                    "description": "Minimum memory required to use splice sites and exons in the HiSAT2 index build process.",
+                    "help_text": "HiSAT2 requires a huge amount of RAM to build a genome index for larger genomes, if including splice sites and exons e.g. the human genome might typically require 200GB. If you specify less than this threshold for the `HISAT2_BUILD` process then the splice sites and exons will be ignored, meaning that the process will require a lot less memory. If you are working with a small genome, set this parameter to a lower value to reduce the threshold for skipping this check. If using a larger genome, consider supplying more memory to the `HISAT2_BUILD` process."
+                },
                 "gtf": {
                     "type": "string",
                     "description": "Path to GTF annotation file.",
@@ -194,45 +313,9 @@
                 "exon_bed": {
                     "type": "string",
                     "description": "Path to BED file containing exon intervals. This will be created from the GTF file if not specified."
-                },
-                "read_length": {
-                    "type": "number",
-                    "default": 151.0,
-                    "description": "Read length",
-                    "help_text": "Specify the read length for the STAR aligner."
-                },
-                "known_indels": {
-                    "type": "string",
-                    "description": "Path to known indels VCF file"
-                },
-                "known_indels_tbi": {
-                    "type": "string",
-                    "description": "Path to known indels index file"
-                },
-                "dbsnp": {
-                    "type": "string",
-                    "description": "Path to dbSNP VCF file"
-                },
-                "dbsnp_tbi": {
-                    "type": "string",
-                    "description": "Path to dbSNP VCF index file"
-                },
-                "dragmap": {
-                    "type": "string",
-                    "fa_icon": "fas fa-copy",
-                    "description": "Path to dragmap indices.",
-                    "help_text": "If you use AWS iGenomes, this has already been set for you appropriately.\n\nIf you wish to recompute indices available on igenomes, set `--dragmap false`.\n\n> **NB** If none provided, will be generated automatically from the FASTA reference, if `--aligner dragmap` is specified. Combine with `--save_reference` to save for future runs.",
-                    "hidden": true
-                },
-                "hisat2_build_memory": {
-                    "type": "string",
-                    "default": "200.GB",
-                    "fa_icon": "fas fa-memory",
-                    "pattern": "^\\d+(\\.\\d+)?\\.?\\s*(K|M|G|T)?B$",
-                    "description": "Minimum memory required to use splice sites and exons in the HiSAT2 index build process.",
-                    "help_text": "HiSAT2 requires a huge amount of RAM to build a genome index for larger genomes, if including splice sites and exons e.g. the human genome might typically require 200GB. If you specify less than this threshold for the `HISAT2_BUILD` process then the splice sites and exons will be ignored, meaning that the process will require a lot less memory. If you are working with a small genome, set this parameter to a lower value to reduce the threshold for skipping this check. If using a larger genome, consider supplying more memory to the `HISAT2_BUILD` process."
                 }
-            }
+            },
+            "help_text": "The pipeline config files come bundled with paths to the Illumina iGenomes reference index files.\nThe configuration is set up to use the AWS-iGenomes resource\ncf https://ewels.github.io/AWS-iGenomes/."
         },
         "fastq_preprocessing": {
             "title": "FASTQ Preprocessing",
@@ -491,35 +574,64 @@
                     "fa_icon": "fas fa-file",
                     "description": "Known hotspots used as input in Sage variant caller",
                     "hidden": true
+                },
+                "ignore_soft_clipped_bases": {
+                    "type": "boolean",
+                    "fa_icon": "fas fa-ban",
+                    "description": "Do not analyze soft clipped bases in the reads for GATK Mutect2.",
+                    "help_text": "use the `--dont-use-soft-clipped-bases` params with GATK Mutect2.",
+                    "hidden": true
                 }
             }
         },
-        "variant_annotation": {
-            "title": "Variant Annotation",
+        "annotation": {
+            "title": "Annotation",
             "type": "object",
             "description": "",
             "default": "",
             "fa_icon": "fas fa-toolbox",
             "properties": {
-                "annotate_tools": {
-                    "type": "string",
-                    "fa_icon": "fas fa-hammer",
-                    "description": "Specify which tools RNADNAvar should use for annotating variants. Only VEP implemented.",
-                    "help_text": "List of tools to be used for variant annotation.",
-                    "pattern": "^((vep)*(,)*)*$",
-                    "hidden": true
+                "vep_include_fasta": {
+                    "type": "boolean",
+                    "fa_icon": "fas fa-file",
+                    "description": "Allow usage of fasta file for annotation with VEP",
+                    "hidden": true,
+                    "help_text": "By pointing VEP to a FASTA file, it is possible to retrieve reference sequence locally. This enables VEP to retrieve HGVS notations (--hgvs), check the reference sequence given in input data, and construct transcript models from a GFF or GTF file without accessing a database.\n\nFor details, see [here](https://www.ensembl.org/info/docs/tools/vep/script/vep_cache.html#fasta)."
                 },
-                "annotation_cache": {
+                "vep_dbnsfp": {
                     "type": "boolean",
                     "fa_icon": "fas fa-database",
-                    "description": "Enable the use of cache for annotation",
-                    "help_text": "And disable usage of vep specific containers for annotation\n\nTo be used with `--vep_cache`",
+                    "description": "Enable the use of the VEP dbNSFP plugin.",
+                    "hidden": true,
+                    "help_text": "For details, see [here](https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html#dbnsfp)."
+                },
+                "dbnsfp": {
+                    "type": "string",
+                    "fa_icon": "fas fa-file",
+                    "description": "Path to dbNSFP processed file.",
+                    "help_text": "To be used with `--vep_dbnsfp`.\ndbNSFP files and more information are available at https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html#dbnsfp and https://sites.google.com/site/jpopgen/dbNSFP/",
                     "hidden": true
                 },
-                "genesplicer": {
-                    "type": "boolean",
-                    "fa_icon": "fas fa-gavel",
-                    "description": "Enable the use of the VEP GeneSplicer plugin.",
+                "dbnsfp_tbi": {
+                    "type": "string",
+                    "fa_icon": "fas fa-file",
+                    "description": "Path to dbNSFP tabix indexed file.",
+                    "help_text": "To be used with `--vep_dbnsfp`.",
+                    "hidden": true
+                },
+                "dbnsfp_consequence": {
+                    "type": "string",
+                    "fa_icon": "fas fa-arrow-alt-circle-right",
+                    "description": "Consequence to annotate with",
+                    "help_text": "To be used with `--vep_dbnsfp`.\nThis params is used to filter/limit outputs to a specific effect of the variant.\nThe set of consequence terms is defined by the Sequence Ontology and an overview of those used in VEP can be found here: https://www.ensembl.org/info/genome/variation/prediction/predicted_data.html\nIf one wants to filter using several consequences, then separate those by using '&' (i.e. 'consequence=3_prime_UTR_variant&intron_variant'.",
+                    "hidden": true
+                },
+                "dbnsfp_fields": {
+                    "type": "string",
+                    "fa_icon": "fas fa-border-all",
+                    "description": "Fields to annotate with",
+                    "default": "rs_dbSNP,HGVSc_VEP,HGVSp_VEP,1000Gp3_EAS_AF,1000Gp3_AMR_AF,LRT_score,GERP++_RS,gnomAD_exomes_AF",
+                    "help_text": "To be used with `--vep_dbnsfp`.\nThis params can be used to retrieve individual values from the dbNSFP file. The values correspond to the name of the columns in the dbNSFP file and are separated by comma.\nThe column names might differ between the different dbNSFP versions. Please check the Readme.txt file, which is provided with the dbNSFP file, to obtain the correct column names. The Readme file contains also a short description of the provided values and the version of the tools used to generate them.\n\nDefault value are explained below:\n\nrs_dbSNP - rs number from dbSNP\nHGVSc_VEP - HGVS coding variant presentation from VEP. Multiple entries separated by ';', corresponds to Ensembl_transcriptid\nHGVSp_VEP - HGVS protein variant presentation from VEP. Multiple entries separated by ';', corresponds to Ensembl_proteinid\n1000Gp3_EAS_AF - Alternative allele frequency in the 1000Gp3 East Asian descendent samples\n1000Gp3_AMR_AF - Alternative allele counts in the 1000Gp3 American descendent samples\nLRT_score - Original LRT two-sided p-value (LRTori), ranges from 0 to 1\nGERP++_RS - Conservation score. The larger the score, the more conserved the site, ranges from -12.3 to 6.17\ngnomAD_exomes_AF - Alternative allele frequency in the whole gnomAD exome samples.",
                     "hidden": true
                 },
                 "vep_loftee": {
@@ -529,19 +641,11 @@
                     "hidden": true,
                     "help_text": "For details, see [here](https://github.com/konradjk/loftee)."
                 },
-                "vep_cache": {
-                    "type": "string",
-                    "fa_icon": "fas fa-database",
-                    "description": "Path to VEP cache",
-                    "help_text": "To be used with `--annotation_cache`",
-                    "hidden": true
-                },
-                "vep_dbnsfp": {
+                "genesplicer": {
                     "type": "boolean",
                     "fa_icon": "fas fa-database",
-                    "description": "Enable the use of the VEP dbNSFP plugin.",
-                    "hidden": true,
-                    "help_text": "For details, see [here](https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html#dbnsfp)."
+                    "description": "Enable the use of the VEP genesplicer plugin.",
+                    "help_text": "For details, see [here](https://ccb.jhu.edu/software/genesplicer/)."
                 },
                 "vep_spliceai": {
                     "type": "boolean",
@@ -587,32 +691,38 @@
                 },
                 "vep_custom_args": {
                     "type": "string",
+                    "default": "--everything --filter_common --per_gene --total_length --offline --format vcf",
                     "fa_icon": "fas fa-toolbox",
                     "description": "Add an extra custom argument to VEP.",
                     "hidden": true,
                     "help_text": "Using this params you can add custom args to VEP."
                 },
-                "vep_genome": {
+                "vep_cache": {
                     "type": "string",
-                    "fa_icon": "fas fa-microscope",
-                    "description": "VEP genome",
-                    "help_text": "If you use AWS iGenomes or a local resource with genomes.conf, this has already been set for you appropriately."
+                    "fa_icon": "fas fa-file",
+                    "description": "Path to VEP cache.",
+                    "help_text": "To be used with `--annotation_cache`.",
+                    "hidden": true
                 },
-                "vep_species": {
+                "outdir_cache": {
                     "type": "string",
-                    "fa_icon": "fas fa-microscope",
-                    "description": "VEP species",
-                    "help_text": "If you use AWS iGenomes or a local resource with genomes.conf, this has already been set for you appropriately."
-                },
-                "vep_cache_version": {
-                    "type": "string",
-                    "fa_icon": "fas fa-tag",
-                    "description": "VEP cache version"
+                    "format": "directory-path",
+                    "description": "The output directory where the cache will be saved. You have to use absolute paths to storage on Cloud infrastructure.",
+                    "fa_icon": "fas fa-folder-open",
+                    "hidden": true
                 },
                 "vep_out_format": {
                     "type": "string",
-                    "fa_icon": "fas fa-tag",
-                    "description": "VEP output format"
+                    "default": "vcf",
+                    "description": "VEP output-file format.",
+                    "enum": [
+                        "json",
+                        "tab",
+                        "vcf"
+                    ],
+                    "help_text": "Sets the format of the output-file from VEP. Available formats: json, tab and vcf.",
+                    "fa_icon": "fas fa-table",
+                    "hidden": true
                 },
                 "whitelist": {
                     "type": "string",
@@ -623,6 +733,11 @@
                     "type": "string",
                     "fa_icon": "fas fa-database",
                     "description": "Path to BED file with positions to blacklist during filtering (e.g. regions difficult to map)"
+                },
+                "annotation_cache": {
+                    "type": "string",
+                    "fa_icon": "fas fa-database",
+                    "description": ""
                 }
             }
         },
@@ -671,6 +786,27 @@
                     "description": "Institutional config URL link.",
                     "hidden": true,
                     "fa_icon": "fas fa-users-cog"
+                },
+                "test_data_base": {
+                    "type": "string",
+                    "default": "https://raw.githubusercontent.com/nf-core/test-datasets/sarek3",
+                    "description": "Base path / URL for data used in the test profiles",
+                    "help_text": "Warning: The `-profile test` samplesheet file itself contains remote paths. Setting this parameter does not alter the contents of that file.",
+                    "hidden": true
+                },
+                "seq_center": {
+                    "type": "string",
+                    "fa_icon": "fas fa-university",
+                    "description": "Sequencing center information to be added to read group (CN field).",
+                    "hidden": true
+                },
+                "seq_platform": {
+                    "type": "string",
+                    "fa_icon": "fas fa-university",
+                    "default": "ILLUMINA",
+                    "description": "Sequencing platform information to be added to read group (PL field).",
+                    "help_text": "Default: ILLUMINA. Will be used to create a proper header for further GATK4 downstream analysis.",
+                    "hidden": true
                 }
             }
         },
@@ -687,7 +823,7 @@
                     "default": 16,
                     "fa_icon": "fas fa-microchip",
                     "hidden": true,
-                    "help_text": "Use to set an upper-limit for the CPU requirement for each process. Should be an integer e.g. `--max_cpus 1`"
+                    "help_text": "Use to set an upper-limit for the CPU requirement for each process. Should be an integer e.g. `--max_cpus 1`."
                 },
                 "max_memory": {
                     "type": "string",
@@ -696,7 +832,7 @@
                     "fa_icon": "fas fa-memory",
                     "pattern": "^\\d+(\\.\\d+)?\\.?\\s*(K|M|G|T)?B$",
                     "hidden": true,
-                    "help_text": "Use to set an upper-limit for the memory requirement for each process. Should be a string in the format integer-unit e.g. `--max_memory '8.GB'`"
+                    "help_text": "Use to set an upper-limit for the memory requirement for each process. Should be a string in the format integer-unit e.g. `--max_memory '8.GB'`."
                 },
                 "max_time": {
                     "type": "string",
@@ -705,7 +841,7 @@
                     "fa_icon": "far fa-clock",
                     "pattern": "^(\\d+\\.?\\s*(s|m|h|d|day)\\s*)+$",
                     "hidden": true,
-                    "help_text": "Use to set an upper-limit for the time requirement for each process. Should be a string in the format integer-unit e.g. `--max_time '2.h'`"
+                    "help_text": "Use to set an upper-limit for the time requirement for each process. Should be a string in the format integer-unit e.g. `--max_time '2.h'`."
                 }
             }
         },
@@ -720,14 +856,12 @@
                     "type": "boolean",
                     "description": "Display help text.",
                     "fa_icon": "fas fa-question-circle",
-                    "default": false,
                     "hidden": true
                 },
                 "version": {
                     "type": "boolean",
                     "description": "Display version and exit.",
                     "fa_icon": "fas fa-question-circle",
-                    "default": false,
                     "hidden": true
                 },
                 "publish_dir_mode": {
@@ -746,6 +880,13 @@
                     ],
                     "hidden": true
                 },
+                "email": {
+                    "type": "string",
+                    "description": "Email address for completion summary.",
+                    "fa_icon": "fas fa-envelope",
+                    "help_text": "Set this parameter to your e-mail address to get a summary e-mail with details of the run sent to you when the workflow exits. If set in your user config file (`~/.nextflow/config`) then you don't need to specify this on the command line for every run.",
+                    "pattern": "^([a-zA-Z0-9_\\-\\.]+)@([a-zA-Z0-9_\\-\\.]+)\\.([a-zA-Z]{2,5})$"
+                },
                 "email_on_fail": {
                     "type": "string",
                     "description": "Email address for completion summary, only when pipeline fails.",
@@ -758,7 +899,6 @@
                     "type": "boolean",
                     "description": "Send plain-text email instead of HTML.",
                     "fa_icon": "fas fa-remove-format",
-                    "default": false,
                     "hidden": true
                 },
                 "max_multiqc_email_size": {
@@ -773,15 +913,12 @@
                     "type": "boolean",
                     "description": "Do not use coloured log outputs.",
                     "fa_icon": "fas fa-palette",
-                    "default": false,
                     "hidden": true
                 },
-                "hook_url": {
+                "multiqc_title": {
                     "type": "string",
-                    "description": "Incoming hook URL for messaging service",
-                    "fa_icon": "fas fa-people-group",
-                    "help_text": "Incoming hook URL for messaging service. Currently, MS Teams and Slack are supported.",
-                    "hidden": true
+                    "description": "MultiQC report title. Printed as page header, used for filename if not otherwise specified.",
+                    "fa_icon": "fas fa-file-signature"
                 },
                 "multiqc_config": {
                     "type": "string",
@@ -812,7 +949,6 @@
                     "type": "boolean",
                     "fa_icon": "far fa-eye-slash",
                     "description": "Show all params when using `--help`",
-                    "default": false,
                     "hidden": true,
                     "help_text": "By default, parameters set as _hidden_ in the schema are not shown on the command line when a user runs with `--help`. Specifying this option will tell the pipeline to show all parameters."
                 },
@@ -820,7 +956,6 @@
                     "type": "boolean",
                     "fa_icon": "far fa-check-circle",
                     "description": "Validation of parameters fails when an unrecognised parameter is found.",
-                    "default": false,
                     "hidden": true,
                     "help_text": "By default, when an unrecognised parameter is found, it returns a warinig."
                 },
@@ -828,9 +963,15 @@
                     "type": "boolean",
                     "fa_icon": "far fa-check-circle",
                     "description": "Validation of parameters in lenient more.",
-                    "default": false,
                     "hidden": true,
                     "help_text": "Allows string values that are parseable as numbers or booleans. For further information see [JSONSchema docs](https://github.com/everit-org/json-schema#lenient-mode)."
+                },
+                "hook_url": {
+                    "type": "string",
+                    "description": "Incoming hook URL for messaging service",
+                    "fa_icon": "fas fa-people-group",
+                    "help_text": "Incoming hook URL for messaging service. Currently, MS Teams and Slack are supported.",
+                    "hidden": true
                 }
             }
         }
@@ -855,7 +996,7 @@
             "$ref": "#/definitions/variant_calling"
         },
         {
-            "$ref": "#/definitions/variant_annotation"
+            "$ref": "#/definitions/annotation"
         },
         {
             "$ref": "#/definitions/institutional_config_options"
