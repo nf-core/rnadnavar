@@ -31,7 +31,6 @@ def checkPathParamList = [
     params.known_indels,
     params.known_indels_tbi,
     params.multiqc_config,
-    params.snpeff_cache,
     params.vep_cache,
     params.star_index,
     params.hisat2_index,

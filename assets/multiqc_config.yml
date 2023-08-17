@@ -42,7 +42,7 @@ module_order:
       name: "Read Alignment (STAR)"
   - picard:
       name: "GATK4 MarkDuplicates"
-      info: " metrics generated either by GATK4 MarkDuplicates or EstimateLibraryComplexity (with --use_gatk_spark)."
+      info: " metrics generated either by GATK4 MarkDuplicates."
   - samtools:
       name: "Samtools Flagstat"
   - mosdepth:
