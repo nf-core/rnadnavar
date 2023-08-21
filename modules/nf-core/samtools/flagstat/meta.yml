@@ -2,7 +2,7 @@ name: samtools_flagstat
 description: Counts the number of alignments in a BAM/CRAM/SAM file for each FLAG type
 keywords:
   - stats
-  - mapping
+  - bam_align
   - counts
   - bam
   - sam

@@ -2,7 +2,7 @@ name: samtools_idxstats
 description: Reports alignment summary statistics for a BAM/CRAM/SAM file
 keywords:
   - stats
-  - mapping
+  - bam_align
   - counts
   - chromosome
   - bam

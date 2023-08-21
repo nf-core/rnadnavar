@@ -1,11 +1,11 @@
 //
 // PREPARE INTERVALS
 //
-include { BUILD_INTERVALS                                     } from '../../modules/local/build_intervals/main'
-include { CREATE_INTERVALS_BED                                } from '../../modules/local/create_intervals_bed/main'
-include { GATK4_INTERVALLISTTOBED                             } from '../../modules/nf-core/modules/gatk4/intervallisttobed/main'
-include { TABIX_BGZIPTABIX as TABIX_BGZIPTABIX_INTERVAL_SPLIT    } from '../../modules/nf-core/modules/tabix/bgziptabix/main'
-include { TABIX_BGZIPTABIX as TABIX_BGZIPTABIX_INTERVAL_COMBINED } from '../../modules/nf-core/modules/tabix/bgziptabix/main'
+include { BUILD_INTERVALS                                        } from '../../../modules/local/build_intervals/main'
+include { CREATE_INTERVALS_BED                                   } from '../../../modules/local/create_intervals_bed/main'
+include { GATK4_INTERVALLISTTOBED                                } from '../../../modules/nf-core/gatk4/intervallisttobed/main'
+include { TABIX_BGZIPTABIX as TABIX_BGZIPTABIX_INTERVAL_SPLIT    } from '../../../modules/nf-core/tabix/bgziptabix/main'
+include { TABIX_BGZIPTABIX as TABIX_BGZIPTABIX_INTERVAL_COMBINED } from '../../../modules/nf-core/tabix/bgziptabix/main'
 
 workflow PREPARE_INTERVALS {
     take:
@@ -19,6 +19,7 @@ workflow PREPARE_INTERVALS {
     intervals_bed        = Channel.empty() // List of [ bed, num_intervals ], one for each region
     intervals_bed_gz_tbi = Channel.empty() // List of [ bed.gz, bed,gz.tbi, num_intervals ], one for each region
     intervals_combined   = Channel.empty() // Single bed file containing all intervals
+
     if (no_intervals) {
         file("${params.outdir}/no_intervals.bed").text        = "no_intervals\n"
         file("${params.outdir}/no_intervals.bed.gz").text     = "no_intervals\n"
@@ -43,7 +44,6 @@ workflow PREPARE_INTERVALS {
         } else {
             intervals_combined = Channel.fromPath(file(intervals)).map{it -> [ [ id:it.baseName ], it ] }
             intervals_bed = CREATE_INTERVALS_BED(file(intervals)).bed
-            intervals_bed.dump(tag:"intervals_bed")
 
             versions = versions.mix(CREATE_INTERVALS_BED.out.versions)
 

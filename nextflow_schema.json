@@ -16,14 +16,32 @@
             ],
             "properties": {
                 "input": {
+                    "description": "Path to comma-separated file containing information about the samples in the experiment.",
+                    "help_text": "A design file with information about the samples in your experiment. Use this parameter to specify the location of the input files. It has to be a comma-separated file with a header row. See [usage docs](https://nf-co.re/sarek/usage#input).\n\nIf no input file is specified, sarek will attempt to locate one in the `{outdir}` directory. If no input should be supplied, i.e. when --step is supplied or --build_from_index, then set --input false",
+                    "fa_icon": "fas fa-file-csv",
+                    "schema": "assets/schema_input.json",
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "format": "file-path",
+                            "exists": true,
+                            "mimetype": "text/csv",
+                            "pattern": "^\\S+\\.csv$"
+                        },
+                        {
+                            "type": "boolean",
+                            "enum": ["false"]
+                        }
+                    ]
+                },
+                "input_restart": {
                     "type": "string",
                     "format": "file-path",
                     "exists": true,
                     "mimetype": "text/csv",
                     "pattern": "^\\S+\\.csv$",
-                    "description": "Path to comma-separated file containing information about the samples in the experiment.",
-                    "help_text": "You will need to create a design file with information about the samples in your experiment before running the pipeline. Use this parameter to specify its location. It has to be a comma-separated file with 3 columns, and a header row. See [usage docs](https://nf-co.re/rnadnavar/usage#samplesheet-input).",
-                    "fa_icon": "fas fa-file-csv"
+                    "hidden": true,
+                    "schema": "assets/schema_input.json"
                 },
                 "split_fastq": {
                     "type": "integer",
@@ -108,6 +126,13 @@
                     "fa_icon": "fas fa-copy",
                     "description": "Path to bwa-mem2 mem indices.",
                     "help_text": "If you use AWS iGenomes, this has already been set for you appropriately.\n\nIf you wish to recompute indices available on igenomes, set `--bwamem2 false`.\n\n> **NB** If none provided, will be generated automatically from the FASTA reference, if `--aligner bwa-mem2` is specified. Combine with `--save_reference` to save for future runs.",
+                    "hidden": true
+                },
+                "dragmap": {
+                    "type": "string",
+                    "fa_icon": "fas fa-copy",
+                    "description": "Path to dragmap indices.",
+                    "help_text": "If you use AWS iGenomes, this has already been set for you appropriately.\n\nIf you wish to recompute indices available on igenomes, set `--dragmap false`.\n\n> **NB** If none provided, will be generated automatically from the FASTA reference, if `--aligner dragmap` is specified. Combine with `--save_reference` to save for future runs.",
                     "hidden": true
                 },
                 "star_index": {
@@ -424,7 +449,7 @@
                     "fa_icon": "fas fa-forward",
                     "description": "Disable specified tools.",
                     "help_text": "Multiple tools can be specified, separated by commas.\n\n> **NB** `--skip_tools baserecalibrator_report` is actually just not saving the reports.\n> **NB** `--skip_tools markduplicates_report` does not skip `MarkDuplicates` but prevent the collection of duplicate metrics that slows down performance.",
-                    "pattern": "^((contamination|learnreadorientation|baserecalibrator|baserecalibrator_report|bcftools|documentation|fastqc|markduplicates|markduplicates_report|mosdepth|multiqc|samtools|vcftools|versions|splitncigar)*(,)*)*$"
+                    "pattern": "^((contamination|learnreadorientation|baserecalibrator|baserecalibrator_report|bcftools|documentation|fastqc|markduplicates|markduplicates_report|mosdepth|multiqc|samtools|vcftools|versions|splitncigar|second_pass)*(,)*)*$"
                 },
                 "wes": {
                     "type": "boolean",
@@ -442,9 +467,12 @@
             "properties": {
                 "aligner": {
                     "type": "string",
-                    "default": "star",
-                    "description": "Specifies the alignment algorithm to use. Currently available option is 'star'",
-                    "help_text": "This parameter define which aligner is to be used for aligning the RNA reads to the reference genome. Currently only STAR aligner is supported. So use 'star' as the value for this option."
+                    "default": "bwa-mem",
+                    "fa_icon": "fas fa-puzzle-piece",
+                    "enum": ["bwa-mem", "bwa-mem2", "dragmap"],
+                    "description": "Specify aligner to be used to map reads to reference genome.",
+                    "help_text": "`Rnadnavar` will build missing indices automatically if not provided. Set `--bwa false` if indices should be (re-)built.\nIf `DragMap` is selected as aligner, it is recommended to skip baserecalibration with `--skip_tools baserecalibrator`. See [here](https://gatk.broadinstitute.org/hc/en-us/articles/4407897446939--How-to-Run-germline-single-sample-short-variant-discovery-in-DRAGEN-mode) for more info.\n",
+                    "hidden": true
                 },
                 "star_index": {
                     "type": "string",

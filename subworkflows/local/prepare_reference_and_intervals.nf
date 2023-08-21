@@ -1,10 +1,10 @@
 //
 // PREPARE REFERENCE AND INTERVAL FILES FOR PIPELINE
 //
-include { PREPARE_GENOME                                       } from './prepare_genome'
-include { PREPARE_INTERVALS                                    } from './prepare_intervals'
-include { GATK4_BEDTOINTERVALLIST                              } from '../../modules/nf-core/modules/gatk4/bedtointervallist/main'
-include { GATK4_INTERVALLISTTOOLS                              } from '../../modules/nf-core/modules/gatk4/intervallisttools/main'
+include { PREPARE_GENOME                                       } from './prepare_genome/main'
+include { PREPARE_INTERVALS                                    } from './prepare_intervals/main'
+include { GATK4_BEDTOINTERVALLIST                              } from '../../modules/nf-core/gatk4/bedtointervallist/main'
+include { GATK4_INTERVALLISTTOOLS                              } from '../../modules/nf-core/gatk4/intervallisttools/main'
 
 
 workflow PREPARE_REFERENCE_AND_INTERVALS {
@@ -90,13 +90,13 @@ workflow PREPARE_REFERENCE_AND_INTERVALS {
         }
 
     emit:
-        fasta = fasta
-        fasta_fai = fasta_fai
-        dict = dict
-        bwa = bwa
-        germline_resource = germline_resource
-        germline_resource_tbi = germline_resource_tbi
-        bwamem2 = bwamem2
+        fasta                       = fasta
+        fasta_fai                   = fasta_fai
+        dict                        = dict
+        bwa                         = bwa
+        germline_resource           = germline_resource
+        germline_resource_tbi       = germline_resource_tbi
+        bwamem2                     = bwamem2
         dragmap                     = dragmap
         star_index                  = PREPARE_GENOME.out.star_index
         gtf                         = PREPARE_GENOME.out.gtf
