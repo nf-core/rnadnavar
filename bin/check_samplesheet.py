@@ -71,7 +71,7 @@ class RowChecker:
         Perform all validations on the given row and insert the read pairing status.
 
         Args:
-            row (dict): A mapping from column headers (keys) to elements of that row
+            row (dict): A bam_align from column headers (keys) to elements of that row
                 (values).
 
         """
