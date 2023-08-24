@@ -1,7 +1,7 @@
 //
 // Core workflow of the RNA/DNA variant calling pipeline
 //
-include { BAM_GATK_PREPROCESSING                                   } from '../gatk_preprocessing/main'
+include { BAM_GATK_PREPROCESSING                                   } from '../bam_gatk_preprocessing/main'
 // For now only matched supported
 // include { BAM_VARIANT_CALLING                                      } from '../variant_calling/main'
 // // Can we just call normalization here?
@@ -41,9 +41,8 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
         ch_reports   = Channel.empty()
         ch_versions  = Channel.empty()
         ch_genome_bam.dump(tag:"ch_genome_bam")
-    // STEP 1: Mapping done elsewhere
-    // STEP 2: GATK PREPROCESSING - See: https://gatk.broadinstitute.org/hc/en-us/articles/360035535912-Data-pre-processing-for-variant-discovery
-        GATK_PREPROCESSING(
+    // GATK PREPROCESSING - See: https://gatk.broadinstitute.org/hc/en-us/articles/360035535912-Data-pre-processing-for-variant-discovery
+        BAM_GATK_PREPROCESSING(
             step,                   // Mandatory, step to start with - should be mapping for second pass
             tools,
             ch_genome_bam,        // channel: [mandatory] [meta, [bam]]

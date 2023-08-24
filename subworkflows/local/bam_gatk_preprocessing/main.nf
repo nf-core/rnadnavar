@@ -16,7 +16,7 @@ include { PREPARE_RECALIBRATION_CSV                            } from '../local/
 include { RECALIBRATE                                          } from '../nf-core/gatk4/recalibrate/main'
 include { RECALIBRATE_CSV                                      } from '../local/recalibrate_csv'
 
-workflow GATK_PREPROCESSING {
+workflow BAM_GATK_PREPROCESSING {
     take:
         step                          // Mandatory, step to start with
         tools

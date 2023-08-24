@@ -84,10 +84,6 @@
                     "description": "MultiQC report title. Printed as page header, used for filename if not otherwise specified.",
                     "fa_icon": "fas fa-file-signature"
                 },
-                "save_merged_fastq": {
-                    "type": "boolean",
-                    "description": "Save FastQ files after merging re-sequenced libraries in the results directory."
-                },
                 "save_bam_mapped": {
                     "type": "boolean",
                     "fa_icon": "fas fa-download",
@@ -110,9 +106,9 @@
                 "genome": {
                     "type": "string",
                     "description": "Name of iGenomes reference.",
-                    "default": "GRCh38",
+                    "default": "GATK.GRCh38",
                     "fa_icon": "fas fa-book",
-                    "help_text": "If using a reference genome configured in the pipeline using iGenomes, use this parameter to give the ID for the reference. This is then used to build the full paths for all required reference genome files e.g. `--genome GRCh38`. \n\nSee the [nf-core website docs](https://nf-co.re/usage/reference_genomes) for more details."
+                    "help_text": "If using a reference genome configured in the pipeline using iGenomes, use this parameter to give the ID for the reference. This is then used to build the full paths for all required reference genome files e.g. `--genome GRCh38`.\n\nSee the [nf-core website docs](https://nf-co.re/usage/reference_genomes) for more details."
                 },
                 "bwa": {
                     "type": "string",
@@ -277,13 +273,6 @@
                     "help_text": "If you use AWS iGenomes, this has already been set for you appropriately.\nAlternatively cache version can be use to specify the correct Ensembl Genomes version number as these differ from the concurrent Ensembl/VEP version numbers",
                     "hidden": true
                 },
-                "vep_version": {
-                    "type": "string",
-                    "fa_icon": "fas fa-tag",
-                    "description": "VEP version.",
-                    "help_text": "If you use AWS iGenomes, this has already been set for you appropriately.\nThis is used to specify the VEP version when using the container with pre-downloaded cache.",
-                    "hidden": true
-                },
                 "save_reference": {
                     "type": "boolean",
                     "fa_icon": "fas fa-download",
@@ -349,19 +338,11 @@
             "default": "",
             "fa_icon": "fas fa-cut",
             "properties": {
-                "trim_fastq": {
+                 "trim_fastq": {
                     "type": "boolean",
                     "fa_icon": "fas fa-cut",
                     "description": "Run FastP for read trimming",
-                    "help_text": "Use this to perform adapter trimming. Adapter are detected automatically by using the FastP flag `--detect_adapter_for_pe`. For more info see [FastP](https://github.com/OpenGene/fastp) ",
-                    "hidden": true
-                },
-                "save_trimmed_fail": {
-                    "type": "boolean",
-                    "fa_icon": "fas fa-cut",
-                    "description": "Save failed fastq from FastP",
-                    "help_text": "Use this to saved failed FastP results ",
-                    "hidden": false
+                    "help_text": "Use this to perform adapter trimming. Adapter are detected automatically by using the FastP flag `--detect_adapter_for_pe`. For more info see [FastP](https://github.com/OpenGene/fastp)."
                 },
                 "clip_r1": {
                     "type": "integer",
@@ -409,26 +390,12 @@
                     "description": "Save trimmed FastQ file intermediates.",
                     "hidden": true
                 },
-                "umi_read_structure": {
-                    "type": "string",
-                    "fa_icon": "fas fa-tape",
-                    "description": "Specify UMI read structure",
-                    "hidden": true,
-                    "help_text": "One structure if UMI is present on one end (i.e. '+T 2M11S+T'), or two structures separated by a blank space if UMIs a present on both ends (i.e. '2M11S+T 2M11S+T'); please note, this does not handle duplex-UMIs.\n\nFor more info on UMI usage in the pipeline, also check docs [here](./docs/usage.md/#how-to-handle-umis)."
-                },
-                "group_by_umi_strategy": {
-                    "type": "string",
-                    "default": "Adjacency",
-                    "description": "Default strategy with UMI",
-                    "hidden": true,
-                    "help_text": "Available values: Identity, Edit, Adjacency, Paired"
-                },
-                "save_split_fastqs": {
+               "save_split_fastqs": {
                     "type": "boolean",
                     "fa_icon": "fas fa-vial",
                     "description": "If set, publishes split FASTQ files. Intended for testing purposes.",
                     "hidden": true
-                }
+               }
             }
         },
         "pipeline_stage_options": {
@@ -543,6 +510,34 @@
                 "bam_csi_index": {
                     "type": "boolean",
                     "description": "Create a CSI index for BAM files instead of the traditional BAI index. This will be required for genomes with larger chromosome sizes."
+                }
+            }
+        },
+        "preprocessing": {
+            "title": "Preprocessing",
+            "type": "object",
+            "description": "Configure preprocessing tools",
+            "default": "",
+            "fa_icon": "fas fa-toolbox",
+            "properties": {
+                "aligner": {
+                    "type": "string",
+                    "default": "bwa-mem",
+                    "fa_icon": "fas fa-puzzle-piece",
+                    "enum": ["bwa-mem", "bwa-mem2", "dragmap", "sentieon-bwamem"],
+                    "description": "Specify aligner to be used to map reads to reference genome.",
+                    "help_text": "Sarek will build missing indices automatically if not provided. Set `--bwa false` if indices should be (re-)built.\nIf DragMap is selected as aligner, it is recommended to skip baserecalibration with `--skip_tools baserecalibrator`. For more info see [here](https://gatk.broadinstitute.org/hc/en-us/articles/4407897446939--How-to-Run-germline-single-sample-short-variant-discovery-in-DRAGEN-mode)."
+                },
+                "save_mapped": {
+                    "type": "boolean",
+                    "fa_icon": "fas fa-download",
+                    "description": "Save mapped files.",
+                    "help_text": "If the parameter `--split-fastq` is used, the sharded bam files are merged and converted to CRAM before saving them."
+                },
+                "save_output_as_bam": {
+                    "type": "boolean",
+                    "description": "Saves output from mapping (if `--save_mapped`), Markduplicates & Baserecalibration as BAM file instead of CRAM",
+                    "fa_icon": "fas fa-download"
                 }
             }
         },
@@ -1022,6 +1017,9 @@
         },
         {
             "$ref": "#/definitions/variant_calling"
+        },
+        {
+            "$ref": "#/definitions/preprocessing"
         },
         {
             "$ref": "#/definitions/annotation"

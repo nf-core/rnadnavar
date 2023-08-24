@@ -4,7 +4,6 @@
 include { PREPARE_GENOME                                       } from './prepare_genome/main'
 include { PREPARE_INTERVALS                                    } from './prepare_intervals/main'
 include { GATK4_BEDTOINTERVALLIST                              } from '../../modules/nf-core/gatk4/bedtointervallist/main'
-include { GATK4_INTERVALLISTTOOLS                              } from '../../modules/nf-core/gatk4/intervallisttools/main'
 
 
 workflow PREPARE_REFERENCE_AND_INTERVALS {
@@ -77,18 +76,6 @@ workflow PREPARE_REFERENCE_AND_INTERVALS {
         ch_interval_list = GATK4_BEDTOINTERVALLIST.out.interval_list
         ch_versions = ch_versions.mix(GATK4_BEDTOINTERVALLIST.out.versions)
 
-    // STEP 0.D: Scatter one interval-list into many interval-files using GATK4 IntervalListTools
-        ch_interval_list_split = Channel.empty()
-        if (!params.skip_intervallisttools) {
-            GATK4_INTERVALLISTTOOLS(
-                ch_interval_list
-            )
-            ch_interval_list_split = GATK4_INTERVALLISTTOOLS.out.interval_list.map{ meta, bed -> [bed] }.flatten()
-        }
-        else {
-            ch_interval_list_split = ch_interval_list
-        }
-
     emit:
         fasta                       = fasta
         fasta_fai                   = fasta_fai
@@ -101,7 +88,6 @@ workflow PREPARE_REFERENCE_AND_INTERVALS {
         star_index                  = PREPARE_GENOME.out.star_index
         gtf                         = PREPARE_GENOME.out.gtf
         ch_interval_list            = ch_interval_list
-        ch_interval_list_split      = ch_interval_list_split
         intervals                   = intervals
         intervals_bed_gz_tbi        = intervals_bed_gz_tbi
         intervals_for_preprocessing = intervals_for_preprocessing

@@ -137,12 +137,12 @@ workflow BAM_ALIGN {
             // and not stall the workflow until all reads from all channels are mapped
             [ groupKey( meta - meta.subMap('num_lanes', 'read_group', 'size') + [ data_type:'bam', id:meta.sample ], (meta.num_lanes ?: 1) * (meta.size ?: 1)), bam ]
         }.groupTuple()
-		bam_mapped_dna,dump(tag:"bam_mapped_dna")
+		bam_mapped_dna.dump(tag:"bam_mapped_dna")
 
         // RNA will be aligned with STAR
         // Run STAR
-        ALIGN_STAR (
-            ch_reads_to_map_status.rna,
+        FASTQ_ALIGN_STAR (
+            reads_for_alignment_status.rna,
             star_index,
             gtf,
             params.star_ignore_sjdbgtf,
@@ -151,7 +151,7 @@ workflow BAM_ALIGN {
             [ [ id:"fasta" ], [] ] // fasta
         )
         // Grouping the bams from the same samples not to stall the workflow
-        bam_mapped_rna = ALIGN_STAR.out.bam.map{ meta, bam ->
+        bam_mapped_rna = FASTQ_ALIGN_STAR.out.bam.map{ meta, bam ->
 
             // Update meta.id to be meta.sample, ditching sample-lane that is not needed anymore
             // Update meta.data_type
@@ -164,11 +164,11 @@ workflow BAM_ALIGN {
             // and not stall the workflow until all reads from all channels are mapped
             [ groupKey( meta - meta.subMap('num_lanes', 'read_group', 'size') + [ data_type:'bam', id:meta.sample ], (meta.num_lanes ?: 1) * (meta.size ?: 1)), bam ]
         }.groupTuple()
-		bam_mapped_rna,dump(tag:"bam_mapped_rna")
+		bam_mapped_rna.dump(tag:"bam_mapped_rna")
         // Gather QC reports
-        reports           = reports.mix(ALIGN_STAR.out.stats.collect{it[1]}.ifEmpty([]))
-        reports           = reports.mix(ALIGN_STAR.out.log_final.collect{it[1]}.ifEmpty([]))
-        versions          = versions.mix(ALIGN_STAR.out.versions)
+        reports           = reports.mix(FASTQ_ALIGN_STAR.out.stats.collect{it[1]}.ifEmpty([]))
+        reports           = reports.mix(FASTQ_ALIGN_STAR.out.log_final.collect{it[1]}.ifEmpty([]))
+        versions          = versions.mix(FASTQ_ALIGN_STAR.out.versions)
 
         // mix dna and rna in one channel
         bam_mapped = bam_mapped_dna.mix(bam_mapped_rna)
@@ -192,7 +192,7 @@ workflow BAM_ALIGN {
         // Gather used softwares versions
         versions = versions.mix(CONVERT_FASTQ_INPUT.out.versions)
         versions = versions.mix(FASTQ_ALIGN_BWAMEM_MEM2_DRAGMAP.out.versions)
-        versions = versions.mix(ALIGN_STAR.out.versions)
+        versions = versions.mix(FASTQ_ALIGN_STAR.out.versions)
 
     }
 

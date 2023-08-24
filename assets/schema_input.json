@@ -31,7 +31,6 @@
                 "type": "string",
                 "pattern": "^\\S+$",
                 "unique": ["patient", "sample"],
-                "dependentRequired": ["fastq_1"],
                 "meta": ["lane"]
             },
             "fastq_1": {
