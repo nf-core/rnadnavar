@@ -213,7 +213,8 @@
                     "gatk4/splitncigarreads": {
                         "branch": "master",
                         "git_sha": "911696ea0b62df80e900ef244d7867d177971f73",
-                        "installed_by": ["modules"]
+                        "installed_by": ["modules"],
+                        "patch": "modules/nf-core/gatk4/splitncigarreads/gatk4-splitncigarreads.diff"
                     },
                     "gatk4/variantfiltration": {
                         "branch": "master",
@@ -348,7 +349,8 @@
                     "samtools/stats": {
                         "branch": "master",
                         "git_sha": "735e1e04e7e01751d2d6e97055bbdb6f70683cc1",
-                        "installed_by": ["bam_stats_samtools", "modules"]
+                        "installed_by": ["bam_stats_samtools", "modules"],
+                        "patch": "modules/nf-core/samtools/stats/samtools-stats.diff"
                     },
                     "samtools/view": {
                         "branch": "master",

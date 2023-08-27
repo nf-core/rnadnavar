@@ -8,7 +8,7 @@ process SAMTOOLS_STATS {
         'biocontainers/samtools:1.17--h00cdaf9_0' }"
 
     input:
-    tuple val(meta), path(input), path(input_index)
+    tuple val(meta), path(bam), path(bai)
     tuple val(meta2), path(fasta)
 
     output:
@@ -27,7 +27,7 @@ process SAMTOOLS_STATS {
         stats \\
         --threads ${task.cpus} \\
         ${reference} \\
-        ${input} \\
+        ${bam} \\
         > ${prefix}.stats
 
     cat <<-END_VERSIONS > versions.yml

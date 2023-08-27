@@ -37,6 +37,12 @@ workflow BAM_ALIGN {
     reports   = Channel.empty()
     versions  = Channel.empty()
 
+    // Initialise outputs to emit
+    bam_mapped_rna   = Channel.empty()
+    bam_mapped_dna   = Channel.empty()
+    bam_mapped       = Channel.empty()
+    cram_mapped      = Channel.empty()
+
     // Gather index for mapping given the chosen aligner for DNA
     index_alignement = params.aligner == "bwa-mem" ? bwa :
         params.aligner == "bwa-mem2" ? bwamem2 :
@@ -181,6 +187,8 @@ workflow BAM_ALIGN {
             BAM_MERGE_INDEX_SAMTOOLS(bam_mapped)
 
             BAM_TO_CRAM_MAPPING(BAM_MERGE_INDEX_SAMTOOLS.out.bam_bai, fasta, fasta_fai)
+            cram_mapped = BAM_TO_CRAM_MAPPING.out.alignment_index
+
             // Create CSV to restart from this step
             params.save_output_as_bam ? CHANNEL_ALIGN_CREATE_CSV(BAM_MERGE_INDEX_SAMTOOLS.out.bam_bai) : CHANNEL_ALIGN_CREATE_CSV(BAM_TO_CRAM_MAPPING.out.alignment_index)
 
@@ -198,10 +206,10 @@ workflow BAM_ALIGN {
 
     emit:
     // TODO: do I need to output RNA and DNA separately or cam I directly use bam_mapped but separating them?
-    bam_mapped_rna   = bam_mapped_rna   //second pass with RG tags
+    bam_mapped_rna   = bam_mapped_rna  // second pass with RG tags
     bam_mapped_dna   = bam_mapped_dna  // second pass with RG tags
     bam_mapped       = bam_mapped      // for preprocessing
+    cram_mapped      = cram_mapped     // for preprocessing
     reports          = reports
     versions         = versions
-
 }
