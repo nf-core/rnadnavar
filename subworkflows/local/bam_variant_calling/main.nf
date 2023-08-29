@@ -1,10 +1,18 @@
-include { SAMTOOLS_CONVERT as SAMTOOLS_BAMTOCRAM_VARIANTCALLING } from '../../modules/nf-core/modules/samtools/convert/main'
-include { PAIR_VARIANT_CALLING                                  } from './pair_variant_calling'
-include { VCF_QC                                               } from '../nf-core/vcf_qc'
-include { VARIANTCALLING_CSV                                   } from './variantcalling_csv'
+//
+// Variant Calling
+//
+// For all modules here:
+// A when clause condition is defined in the conf/modules.config to determine if the module should be run
+// Variant calling on tumor/normal pair
+include { BAM_VARIANT_CALLING_SOMATIC                 } from '../bam_variant_calling_somatic/main'
+// QC on VCF files
+include { VCF_QC_BCFTOOLS_VCFTOOLS                    } from '../vcf_qc_bcftools_vcftools/main'
+// Create samplesheet to restart from different steps
+include { CHANNEL_VARIANT_CALLING_CREATE_CSV          } from '../channel_variant_calling_create_csv/main'
 
 
-workflow VARIANT_CALLING {
+
+workflow BAM_VARIANT_CALLING {
 
     take:
     tools
@@ -17,6 +25,7 @@ workflow VARIANT_CALLING {
     intervals
     intervals_bed_gz_tbi
     intervals_bed_combined
+    intervals_bed_gz_tbi_combined
     pon
     pon_tbi
     input_sample
@@ -24,21 +33,6 @@ workflow VARIANT_CALLING {
     main:
     reports   = Channel.empty()
     versions  = Channel.empty()
-
-    if (params.step == 'variant_calling') {
-
-        input_variant_calling_convert = input_sample.branch{
-            bam:  it[0].data_type == "bam"
-            cram: it[0].data_type == "cram"
-        }
-
-        // BAM files first must be converted to CRAM files since from this step on we base everything on CRAM format
-        BAM_TO_CRAM(input_variant_calling_convert.bam, fasta, fasta_fai)
-        versions = versions.mix(BAM_TO_CRAM.out.versions)
-
-        cram_variant_calling = Channel.empty().mix(BAM_TO_CRAM.out.alignment_index, input_variant_calling_convert.cram)
-
-    }
 
     if (params.tools) {
         if (params.step == 'annotate') cram_variant_calling = Channel.empty()
@@ -105,30 +99,28 @@ workflow VARIANT_CALLING {
                 [ meta, normal[2], normal[3], tumor[2], tumor[3] ]
             }
 
-
 	    // PAIR VARIANT CALLING
 	    BAM_VARIANT_CALLING_SOMATIC(
 	        tools,
 	        cram_variant_calling_pair,
-	        dict,
 	        fasta,
 	        fasta_fai,
+	        dict,
 	        germline_resource,
 	        germline_resource_tbi,
 	        intervals,
 	        intervals_bed_gz_tbi,
 	        intervals_bed_combined,
+	        intervals_bed_gz_tbi_combined,
 	        pon,
-	        pon_tbi
+	        pon_tbi,
+	        params.joint_mutect2
 	        )
 
-	    // POST VARIANTCALLING
-        POST_VARIANTCALLING(BAM_VARIANT_CALLING_GERMLINE_ALL.out.vcf_all,
-                            params.concatenate_vcfs)
 
 	    // Gather vcf files for annotation and QC
 	    vcf_to_normalize = Channel.empty()
-	    vcf_to_normalize = vcf_to_normalize.mix(BAM_VARIANT_CALLING_SOMATIC_ALL.out.vcf_all)
+	    vcf_to_normalize = vcf_to_normalize.mix(BAM_VARIANT_CALLING_SOMATIC.out.vcf_all)
 
 	    // QC
 	    VCF_QC_BCFTOOLS_VCFTOOLS(vcf_to_normalize, intervals_bed_combined)
@@ -138,22 +130,21 @@ workflow VARIANT_CALLING {
 	    reports = reports.mix(VCF_QC_BCFTOOLS_VCFTOOLS.out.vcftools_tstv_qual.collect{ meta, qual -> qual })
 	    reports = reports.mix(VCF_QC_BCFTOOLS_VCFTOOLS.out.vcftools_filter_summary.collect{ meta, summary -> summary })
 
-	    CHANNEL_VARIANT_CALLING_CREATE_CSV(vcf_to_annotate)
+	    CHANNEL_VARIANT_CALLING_CREATE_CSV(vcf_to_normalize)
 
 		// Gather used variant calling softwares versions
-        versions = versions.mix(BAM_VARIANT_CALLING_SOMATIC_ALL.out.versions)
-        versions = versions.mix(POST_VARIANTCALLING.out.versions)
+        versions = versions.mix(BAM_VARIANT_CALLING_SOMATIC.out.versions)
         versions = versions.mix(VCF_QC_BCFTOOLS_VCFTOOLS.out.versions)
     }
 
 
     emit:
-    cram_vc_pair        = ch_cram_variant_calling_pair
-    vcf                 = vcf_to_normalize
-    contamination_table = PAIR_VARIANT_CALLING.out.contamination_table
-    segmentation_table  = PAIR_VARIANT_CALLING.out.segmentation_table
-    artifact_priors     = PAIR_VARIANT_CALLING.out.artifact_priors
-    reports             = reports
-    versions            = versions
+    cram_variant_calling_pair        = cram_variant_calling_pair
+    vcf_to_normalize                 = vcf_to_normalize
+    contamination_table              = BAM_VARIANT_CALLING_SOMATIC.out.contamination_table_mutect2
+    segmentation_table               = BAM_VARIANT_CALLING_SOMATIC.out.segmentation_table_mutect2
+    artifact_priors                  = BAM_VARIANT_CALLING_SOMATIC.out.artifact_priors_mutect2
+    reports                          = reports
+    versions                         = versions
 
 }

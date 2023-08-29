@@ -1,9 +1,11 @@
 //
 // Core workflow of the RNA/DNA variant calling pipeline
 //
-include { BAM_GATK_PREPROCESSING                                   } from '../bam_gatk_preprocessing/main'
+// For all modules here:
+// A when clause condition is defined in the conf/modules.config to determine if the module should be run
+include { BAM_GATK_PREPROCESSING                          } from '../bam_gatk_preprocessing/main'
 // For now only matched supported
-// include { BAM_VARIANT_CALLING                                      } from '../variant_calling/main'
+ include { BAM_VARIANT_CALLING                            } from '../bam_variant_calling/main'
 // // Can we just call normalization here?
 // include { VCF_NORMALIZE                                            } from '../normalize_vcf_variants/main'
 // // Can we just call the consensus module here?
@@ -38,30 +40,54 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
         vcfs_status_dna       // to repeat rescue consensus
 
     main:
-        ch_reports   = Channel.empty()
-        ch_versions  = Channel.empty()
-        ch_genome_bam.dump(tag:"ch_genome_bam")
-    // GATK PREPROCESSING - See: https://gatk.broadinstitute.org/hc/en-us/articles/360035535912-Data-pre-processing-for-variant-discovery
-        BAM_GATK_PREPROCESSING(
-            step,                   // Mandatory, step to start with - should be mapping for second pass
-            tools,
-            ch_genome_bam,        // channel: [mandatory] [meta, [bam]]
-            skip_tools,           // channel: [mandatory] skip_tools
-            params.save_output_as_bam,   // channel: [mandatory] save_output_as_bam
-            fasta,                       // channel: [mandatory] fasta
-            fasta_fai ,                  // channel: [mandatory] fasta_fai
-            dict,
-            germline_resource,           // channel: [optional]  germline_resource
-            germline_resource_tbi,       // channel: [optional]  germline_resource_tbi
-            intervals,                   // channel: [mandatory] intervals/target regions
-            intervals_for_preprocessing, // channel: [mandatory] intervals_for_preprocessing/wes
-            ch_interval_list_split,
-            ch_input_sample
-        )
+    reports   = Channel.empty()
+    versions  = Channel.empty()
 
-        ch_cram_variant_calling = GATK_PREPROCESSING.out.ch_cram_variant_calling
-        ch_versions = ch_versions.mix(GATK_PREPROCESSING.out.versions)
-        ch_reports = ch_reports.mix(GATK_PREPROCESSING.out.ch_reports)
+	// GATK PREPROCESSING - See: https://gatk.broadinstitute.org/hc/en-us/articles/360035535912-Data-pre-processing-for-variant-discovery
+    BAM_GATK_PREPROCESSING(
+        input_sample,
+        bam_mapped,                  // channel: [mandatory] [meta, [bam]]
+        cram_mapped,                 // channel: [mandatory] [meta, [cram]]
+        fasta,                       // channel: [mandatory] fasta
+        fasta_fai ,                  // channel: [mandatory] fasta_fai
+        dict,                        // channel: [mandatory] dict
+	    known_sites_indels,          // channel: [optional]  known_sites
+	    known_sites_indels_tbi,      // channel: [optional]  known_sites
+        germline_resource,           // channel: [optional]  germline_resource
+        germline_resource_tbi,       // channel: [optional]  germline_resource_tbi
+        intervals,                   // channel: [mandatory] intervals/target regions
+        intervals_for_preprocessing,  // channel: [mandatory] intervals_for_preprocessing/wes
+        intervals_and_num_intervals  // channel: [mandatory] intervals_for_preprocessing/wes
+    )
+
+    cram_variant_calling = BAM_GATK_PREPROCESSING.out.cram_variant_calling
+    versions             = versions.mix(BAM_GATK_PREPROCESSING.out.versions)
+    reports              = reports.mix(BAM_GATK_PREPROCESSING.out.reports)
+
+	// VARIANT CALLING
+     BAM_VARIANT_CALLING(
+         params.tools,
+         cram_variant_calling,
+         fasta,
+         fasta_fai,
+         dict,
+         germline_resource,
+         germline_resource_tbi,
+         intervals,
+         intervals_bed_gz_tbi,
+         intervals_bed_combined,
+         intervals_bed_gz_tbi_combined,
+         pon,
+         pon_tbi,
+         input_sample
+     )
+         cram_variant_calling_pair     = BAM_VARIANT_CALLING.out.cram_variant_calling_pair  // use same crams for force calling later
+         vcf_to_normalize              = BAM_VARIANT_CALLING.out.vcf_to_normalize
+         contamination                 = BAM_VARIANT_CALLING.out.contamination_table
+         segmentation                  = BAM_VARIANT_CALLING.out.segmentation_table
+         orientation                   = BAM_VARIANT_CALLING.out.artifact_priors
+         versions                      = versions.mix(BAM_VARIANT_CALLING.out.versions)
+         reports                       = reports.mix(BAM_VARIANT_CALLING.out.reports)
 
         ch_cram_variant_calling.dump(tag:"[STEP8 RNA_FILTERING] ch_cram_variant_calling")
         intervals_bed_gz_tbi.dump(tag:"[STEP8 RNA_FILTERING] intervals_bed_gz_tbi")
@@ -149,12 +175,12 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
 //
 //         }
 //
-//     emit:
+     emit:
 //         vcf_consensus_dna               = CONSENSUS.out.vcf_consensus_dna
 //         vcfs_status_dna                 = CONSENSUS.out.vcfs_status_dna
 //         maf                             = filtered_maf
 //         maf_rna                         = filtered_maf_rna
 //         maf_dna                         = filtered_maf_dna
-//         versions                        = ch_versions                                                         // channel: [ versions.yml ]
-//         reports                         = ch_reports
+         versions                        = versions                                                         // channel: [ versions.yml ]
+         reports                         = reports
 }
