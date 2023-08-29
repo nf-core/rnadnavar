@@ -332,6 +332,21 @@ workflow BAM_GATK_PREPROCESSING {
         }
 	}
 
+	if (params.step == 'variant_calling') {
+
+        input_variant_calling_convert = input_sample.branch{
+            bam:  it[0].data_type == "bam"
+            cram: it[0].data_type == "cram"
+        }
+
+        // BAM files first must be converted to CRAM files since from this step on we base everything on CRAM format
+        BAM_TO_CRAM(input_variant_calling_convert.bam, fasta, fasta_fai)
+        versions = versions.mix(BAM_TO_CRAM.out.versions)
+
+        cram_variant_calling = Channel.empty().mix(BAM_TO_CRAM.out.alignment_index, input_variant_calling_convert.cram)
+
+    }
+
     emit:
     cram_variant_calling    = cram_variant_calling
     versions                = versions
