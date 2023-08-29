@@ -45,18 +45,7 @@ input:
       type: file
       description: reference fasta file
       pattern: ".{fa,fa.gz,fasta,fasta.gz}"
-  - highconfidence:
-      type: file
-      description: Optional.
-      pattern: "*.bed"
-  - actionablepanel:
-      type: file
-      description: Optional.
-      pattern: "*.bed"
-  - knownhot:
-      type: file
-      description: Optional.
-      pattern: "*.bed"
+
 
 output:
   - meta:
@@ -66,8 +55,8 @@ output:
         e.g. [ id:'test', single_end:false ]
   - vcf:
       type: file
-      description: Compressed VCF file
-      pattern: "*.vcf.gz"
+      description: VCF file
+      pattern: "*.vcf"
   - version:
       type: file
       description: File containing software version
