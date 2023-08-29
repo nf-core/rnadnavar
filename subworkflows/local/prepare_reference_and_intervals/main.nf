@@ -64,10 +64,11 @@ workflow PREPARE_REFERENCE_AND_INTERVALS {
     intervals_for_preprocessing = params.wes ?
         intervals_bed_combined.map{it -> [ [ id:it.baseName ], it ]}.collect() :
         Channel.value([ [ id:'null' ], [] ])
-    intervals                   = PREPARE_INTERVALS.out.intervals_bed        // [interval, num_intervals] multiple interval.bed files, divided by useful intervals for scatter/gather
-    intervals_bed_gz_tbi        = PREPARE_INTERVALS.out.intervals_bed_gz_tbi // [interval_bed, tbi, num_intervals] multiple interval.bed.gz/.tbi files, divided by useful intervals for scatter/gather
+    intervals                     = PREPARE_INTERVALS.out.intervals_bed        // [interval, num_intervals] multiple interval.bed files, divided by useful intervals for scatter/gather
+    intervals_bed_gz_tbi          = PREPARE_INTERVALS.out.intervals_bed_gz_tbi // [interval_bed, tbi, num_intervals] multiple interval.bed.gz/.tbi files, divided by useful intervals for scatter/gather
+    intervals_bed_gz_tbi_combined = PREPARE_INTERVALS.out.intervals_bed_gz_tbi_combined   // [ intervals.bed.gz, intervals.bed.gz.tbi]
 
-	intervals_and_num_intervals = intervals.map{ interval, num_intervals ->
+	intervals_and_num_intervals   = intervals.map{ interval, num_intervals ->
 	        if ( num_intervals < 1 ) [ [], num_intervals ]
 	        else [ interval, num_intervals ]
         }
@@ -89,32 +90,33 @@ workflow PREPARE_REFERENCE_AND_INTERVALS {
     versions = versions.mix(GATK4_BEDTOINTERVALLIST.out.versions)
 
     emit:
-    fasta                       = fasta
-    fasta_fai                   = fasta_fai
-    dict                        = dict
-    bwa                         = bwa
-    germline_resource           = germline_resource
-    germline_resource_tbi       = germline_resource_tbi
-    bwamem2                     = bwamem2
-    dragmap                     = dragmap
-    star_index                  = PREPARE_GENOME.out.star_index
-    gtf                         = PREPARE_GENOME.out.gtf
-    ch_interval_list            = ch_interval_list
-    intervals                   = intervals
-    intervals_bed_gz_tbi        = intervals_bed_gz_tbi
-    intervals_for_preprocessing = intervals_for_preprocessing
-    intervals_bed_combined      = intervals_bed_combined
-    dbsnp                       = dbsnp
-    dbsnp_tbi                   = dbsnp_tbi
-    pon                         = pon
-    pon_tbi                     = pon_tbi
-    germline_resource           = germline_resource
-    germline_resource_tbi       = germline_resource_tbi
-    hisat2_index                = hisat2_index
-    splicesites                 = splicesites
-    known_sites_indels          = known_sites_indels
-    known_sites_indels_tbi      = known_sites_indels_tbi
-    known_sites_snps            = known_sites_snps
-    known_sites_snps_tbi        = known_sites_snps_tbi
-    versions                    = versions                                            // channel: [ versions.yml ]
+    fasta                         = fasta
+    fasta_fai                     = fasta_fai
+    dict                          = dict
+    bwa                           = bwa
+    germline_resource             = germline_resource
+    germline_resource_tbi         = germline_resource_tbi
+    bwamem2                       = bwamem2
+    dragmap                       = dragmap
+    star_index                    = PREPARE_GENOME.out.star_index
+    gtf                           = PREPARE_GENOME.out.gtf
+    ch_interval_list              = ch_interval_list
+    intervals                     = intervals
+    intervals_bed_gz_tbi          = intervals_bed_gz_tbi
+    intervals_for_preprocessing   = intervals_for_preprocessing
+    intervals_bed_combined        = intervals_bed_combined
+    intervals_bed_gz_tbi_combined = intervals_bed_gz_tbi_combined
+    dbsnp                         = dbsnp
+    dbsnp_tbi                     = dbsnp_tbi
+    pon                           = pon
+    pon_tbi                       = pon_tbi
+    germline_resource             = germline_resource
+    germline_resource_tbi         = germline_resource_tbi
+    hisat2_index                  = hisat2_index
+    splicesites                   = splicesites
+    known_sites_indels            = known_sites_indels
+    known_sites_indels_tbi        = known_sites_indels_tbi
+    known_sites_snps              = known_sites_snps
+    known_sites_snps_tbi          = known_sites_snps_tbi
+    versions                      = versions                                            // channel: [ versions.yml ]
 }
