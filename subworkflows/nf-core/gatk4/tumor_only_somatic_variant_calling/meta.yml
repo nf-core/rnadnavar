@@ -9,7 +9,7 @@ keywords:
   - getpileupsummaries
   - calculatecontamination
   - filtermutectcalls
-  - variant_calling
+  - bam_variant_calling
   - tumor_only
   - filtered_vcf
 modules:
@@ -70,7 +70,7 @@ output:
       pattern: "versions.yml"
   - mutect2_vcf:
       type: file
-      description: Compressed vcf file to be used for variant_calling.
+      description: Compressed vcf file to be used for bam_variant_calling.
       pattern: "[ *.vcf.gz ]"
   - mutect2_tbi:
       type: file

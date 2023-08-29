@@ -12,7 +12,7 @@ keywords:
   - getpileupsummaries
   - calculatecontamination
   - filtermutectcalls
-  - variant_calling
+  - bam_variant_calling
   - tumor_only
   - filtered_vcf
 components:
