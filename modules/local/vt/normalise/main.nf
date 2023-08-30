@@ -1,18 +1,19 @@
-process VT_NORMALIZE {
+process VT_NORMALISE {
     tag "$meta.id"
-    label 'process_low'
+    label 'process_single'
 
-    conda (params.enable_conda ? "bioconda::vt-0.57721-h17a1952_6" : null )
+    conda "bioconda::vt-0.57721-h17a1952_6"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/vt:0.57721--h17a1952_6' :
         'quay.io/biocontainers/vt:0.57721--h17a1952_6' }"
 
     input:
     tuple val(meta), path(vcf)
-    path fasta
+    tuple val(meta1), path(fasta)
 
     output:
     tuple val(meta), path("*.vcf.gz"), emit: vcf
+    path "*.stats"                   , emit: stats
     path  "versions.yml"             , emit: versions
 
     when:

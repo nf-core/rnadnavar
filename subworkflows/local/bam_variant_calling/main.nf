@@ -42,11 +42,10 @@ workflow BAM_VARIANT_CALLING {
         //
         cram_variant_calling_status = cram_variant_calling.branch{
             normal: it[0].status == 0
-            tumor:  it[0].status == 1
-            rna:    it[0].status == 2
+            tumor:  it[0].status >= 1  // DNA and RNA should NOT have same sample id
         }
 
-            // All Germline samples
+        // All Germline samples
         cram_variant_calling_normal_to_cross = cram_variant_calling_status.normal.map{ meta, cram, crai -> [ meta.patient, meta, cram, crai ] }
 
         // All tumor samples
@@ -119,18 +118,18 @@ workflow BAM_VARIANT_CALLING {
 
 
 	    // Gather vcf files for annotation and QC
-	    vcf_to_normalize = Channel.empty()
-	    vcf_to_normalize = vcf_to_normalize.mix(BAM_VARIANT_CALLING_SOMATIC.out.vcf_all)
+	    vcf_to_normalise = Channel.empty()
+	    vcf_to_normalise = vcf_to_normalise.mix(BAM_VARIANT_CALLING_SOMATIC.out.vcf_all)
 
 	    // QC
-	    VCF_QC_BCFTOOLS_VCFTOOLS(vcf_to_normalize, intervals_bed_combined)
+	    VCF_QC_BCFTOOLS_VCFTOOLS(vcf_to_normalise, intervals_bed_combined)
 
 	    reports = reports.mix(VCF_QC_BCFTOOLS_VCFTOOLS.out.bcftools_stats.collect{ meta, stats -> stats })
 	    reports = reports.mix(VCF_QC_BCFTOOLS_VCFTOOLS.out.vcftools_tstv_counts.collect{ meta, counts -> counts })
 	    reports = reports.mix(VCF_QC_BCFTOOLS_VCFTOOLS.out.vcftools_tstv_qual.collect{ meta, qual -> qual })
 	    reports = reports.mix(VCF_QC_BCFTOOLS_VCFTOOLS.out.vcftools_filter_summary.collect{ meta, summary -> summary })
 
-	    CHANNEL_VARIANT_CALLING_CREATE_CSV(vcf_to_normalize)
+	    CHANNEL_VARIANT_CALLING_CREATE_CSV(vcf_to_normalise, "variantcalled")
 
 		// Gather used variant calling softwares versions
         versions = versions.mix(BAM_VARIANT_CALLING_SOMATIC.out.versions)
@@ -140,7 +139,7 @@ workflow BAM_VARIANT_CALLING {
 
     emit:
     cram_variant_calling_pair        = cram_variant_calling_pair
-    vcf_to_normalize                 = vcf_to_normalize
+    vcf_to_normalise                 = vcf_to_normalise
     contamination_table              = BAM_VARIANT_CALLING_SOMATIC.out.contamination_table_mutect2
     segmentation_table               = BAM_VARIANT_CALLING_SOMATIC.out.segmentation_table_mutect2
     artifact_priors                  = BAM_VARIANT_CALLING_SOMATIC.out.artifact_priors_mutect2

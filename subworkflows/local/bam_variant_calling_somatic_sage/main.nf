@@ -25,7 +25,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_SAGE {
         // Move num_intervals to meta map and reorganize channel for SAGE module
         .map{ meta, cram1, crai1, cram2, crai2, intervals, num_intervals -> [ meta + [ num_intervals:num_intervals ], cram1, crai1, cram2, crai2, intervals ]}
 
-    SAGE(cram_intervals, fasta, fasta_fai)
+    SAGE(cram_intervals, fasta, fasta_fai, dict)
 
     BCFTOOLS_SORT(SAGE.out.vcf)
 

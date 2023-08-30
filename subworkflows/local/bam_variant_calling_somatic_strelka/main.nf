@@ -6,6 +6,7 @@
 
 include { GATK4_MERGEVCFS as MERGE_STRELKA_INDELS } from '../../../modules/nf-core/gatk4/mergevcfs/main'
 include { GATK4_MERGEVCFS as MERGE_STRELKA_SNVS   } from '../../../modules/nf-core/gatk4/mergevcfs/main'
+include { GATK4_MERGEVCFS as MERGE_STRELKA        } from '../../../modules/nf-core/gatk4/mergevcfs/main'
 include { STRELKA_SOMATIC                         } from '../../../modules/nf-core/strelka/somatic/main'
 
 workflow BAM_VARIANT_CALLING_SOMATIC_STRELKA {
@@ -22,7 +23,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_STRELKA {
     // Combine cram and intervals for spread and gather strategy
     cram_intervals = cram.combine(intervals)
         // Move num_intervals to meta map
-        .map{ meta, normal_cram, normal_crai, tumor_cram, tumor_crai, manta_vcf, manta_tbi, intervals, intervals_index, num_intervals -> [ meta + [ num_intervals:num_intervals ], normal_cram, normal_crai, tumor_cram, tumor_crai, manta_vcf, manta_tbi, intervals, intervals_index ] }
+        .map{ meta, normal_cram, normal_crai, tumor_cram, tumor_crai, manta_vcf, manta_tbi, intervals_gz_tbi, num_intervals -> [ meta + [ num_intervals:num_intervals ], normal_cram, normal_crai, tumor_cram, tumor_crai, manta_vcf, manta_tbi, intervals_gz_tbi[0], intervals_gz_tbi[1] ] }
 
     STRELKA_SOMATIC(cram_intervals, fasta, fasta_fai )
 
@@ -52,12 +53,16 @@ workflow BAM_VARIANT_CALLING_SOMATIC_STRELKA {
         // add variantcaller to meta map and remove no longer necessary field: num_intervals
         .map{ meta, vcf -> [ meta - meta.subMap('num_intervals') + [ variantcaller:'strelka' ], vcf ] }
 
+	// Merge SNVs and indels
+	MERGE_STRELKA(vcf, dict)
+
     versions = versions.mix(MERGE_STRELKA_SNVS.out.versions)
     versions = versions.mix(MERGE_STRELKA_INDELS.out.versions)
+    versions = versions.mix(MERGE_STRELKA.out.versions)
     versions = versions.mix(STRELKA_SOMATIC.out.versions)
 
     emit:
-    vcf
+    vcf      = MERGE_STRELKA.out.vcf
 
     versions
 }

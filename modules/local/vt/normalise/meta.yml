@@ -1,12 +1,12 @@
-name: vt_normalize
-description: Normalize VCF files
+name: vt_normalise
+description: normalise VCF files
 keywords:
-  - normalize
+  - normalise
   - VCF
   - variant calling
 tools:
   - decompose:
-      description: Normalize variants in a VCF file.
+      description: normalise variants in a VCF file.
       homepage: https://genome.sph.umich.edu/wiki/Vt
       documentation: https://genome.sph.umich.edu/wiki/Vt
       tool_dev_url: https://github.com/atks/vt
@@ -21,7 +21,7 @@ input:
         e.g. [ id:'test', single_end:false ]
   - vcf:
       type: file
-      description: The VCF/BCF file to be normalized
+      description: The VCF/BCF file to be normalised
       pattern: "*.{vcf.gz,vcf,bcf}"
   - fasta:
       type: file
@@ -40,7 +40,7 @@ output:
       pattern: "versions.yml"
   - vcf:
       type: file
-      description: Normalized VCF file
+      description: normalised VCF file
       pattern: "*.{vcf.gz}"
 
 authors:

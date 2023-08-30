@@ -5,6 +5,7 @@
 workflow CHANNEL_VARIANT_CALLING_CREATE_CSV {
     take:
         vcf_to_annotate // channel: [mandatory] meta, vcf
+        csv_name
 
     main:
         // Creating csv files to restart from this step
@@ -14,6 +15,6 @@ workflow CHANNEL_VARIANT_CALLING_CREATE_CSV {
             variantcaller = meta.variantcaller
             status        = meta.status
             vcf = "${params.outdir}/variant_calling/${variantcaller}/${meta.id}/${vcf.getName()}"
-            ["variantcalled.csv", "patient,sample,status,variantcaller,vcf\n${patient},${sample},${status},${variantcaller},${vcf}\n"]
+            ["${csv_name}.csv", "patient,sample,status,variantcaller,vcf\n${patient},${sample},${status},${variantcaller},${vcf}\n"]
         }
 }
