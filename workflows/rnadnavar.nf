@@ -4,7 +4,7 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-include { paramsSummaryLog; paramsSummaryMap } from 'plugin/nf-validation'
+include { paramsSummaryLog; paramsSummaryMap; fromSamplesheet } from 'plugin/nf-validation'
 
 def logo = NfcoreTemplate.logo(workflow, params.monochrome_logs)
 def citation = '\n' + WorkflowMain.citation(workflow) + '\n'
@@ -13,7 +13,11 @@ def summary_params = paramsSummaryMap(workflow)
 // Print parameter summary log to screen
 log.info logo + paramsSummaryLog(workflow) + citation
 
-WorkflowRnadnavar.initialise(params, log)
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    VALIDATE INPUTS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
 
 // Check input path parameters to see if they exist
 def checkPathParamList = [
@@ -80,7 +84,9 @@ input_sample = ch_from_samplesheet
                 def flowcell   = flowcellLaneFromFastq(fastq_1)
                 // Don't use a random element for ID, it breaks resuming
                 def read_group = "\"@RG\\tID:${flowcell}.${meta.sample}.${meta.lane}\\t${CN}PU:${meta.lane}\\tSM:${meta.patient}_${meta.sample}\\tLB:${meta.sample}\\tDS:${params.fasta}\\tPL:${params.seq_platform}\""
-
+				if (meta.status >= 2) { // STAR does not need '@RG'
+                    read_group  = "ID:${flowcell}.${meta.sample}.${meta.lane} ${CN}PU:${meta.lane} SM:${meta.patient}_${meta.sample} LB:${meta.sample} DS:${params.fasta} PL:${params.seq_platform}"
+				}
                 meta           = meta + [num_lanes: num_lanes.toInteger(), read_group: read_group.toString(), data_type: 'fastq', size: 1]
 
                 if (params.step == 'mapping') return [ meta, [ fastq_1, fastq_2 ] ]
@@ -96,7 +102,9 @@ input_sample = ch_from_samplesheet
                 meta            = meta + [id: "${meta.sample}-${meta.lane}".toString()]
                 def CN          = params.seq_center ? "CN:${params.seq_center}\\t" : ''
                 def read_group  = "\"@RG\\tID:${meta.sample}_${meta.lane}\\t${CN}PU:${meta.lane}\\tSM:${meta.patient}_${meta.sample}\\tLB:${meta.sample}\\tDS:${params.fasta}\\tPL:${params.seq_platform}\""
-
+				if (meta.status >= 2) { // STAR does not need '@RG'
+					read_group  = "ID:${meta.sample}.${meta.lane} ${CN}PU:${meta.lane} SM:${meta.patient}_${meta.sample} LB:${meta.sample} DS:${params.fasta} PL:${params.seq_platform}"
+				}
                 meta            = meta + [num_lanes: num_lanes.toInteger(), read_group: read_group.toString(), data_type: 'bam', size: 1]
 
                 if (params.step != 'annotate') return [ meta - meta.subMap('lane'), bam, bai ]

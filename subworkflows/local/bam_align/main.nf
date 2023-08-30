@@ -15,7 +15,6 @@ include { FASTQ_ALIGN_STAR                              } from '../../nf-core/fa
 include { BAM_MERGE_INDEX_SAMTOOLS                      } from '../bam_merge_index_samtools/main'
 // Create samplesheets to restart from mapping
 include { CHANNEL_ALIGN_CREATE_CSV                      } from '../channel_align_create_csv/main'
-
 // MODULES
 // Run FASTQC
 include { FASTQC                                        } from '../../../modules/nf-core/fastqc/main'
@@ -144,6 +143,7 @@ workflow BAM_ALIGN {
             [ groupKey( meta - meta.subMap('num_lanes', 'read_group', 'size') + [ data_type:'bam', id:meta.sample ], (meta.num_lanes ?: 1) * (meta.size ?: 1)), bam ]
         }.groupTuple()
 		bam_mapped_dna.dump(tag:"bam_mapped_dna")
+		reads_for_alignment_status.rna.dump(tag:"reads_for_alignment_status.rna")
 
         // RNA will be aligned with STAR
         // Run STAR
