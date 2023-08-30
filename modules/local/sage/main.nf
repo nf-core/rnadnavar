@@ -11,6 +11,7 @@ process SAGE {
     tuple val(meta), path(input_normal), path(input_index_normal), path(input_tumor), path(input_index_tumor), path(intervals)
     tuple val(meta2), path(fasta)
     tuple val(meta3), path(fai)
+    tuple val(meta4), path(dict)
 
     output:
     tuple val(meta), path("*.vcf"), emit: vcf
