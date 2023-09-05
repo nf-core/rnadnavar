@@ -84,7 +84,7 @@ workflow PREPARE_REFERENCE_AND_INTERVALS {
     ch_interval_list = Channel.empty()
     GATK4_BEDTOINTERVALLIST(
         ch_genome_bed,
-        dict
+        dict.map{ it -> [ [id:'dict'], it ] }
         )
     ch_interval_list = GATK4_BEDTOINTERVALLIST.out.interval_list
     versions = versions.mix(GATK4_BEDTOINTERVALLIST.out.versions)

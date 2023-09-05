@@ -105,7 +105,7 @@ workflow PREPARE_GENOME {
             ch_gene_bed = GUNZIP_GENE_BED.out.gunzip.map{ meta, bed -> [bed] }.collect()
             versions = versions.mix(GUNZIP_GENE_BED.out.versions)
         } else {
-            ch_gene_bed = Channel.fromPath(params.exon_bed).collect()
+            ch_exon_bed = Channel.fromPath(params.exon_bed).collect()
         }
     } else {
         ch_exon_bed = GTF2BED ( ch_gtf ).bed.collect()
@@ -167,7 +167,6 @@ workflow PREPARE_GENOME {
     versions = versions.mix(TABIX_KNOWN_SNPS.out.versions)
     versions = versions.mix(TABIX_KNOWN_INDELS.out.versions)
     versions = versions.mix(TABIX_PON.out.versions)
-
 
     emit:
         bwa                   = BWAMEM1_INDEX.out.index.map{ meta, index -> [index] }.collect()       // path: bwa/*
