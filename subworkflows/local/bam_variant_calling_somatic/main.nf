@@ -1,8 +1,6 @@
 //
 // PAIRED VARIANT CALLING
 //
-
-include { BAM_VARIANT_CALLING_FREEBAYES                 } from '../bam_variant_calling_freebayes/main'
 include { BAM_VARIANT_CALLING_SOMATIC_MANTA             } from '../bam_variant_calling_somatic_manta/main'
 include { BAM_VARIANT_CALLING_SOMATIC_MUTECT2           } from '../bam_variant_calling_somatic_mutect2/main'
 include { BAM_VARIANT_CALLING_SOMATIC_STRELKA           } from '../bam_variant_calling_somatic_strelka/main'
@@ -28,27 +26,10 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
     main:
     versions          = Channel.empty()
 
-    //TODO: Temporary until the if's can be removed and printing to terminal is prevented with "when" in the modules.config
-    vcf_freebayes     = Channel.empty()
-    vcf_manta         = Channel.empty()
+    //TODO: Temporary until the if's can be removed and printing to terminal is prevented with "when" in the modules.config    vcf_manta         = Channel.empty()
     vcf_strelka       = Channel.empty()
     vcf_mutect2       = Channel.empty()
     vcf_sage          = Channel.empty()
-
-	// TODO: unify fasta/fasta_fai/dict structure
-    // FREEBAYES
-    if (tools.split(',').contains('freebayes')) {
-        BAM_VARIANT_CALLING_FREEBAYES(
-            cram,
-            dict,
-            fasta,
-            fasta_fai,
-            intervals
-        )
-
-        vcf_freebayes = BAM_VARIANT_CALLING_FREEBAYES.out.vcf
-        versions   = versions.mix(BAM_VARIANT_CALLING_FREEBAYES.out.versions)
-    }
 
     // SAGE
     if (tools.split(',').contains('sage')) {
@@ -56,7 +37,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
         BAM_VARIANT_CALLING_SOMATIC_SAGE(
             cram,
             // Remap channel to match module/subworkflow
-            dict.map{ it -> [ [ id:'dict' ], it ] },
+            dict,
             // Remap channel to match module/subworkflow
             fasta.map{ it -> [ [ id:'fasta' ], it ] },
             // Remap channel to match module/subworkflow
@@ -64,7 +45,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
             intervals
         )
 
-        vcf_sage = BAM_VARIANT_CALLING_SOMATIC_SAGE.out.vcf
+        vcf_sage   = BAM_VARIANT_CALLING_SOMATIC_SAGE.out.vcf
         versions   = versions.mix(BAM_VARIANT_CALLING_SOMATIC_SAGE.out.versions)
     }
 
@@ -107,9 +88,9 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
             // Remap channel to match module/subworkflow
             cram.map { meta, normal_cram, normal_crai, tumor_cram, tumor_crai -> [ meta, [ normal_cram, tumor_cram ], [ normal_crai, tumor_crai ] ] },
             // Remap channel to match module/subworkflow
-            fasta,
+            fasta.map{ it -> [ [ id:'fasta' ], it ] },
             // Remap channel to match module/subworkflow
-            fasta_fai,
+            fasta_fai.map{ it -> [ [ id:'fasta_fai' ], it ] },
             dict,
             germline_resource,
             germline_resource_tbi,
@@ -119,11 +100,11 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
             joint_mutect2
         )
 
-        vcf_mutect2 = BAM_VARIANT_CALLING_SOMATIC_MUTECT2.out.vcf_filtered
+        vcf_mutect2                 = BAM_VARIANT_CALLING_SOMATIC_MUTECT2.out.vcf_filtered
         contamination_table_mutect2 = BAM_VARIANT_CALLING_SOMATIC_MUTECT2.out.contamination_table
-        segmentation_table_mutect2 = BAM_VARIANT_CALLING_SOMATIC_MUTECT2.out.segmentation_table
-        artifact_priors_mutect2 = BAM_VARIANT_CALLING_SOMATIC_MUTECT2.out.artifact_priors
-        versions = versions.mix(BAM_VARIANT_CALLING_SOMATIC_MUTECT2.out.versions)
+        segmentation_table_mutect2  = BAM_VARIANT_CALLING_SOMATIC_MUTECT2.out.segmentation_table
+        artifact_priors_mutect2     = BAM_VARIANT_CALLING_SOMATIC_MUTECT2.out.artifact_priors
+        versions                    = versions.mix(BAM_VARIANT_CALLING_SOMATIC_MUTECT2.out.versions)
     } else {
 
         contamination_table_mutect2 = Channel.empty()
@@ -134,8 +115,6 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
     }
 
     vcf_all = Channel.empty().mix(
-        vcf_freebayes,
-        vcf_manta,
         vcf_mutect2,
         vcf_strelka,
         vcf_sage
@@ -143,7 +122,6 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
 
     emit:
     vcf_all
-    vcf_freebayes
     vcf_manta
     vcf_mutect2
     vcf_strelka

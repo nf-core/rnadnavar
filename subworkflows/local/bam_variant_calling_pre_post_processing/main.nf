@@ -5,39 +5,41 @@
 // A when clause condition is defined in the conf/modules.config to determine if the module should be run
 include { BAM_GATK_PREPROCESSING                          } from '../bam_gatk_preprocessing/main'
 // For now only matched supported
- include { BAM_VARIANT_CALLING                            } from '../bam_variant_calling/main'
-// // Can we just call normalization here?
-// include { VCF_NORMALIZE                                            } from '../normalize_vcf_variants/main'
-// // Can we just call the consensus module here?
-// include { VCF_CONSENSUS                                            } from '../consensus/main'
-// // maybe just call VEP here?
-// include { VCF_ANNOTATE                                             } from '../annotate/main'
-// include { MAF_BASIC_FILTERING as FILTERING                         } from '../../../modules/local/filter_variants'
+include { BAM_VARIANT_CALLING                             } from '../bam_variant_calling/main'
+// Normalise VCFs
+include { VCF_NORMALISE                                   } from '../vcf_normalise/main'
+// Annotation
+include { VCF_ANNOTATE                                    } from '../vcf_annotate/main'
+// Consensus
+ include { VCF_CONSENSUS                                  } from '../vcf_consensus/main'
+// Filtering
+ include { MAF_FILTERING                                  } from '../maf_filtering/main'
 
 
 workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     take:
-        step                   // step to start with
-        tools
-        skip_tools
-        ch_input_sample        // input from CSV if applicable
-        ch_genome_bam          // input from mapping
-        fasta                  // fasta reference file
-        fasta_fai              // fai for fasta file
-        dict                   //
-        dbsnp
-        dbsnp_tbi
-        pon
-        pon_tbi
-        germline_resource
-        germline_resource_tbi
-        intervals
-        intervals_for_preprocessing
-        ch_interval_list_split
-        intervals_bed_gz_tbi
-        intervals_bed_combined
-        vcf_consensus_dna      // to repeat rescue consensus
-        vcfs_status_dna       // to repeat rescue consensus
+    input_sample                    // input from CSV if applicable
+    bam_mapped                      // channel: [mandatory] bam_mapped
+    cram_mapped                     // channel: [mandatory] cram_mapped
+    fasta                           // fasta reference file
+    fasta_fai                       // fai for fasta file
+    dict                            // dict for fasta file
+    dbsnp                           // channel: [optional]  germline_resource
+    dbsnp_tbi                       // channel: [optional]  germline_resource_tbi
+    pon                             // channel: [optional]  pon for mutect2
+    pon_tbi                         // channel: [optional]  pon_tbi for mutect2
+    known_sites_indels              // channel: [optional]  known_sites
+    known_sites_indels_tbi          // channel: [optional]  known_sites
+    germline_resource               // channel: [optional]  germline_resource
+    germline_resource_tbi           // channel: [optional]  germline_resource
+    intervals                       // channel: [mandatory] intervals/target regions
+    intervals_for_preprocessing     // channel: [mandatory] intervals/wes
+    intervals_bed_gz_tbi            // channel: [mandatory] intervals/target regions index zipped and indexed
+    intervals_bed_combined          // channel: [mandatory] intervals/target regions in one file unzipped
+    intervals_and_num_intervals     // channel: [mandatory] [ intervals, num_intervals ] (or [ [], 0 ] if no intervals)
+    intervals_bed_gz_tbi_combined   // channel: [mandatory] intervals/target regions in one file zipped
+    dna_consensus_maf               // to repeat rescue consensus
+    dna_varcall_mafs                 // to repeat rescue consensus
 
     main:
     reports   = Channel.empty()
@@ -56,7 +58,7 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
         germline_resource,           // channel: [optional]  germline_resource
         germline_resource_tbi,       // channel: [optional]  germline_resource_tbi
         intervals,                   // channel: [mandatory] intervals/target regions
-        intervals_for_preprocessing,  // channel: [mandatory] intervals_for_preprocessing/wes
+        intervals_for_preprocessing, // channel: [mandatory] intervals_for_preprocessing/wes
         intervals_and_num_intervals  // channel: [mandatory] intervals_for_preprocessing/wes
     )
 
@@ -81,106 +83,64 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
          pon_tbi,
          input_sample
      )
-         cram_variant_calling_pair     = BAM_VARIANT_CALLING.out.cram_variant_calling_pair  // use same crams for force calling later
-         vcf_to_normalize              = BAM_VARIANT_CALLING.out.vcf_to_normalize
-         contamination                 = BAM_VARIANT_CALLING.out.contamination_table
-         segmentation                  = BAM_VARIANT_CALLING.out.segmentation_table
-         orientation                   = BAM_VARIANT_CALLING.out.artifact_priors
-         versions                      = versions.mix(BAM_VARIANT_CALLING.out.versions)
-         reports                       = reports.mix(BAM_VARIANT_CALLING.out.reports)
+     cram_variant_calling_pair     = BAM_VARIANT_CALLING.out.cram_variant_calling_pair  // use same crams for force calling later
+     vcf_to_normalise              = BAM_VARIANT_CALLING.out.vcf_to_normalise
+     contamination                 = BAM_VARIANT_CALLING.out.contamination_table
+     segmentation                  = BAM_VARIANT_CALLING.out.segmentation_table
+     orientation                   = BAM_VARIANT_CALLING.out.artifact_priors
+     versions                      = versions.mix(BAM_VARIANT_CALLING.out.versions)
+     reports                       = reports.mix(BAM_VARIANT_CALLING.out.reports)
 
-        ch_cram_variant_calling.dump(tag:"[STEP8 RNA_FILTERING] ch_cram_variant_calling")
-        intervals_bed_gz_tbi.dump(tag:"[STEP8 RNA_FILTERING] intervals_bed_gz_tbi")
-        pon.dump(tag:"[STEP8 RNA_FILTERING] pon")
-    // STEP 3: VARIANT CALLING
-//         VARIANT_CALLING( tools,
-//             ch_cram_variant_calling,
-//             fasta,
-//             fasta_fai,
-//             dbsnp,
-//             dbsnp_tbi,
-//             dict,
-//             germline_resource,
-//             germline_resource_tbi,
-//             intervals,
-//             intervals_bed_gz_tbi,
-//             intervals_bed_combined,
-//             pon,
-//             pon_tbi,
-//             ch_input_sample
-//         )
-//         cram_vc_pair     = VARIANT_CALLING.out.cram_vc_pair  // use same crams for force calling later
-//         vcf_to_normalize = VARIANT_CALLING.out.vcf
-//         contamination    = VARIANT_CALLING.out.contamination_table
-//         segmentation     = VARIANT_CALLING.out.segmentation_table
-//         orientation      = VARIANT_CALLING.out.artifact_priors
-//         ch_versions      = ch_versions.mix(VARIANT_CALLING.out.versions)
-//         ch_reports       = ch_reports.mix(VARIANT_CALLING.out.reports)
-//
-//
-//     // STEP 4: NORMALIZE
-//        NORMALIZE (tools,
-//                   vcf_to_normalize,
-//                   fasta,
-//                   ch_input_sample)
-//        ch_versions = ch_versions.mix(NORMALIZE.out.versions)
-//        vcf_normalized = NORMALIZE.out.vcf
-//
-//
-//     // STEP 5: ANNOTATE
-//         ANNOTATE(tools,
-//             vcf_normalized, // second pass TODO: make it optional
-//             fasta,
-//             ch_input_sample // first pass
-//             )
-//
-//         ch_versions = ch_versions.mix(ANNOTATE.out.versions)
-//         ch_reports  = ch_reports.mix(ANNOTATE.out.reports)
-//
-//     // STEP 6: CONSENSUS
-//         CONSENSUS ( tools,
-//                     ANNOTATE.out.maf_ann,
-//                     cram_vc_pair,  // from previous variant calling
-//                     dict,
-//                     fasta,
-//                     fasta_fai,
-//                     germline_resource,
-//                     germline_resource_tbi,
-//                     intervals,
-//                     intervals_bed_gz_tbi,
-//                     intervals_bed_combined,
-//                     pon,
-//                     pon_tbi,
-//                     vcf_consensus_dna, // null when first pass
-//                     vcfs_status_dna, // null when first pass
-//                     ch_input_sample,
-//                     contamination,
-//                     segmentation,
-//                     orientation
-//                            )
-//     // STEP 7: FILTERING
-//         if (tools.split(',').contains('filtering')) {
-//             FILTERING(CONSENSUS.out.maf, fasta)
-//
-//             FILTERING.out.maf.branch{
-//                                      dna: it[0].status < 2
-//                                      rna: it[0].status == 2
-//                                      }.set{filtered_maf}
-//             filtered_maf_rna = filtered_maf.rna
-//             filtered_maf_dna = filtered_maf.dna
-//         } else{
-//             filtered_maf = Channel.empty()
-//             filtered_maf_rna = Channel.empty()
-//             filtered_maf_dna = Channel.empty()
-//
-//         }
-//
+
+    // NORMALISE
+    VCF_NORMALISE (
+                   vcf_to_normalise,
+                   // Remap channel to match module/subworkflow
+                   fasta.map{ it -> [ [ id:'fasta' ], it ] },
+                   input_sample
+                   )
+    versions                      = versions.mix(VCF_NORMALISE.out.versions)
+    vcf_to_annotate               = VCF_NORMALISE.out.vcf
+
+    // ANNOTATION
+
+    VCF_ANNOTATE(
+                vcf_to_annotate.map{meta, vcf -> [ meta + [ file_name: vcf.baseName ], vcf ] },
+                fasta,
+                input_sample
+                )
+
+    vcf_to_consensus              = VCF_ANNOTATE.out.vcf_ann
+    versions                      = versions.mix(VCF_ANNOTATE.out.versions)
+    reports                       = reports.mix(VCF_ANNOTATE.out.reports)
+
+	vcf_to_consensus.dump(tag:"vcf_to_consensus0")
+	// STEP 6: CONSENSUS
+	VCF_CONSENSUS (
+			params.tools,
+			vcf_to_consensus,
+			fasta,
+			dna_consensus_maf, // null when first pass
+			dna_varcall_mafs,  // null when first pass
+			input_sample
+	         )
+
+    dna_consensus_maf             = VCF_CONSENSUS.out.maf_consensus_dna
+    dna_varcall_mafs              = VCF_CONSENSUS.out.mafs_dna
+    maf_to_filter                 = VCF_CONSENSUS.out.maf
+    versions                      = versions.mix(VCF_CONSENSUS.out.versions)
+
+	maf_to_filter.dump(tag:"maf_to_filter0")
+    // STEP 7: FILTERING
+	MAF_FILTERING(maf_to_filter, fasta, input_sample)
+	filtered_maf = MAF_FILTERING.out.maf
+    versions     = versions.mix(MAF_FILTERING.out.versions)
+
+
      emit:
-//         vcf_consensus_dna               = CONSENSUS.out.vcf_consensus_dna
-//         vcfs_status_dna                 = CONSENSUS.out.vcfs_status_dna
-//         maf                             = filtered_maf
-//         maf_rna                         = filtered_maf_rna
-//         maf_dna                         = filtered_maf_dna
-         versions                        = versions                                                         // channel: [ versions.yml ]
-         reports                         = reports
+     dna_consensus_maf           = dna_consensus_maf
+     dna_varcall_mafs            = dna_varcall_mafs
+     maf                         = filtered_maf
+     versions                    = versions  // channel: [ versions.yml ]
+     reports                     = reports
 }

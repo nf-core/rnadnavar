@@ -118,8 +118,10 @@ workflow BAM_VARIANT_CALLING {
 
 
 	    // Gather vcf files for annotation and QC
-	    vcf_to_normalise = Channel.empty()
-	    vcf_to_normalise = vcf_to_normalise.mix(BAM_VARIANT_CALLING_SOMATIC.out.vcf_all)
+	    vcf_to_normalise            = Channel.empty().mix(BAM_VARIANT_CALLING_SOMATIC.out.vcf_all)
+	    contamination_table_mutect2 = Channel.empty().mix(BAM_VARIANT_CALLING_SOMATIC.out.contamination_table_mutect2)
+	    segmentation_table_mutect2  = Channel.empty().mix(BAM_VARIANT_CALLING_SOMATIC.out.segmentation_table_mutect2)
+	    artifact_priors_mutect2     = Channel.empty().mix(BAM_VARIANT_CALLING_SOMATIC.out.artifact_priors_mutect2)
 
 	    // QC
 	    VCF_QC_BCFTOOLS_VCFTOOLS(vcf_to_normalise, intervals_bed_combined)
@@ -134,15 +136,23 @@ workflow BAM_VARIANT_CALLING {
 		// Gather used variant calling softwares versions
         versions = versions.mix(BAM_VARIANT_CALLING_SOMATIC.out.versions)
         versions = versions.mix(VCF_QC_BCFTOOLS_VCFTOOLS.out.versions)
+    } else{
+
+        cram_variant_calling_pair   = Channel.empty()
+        vcf_to_normalise            = Channel.empty()
+        contamination_table_mutect2 = Channel.empty()
+        segmentation_table_mutect2  = Channel.empty()
+        artifact_priors_mutect2     = Channel.empty()
+
     }
 
 
     emit:
     cram_variant_calling_pair        = cram_variant_calling_pair
     vcf_to_normalise                 = vcf_to_normalise
-    contamination_table              = BAM_VARIANT_CALLING_SOMATIC.out.contamination_table_mutect2
-    segmentation_table               = BAM_VARIANT_CALLING_SOMATIC.out.segmentation_table_mutect2
-    artifact_priors                  = BAM_VARIANT_CALLING_SOMATIC.out.artifact_priors_mutect2
+    contamination_table              = contamination_table_mutect2
+    segmentation_table               = segmentation_table_mutect2
+    artifact_priors                  = artifact_priors_mutect2
     reports                          = reports
     versions                         = versions
 

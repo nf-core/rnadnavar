@@ -10,9 +10,12 @@ process RUN_CONSENSUS {
         tuple val(meta), path(vcf), val(caller)
 
     output:
-        tuple val(meta), path('*.consensus.maf'), val(['consensus']) , emit: vcf
-        tuple val(meta), path('*.consensus_*.maf'), val(caller)     , emit: vcf_separate
-        path "versions.yml"                                          , emit: versions
+        tuple val(meta), path('*.consensus.vcf')                , optional:true , emit: vcf
+        tuple val(meta), path('*.consensus_*.vcf'), val(caller) , optional:true , emit: vcf_separate
+        tuple val(meta), path('*.consensus.maf')                , optional:true , emit: maf
+        tuple val(meta), path('*.consensus_*.maf'), val(caller) , optional:true , emit: maf_separate
+        path("*.pdf")                                                           , emit: pdf
+        path "versions.yml"                                                     , emit: versions
 
     when:
         task.ext.when == null || task.ext.when
@@ -24,13 +27,10 @@ process RUN_CONSENSUS {
         def caller_list = caller.collect{ "--caller=$it"}.join(' ')
 
         """
-        run_consensus.R ${input_list} ${caller_list} --out_prefix=${prefix} $args
+        run_consensus.R ${input_list} ${caller_list} --out_prefix=${prefix}.consensus $args
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
             R: \$(echo \$(R --version 2>&1) | head -n 1)
         END_VERSIONS
         """
-
-
-
 }

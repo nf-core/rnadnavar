@@ -46,7 +46,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_SAGE {
     // Mix intervals and no_intervals channels together
     vcf = MERGE_SAGE.out.vcf.mix(bcftools_vcf_out.no_intervals)
         // add variantcaller to meta map and remove no longer necessary field: num_intervals
-        .map{ meta, vcf -> [ meta - meta.subMap('num_intervals') + [ variantcaller:'freebayes' ], vcf ] }
+        .map{ meta, vcf -> [ meta - meta.subMap('normal_id', 'tumor_id','num_intervals') + [ variantcaller:'sage' ], vcf ] }
 
     versions = versions.mix(BCFTOOLS_SORT.out.versions)
     versions = versions.mix(MERGE_SAGE.out.versions)

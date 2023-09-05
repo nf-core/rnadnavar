@@ -216,6 +216,14 @@ if(params.tools && params.tools.split(',').contains('mutect2')){
     }
 }
 
+if(params.tools && params.tools.split(',').contains('sage')){
+	if(!params.sage_ensembl_dir){
+        log.error "SAGE requires ensembl resource file. Please provide `--sage_ensembl_dir`\nYou can skip this step in the workflow by removing sage from `--tools` to the command."
+        exit 1
+	}
+}
+
+
 // Fails when missing resources for baserecalibrator
 if(!params.dbsnp && !params.known_indels){
     if (params.step in ['mapping', 'markduplicates', 'prepare_recalibration', 'recalibrate'] && (!params.skip_tools || (params.skip_tools && !params.skip_tools.split(',').contains('baserecalibrator')))){

@@ -49,12 +49,15 @@ workflow BAM_VARIANT_CALLING_SOMATIC_STRELKA {
     MERGE_STRELKA_SNVS(vcf_snvs_to_merge, dict)
 
     // Mix intervals and no_intervals channels together
-    vcf = Channel.empty().mix(MERGE_STRELKA_INDELS.out.vcf, MERGE_STRELKA_SNVS.out.vcf, vcf_indels.no_intervals, vcf_snvs.no_intervals)
-        // add variantcaller to meta map and remove no longer necessary field: num_intervals
-        .map{ meta, vcf -> [ meta - meta.subMap('num_intervals') + [ variantcaller:'strelka' ], vcf ] }
+    vcf = Channel.empty().mix(MERGE_STRELKA_INDELS.out.vcf, MERGE_STRELKA_SNVS.out.vcf, vcf_indels.no_intervals, vcf_snvs.no_intervals).groupTuple()
 
 	// Merge SNVs and indels
 	MERGE_STRELKA(vcf, dict)
+
+	vcf_merged = MERGE_STRELKA.out.vcf
+					// add variantcaller to meta map and remove no longer necessary field: num_intervals
+                    .map{ meta, vcf -> [ meta - meta.subMap('normal_id', 'tumor_id','num_intervals') + [ variantcaller:'strelka' ], vcf ] }
+
 
     versions = versions.mix(MERGE_STRELKA_SNVS.out.versions)
     versions = versions.mix(MERGE_STRELKA_INDELS.out.versions)
@@ -62,7 +65,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_STRELKA {
     versions = versions.mix(STRELKA_SOMATIC.out.versions)
 
     emit:
-    vcf      = MERGE_STRELKA.out.vcf
+    vcf      = vcf_merged
 
     versions
 }
