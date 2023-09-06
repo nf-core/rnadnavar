@@ -27,6 +27,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
     versions          = Channel.empty()
 
     //TODO: Temporary until the if's can be removed and printing to terminal is prevented with "when" in the modules.config    vcf_manta         = Channel.empty()
+    vcf_manta         = Channel.empty()
     vcf_strelka       = Channel.empty()
     vcf_mutect2       = Channel.empty()
     vcf_sage          = Channel.empty()
