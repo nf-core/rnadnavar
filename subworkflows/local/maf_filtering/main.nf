@@ -17,7 +17,7 @@ workflow MAF_FILTERING {
     maf       = Channel.empty()
     if (params.step in ['mapping', 'markduplicates', 'splitncigar',
                 'prepare_recalibration', 'recalibrate', 'variant_calling',
-                'normalise', 'consensus', 'filtering'] ) {
+                'normalise', 'consensus', 'filtering'] && (!(params.skip_tools && params.skip_tools.split(",").contains("filtering")))) {
 
         if (params.step == 'filtering') maf_to_filter = input_sample
 		maf_to_filter.dump(tag:"maf_to_filter")

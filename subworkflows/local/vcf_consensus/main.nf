@@ -19,13 +19,13 @@ workflow VCF_CONSENSUS {
     main:
     versions             = Channel.empty()
 
-    maf_consensus_dna    = Channel.empty()
-    maf_consensus_rna    = Channel.empty()
-    mafs_status_dna      = Channel.empty()
+    maf_from_consensus_dna  = Channel.empty()
+    mafs_from_varcal_dna    = Channel.empty()
+    consensus_maf           = Channel.empty()
 
     if (params.step in ['mapping', 'markduplicates', 'splitncigar',
                         'prepare_recalibration', 'recalibrate', 'variant_calling',
-                        'normalise', 'consensus'] ) {
+                        'normalise', 'consensus'] && (!(params.skip_tools && params.skip_tools.split(",").contains("consensus")))) {
 
         if (params.step == 'consensus') vcf_to_consensus = input_sample
         // First we transform the maf to MAF
