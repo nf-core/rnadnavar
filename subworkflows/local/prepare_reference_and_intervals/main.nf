@@ -78,16 +78,6 @@ workflow PREPARE_REFERENCE_AND_INTERVALS {
         else [ intervals[0], intervals[1], num_intervals ]
     }
 
-	// STEP 0.C: Prepare the interval list from the GTF file using GATK4 BedToIntervalList
-    ch_genome_bed = Channel.from([id:'genome.bed']).combine(PREPARE_GENOME.out.exon_bed)
-    versions = versions.mix(PREPARE_GENOME.out.versions)
-    ch_interval_list = Channel.empty()
-    GATK4_BEDTOINTERVALLIST(
-        ch_genome_bed,
-        dict.map{ it -> [ [id:'dict'], it ] }
-        )
-    ch_interval_list = GATK4_BEDTOINTERVALLIST.out.interval_list
-    versions = versions.mix(GATK4_BEDTOINTERVALLIST.out.versions)
 
     emit:
     fasta                         = fasta
@@ -100,7 +90,6 @@ workflow PREPARE_REFERENCE_AND_INTERVALS {
     dragmap                       = dragmap
     star_index                    = PREPARE_GENOME.out.star_index
     gtf                           = PREPARE_GENOME.out.gtf
-    ch_interval_list              = ch_interval_list
     intervals                     = intervals
     intervals_bed_gz_tbi          = intervals_bed_gz_tbi
     intervals_for_preprocessing   = intervals_for_preprocessing
