@@ -43,7 +43,7 @@ workflow BAM_ALIGN {
     cram_mapped      = Channel.empty()
 
     // Gather index for mapping given the chosen aligner for DNA
-    index_alignement = params.aligner == "bwa-mem" ? bwa :
+    index_alignment = params.aligner == "bwa-mem" ? bwa :
         params.aligner == "bwa-mem2" ? bwamem2 :
         dragmap
     if (params.step == 'mapping') {
@@ -126,7 +126,7 @@ workflow BAM_ALIGN {
 
         //  STEP 1.D.1: DNA mapping with BWA
         sort_bam = true
-        FASTQ_ALIGN_BWAMEM_MEM2_DRAGMAP(reads_for_alignment_status.dna, index_alignement, sort_bam)
+        FASTQ_ALIGN_BWAMEM_MEM2_DRAGMAP(reads_for_alignment_status.dna, index_alignment, sort_bam)
 
         // Grouping the bams from the same samples not to stall the workflow
         bam_mapped_dna = FASTQ_ALIGN_BWAMEM_MEM2_DRAGMAP.out.bam.map{ meta, bam ->
