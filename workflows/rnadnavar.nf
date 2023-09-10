@@ -60,12 +60,11 @@ if (params.input) {
 } else {
     ch_from_samplesheet = params.build_only_index ? Channel.empty() : Channel.fromSamplesheet("input_restart")
 }
-
 // Format samplesheet channel
 input_sample = ch_from_samplesheet
-        .map{ meta, fastq_1, fastq_2, table, cram, crai, bam, bai, vcf, variantcaller ->
+        .map{ meta, fastq_1, fastq_2, table, cram, crai, bam, bai, vcf, variantcaller, maf ->
             // generate patient_sample key to group lanes together
-            [ meta.patient + meta.sample, [meta, fastq_1, fastq_2, table, cram, crai, bam, bai, vcf, variantcaller] ]
+            [ meta.patient + meta.sample, [meta, fastq_1, fastq_2, table, cram, crai, bam, bai, vcf, variantcaller, maf] ]
         }
         .tap{ ch_with_patient_sample } // save the channel
         .groupTuple() //group by patient_sample to get all lanes
@@ -76,7 +75,7 @@ input_sample = ch_from_samplesheet
         .combine(ch_with_patient_sample, by: 0) // for each entry add numLanes
         .map { patient_sample, num_lanes, ch_items ->
 
-            (meta, fastq_1, fastq_2, table, cram, crai, bam, bai, vcf, variantcaller) = ch_items
+            (meta, fastq_1, fastq_2, table, cram, crai, bam, bai, vcf, variantcaller, maf) = ch_items
             if (meta.lane && fastq_2) {
                 meta           = meta + [id: "${meta.sample}-${meta.lane}".toString()]
                 def CN         = params.seq_center ? "CN:${params.seq_center}\\t" : ''
@@ -93,6 +92,26 @@ input_sample = ch_from_samplesheet
                 else {
                     error("Samplesheet contains fastq files but step is `$params.step`. Please check your samplesheet or adjust the step parameter.\nhttps://nf-co.re/rnadnavar/usage#input-samplesheet-configurations")
                 }
+            // start for second run
+			} else if ((maf || vcf) && params.step=="second_run"){
+				if (meta.lane == null) meta.lane = "LX"
+				meta            = meta + [id: "${meta.sample}-${meta.lane}-realign".toString()]
+                def CN          = params.seq_center ? "CN:${params.seq_center}\\t" : ''
+                def read_group  = "\"@RG\\tID:${meta.sample}_${meta.lane}_realign\\t${CN}PU:${meta.lane}\\tSM:${meta.patient}_${meta.sample}\\tLB:${meta.sample}\\tDS:${params.fasta}\\tPL:${params.seq_platform}\""
+				if (meta.status >= 2) { // STAR does not need '@RG'
+					read_group  = "ID:${meta.sample}_${meta.lane}_realign ${CN}PU:${meta.lane} SM:${meta.patient}_${meta.sample} LB:${meta.sample} DS:${params.fasta} PL:${params.seq_platform}"
+				}
+				if (meta.status >= 2 || meta.status==0){ // these are the files that will go through realignment
+	                if (cram)  return [ meta + [num_lanes: num_lanes.toInteger(), read_group: read_group.toString(), data_type: 'cram', size: 1], cram, crai, maf ]
+	                else if (bam) return [ meta + [num_lanes: num_lanes.toInteger(), read_group: read_group.toString(), data_type: 'bam', size: 1], bam, bai, maf ]
+	                else {
+	                    error("Combination error")}
+                } else if (meta.status == 1){
+
+                    return [meta + [data_type: 'maf', variantcaller: variantcaller ?: ''], maf]
+
+                }
+
 
             // start from BAM
             } else if (meta.lane && bam) {
@@ -103,7 +122,7 @@ input_sample = ch_from_samplesheet
                 def CN          = params.seq_center ? "CN:${params.seq_center}\\t" : ''
                 def read_group  = "\"@RG\\tID:${meta.sample}_${meta.lane}\\t${CN}PU:${meta.lane}\\tSM:${meta.patient}_${meta.sample}\\tLB:${meta.sample}\\tDS:${params.fasta}\\tPL:${params.seq_platform}\""
 				if (meta.status >= 2) { // STAR does not need '@RG'
-					read_group  = "ID:${meta.sample}.${meta.lane} ${CN}PU:${meta.lane} SM:${meta.patient}_${meta.sample} LB:${meta.sample} DS:${params.fasta} PL:${params.seq_platform}"
+					read_group  = "ID:${meta.sample}_${meta.lane} ${CN}PU:${meta.lane} SM:${meta.patient}_${meta.sample} LB:${meta.sample} DS:${params.fasta} PL:${params.seq_platform}"
 				}
                 meta            = meta + [num_lanes: num_lanes.toInteger(), read_group: read_group.toString(), data_type: 'bam', size: 1]
 
@@ -262,7 +281,7 @@ ch_multiqc_custom_methods_description = params.multiqc_methods_description ? fil
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
 //
 // Build the genome index and other reference files
-include { PREPARE_REFERENCE_AND_INTERVALS   } from '../subworkflows/local/prepare_reference_and_intervals'
+include { PREPARE_REFERENCE_AND_INTERVALS   } from '../subworkflows/local/prepare_reference_and_intervals/main'
 // Download annotation cache if needed
 include { ENSEMBLVEP_DOWNLOAD               } from '../modules/nf-core/ensemblvep/download/main'
 
@@ -270,13 +289,13 @@ include { ENSEMBLVEP_DOWNLOAD               } from '../modules/nf-core/ensemblve
 include { BAM_ALIGN                         } from '../subworkflows/local/bam_align/main'
 
 // Core subworkflows of the pipeline
-include { CORE_RUN                                            } from '../subworkflows/local/core_workflow_pass'
-include { CORE_RUN as SECOND_RUN                              } from '../subworkflows/local/core_workflow_pass'
+include { BAM_VARIANT_CALLING_PRE_POST_PROCESSING               } from '../subworkflows/local/bam_variant_calling_pre_post_processing/main'
 
-// Filtering
-include { PREPARE_SECOND_RUN     } from '../subworkflows/local/prepare_second_run'
-include { FILTERING_RNA          } from '../subworkflows/local/rna_filtering'
-
+// Second run
+include { BAM_EXTRACT_READS_HISAT2_ALIGN as PREPARE_SECOND_RUN  } from '../subworkflows/local/prepare_second_run/main'
+include { BAM_VARIANT_CALLING_PRE_POST_PROCESSING as SECOND_RUN } from '../subworkflows/local/bam_variant_calling_pre_post_processing/main'
+//include { FILTERING_RNA          } from '../subworkflows/local/rna_filtering'
+//
 //
 // MODULE: Installed directly from nf-core/modules
 //
