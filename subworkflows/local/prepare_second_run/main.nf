@@ -22,6 +22,8 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
         dict
         hisat2_index
         splicesites
+        dna_consensus_maf
+        dna_varcall_mafs
 
     main:
         versions   = Channel.empty()
@@ -31,8 +33,20 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
         'prepare_recalibration', 'recalibrate', 'variant_calling', 'normalize', 'consensus', 
         'second_run'] && !(params.skip_tools && params.skip_tools.split(",").contains("second_run"))) {
 	        if (params.step == 'second_run') {
-	        // [meta, cram, crai, maf]
-	            cram_to_realign = input_sample
+	            input_elements_status = input_sample.branch{
+	                                    norealign: it[0].status == 1
+				                        realign:   it[0].status == 2 || it[0].status == 0
+	            }
+				input_elements_status.norealign.dump(tag:"input_elements_status.norealign")
+	            dna_mafs = input_elements_status.norealign.map{meta, vcf -> [meta + [ consensus: meta.variantcaller ==~ /(\S+)?(?i)consensus(\S+)/ ], vcf]}
+	            dna_mafs_consensus = dna_mafs.branch{
+	                                    isconsensus: it[0].consensus == true
+				                        noconsensus: it[0].consensus == false
+	                                     }
+	            dna_consensus_maf = dna_mafs_consensus.isconsensus
+                dna_varcall_mafs  = dna_mafs_consensus.noconsensus
+	            // [meta, cram, crai, maf] (RNA dna NORMAL)
+	            cram_to_realign = input_elements_status.realign
 	            // TODO convert to CRAM or/and MERGE if necessary
 	            // TODO Merge alignments if applicable
 //	            MERGE_ALIGN(previous_alignment.map{meta, cram, crai, maf -> [meta, cram]})
@@ -80,8 +94,10 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
     }
 
     emit:
-    bam_mapped       = bam_mapped
-    versions         = versions                                                         // channel: [ versions.yml ]
+    bam_mapped         = bam_mapped
+    dna_consensus_maf  = dna_consensus_maf
+    dna_varcall_mafs   = dna_varcall_mafs
+    versions           = versions                                                         // channel: [ versions.yml ]
 
 
 
