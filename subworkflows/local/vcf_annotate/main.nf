@@ -10,6 +10,7 @@ workflow VCF_ANNOTATE {
     vcf          // channel: [ val(meta), vcf ]
     fasta
     input_sample
+    second_run
 
     main:
     reports = Channel.empty()
@@ -20,7 +21,7 @@ workflow VCF_ANNOTATE {
 
     if (params.step == 'annotate') vcf_to_annotate = input_sample
 
-    if (params.tools && params.tools.split(',').contains('vep')) {
+    if (params.tools && params.tools.split(',').contains('vep') || second_run) {
 
 	    if (params.tools.split(',').contains('vep')) {
 	        fasta = (params.vep_include_fasta) ? fasta.map{ fasta -> [ [ id:fasta.baseName ], fasta ] } : [[id: 'null'], []]
@@ -43,11 +44,10 @@ workflow VCF_ANNOTATE {
 			}
 
 	        vcf_for_vep = vcf.map{ meta, vcf -> [ meta, vcf, [] ] }
-	        vcf_for_vep.dump(tag:"vcf_for_vep")
 	        VCF_ANNOTATE_ENSEMBLVEP(vcf_for_vep, fasta, vep_genome, vep_species, vep_cache_version, vep_cache, vep_extra_files)
 
 	        reports  = reports.mix(VCF_ANNOTATE_ENSEMBLVEP.out.reports)
-	        vcf_ann  = vcf_ann.mix(VCF_ANNOTATE_ENSEMBLVEP.out.vcf_tbi)
+	        vcf_ann  = vcf_ann.mix(VCF_ANNOTATE_ENSEMBLVEP.out.vcf_tbi).map{meta, vcf, tbi -> [meta +[data_type:"vcf"], vcf, tbi]}
 	        tab_ann  = tab_ann.mix(VCF_ANNOTATE_ENSEMBLVEP.out.tab)
 	        json_ann = json_ann.mix(VCF_ANNOTATE_ENSEMBLVEP.out.json)
 	        versions = versions.mix(VCF_ANNOTATE_ENSEMBLVEP.out.versions)

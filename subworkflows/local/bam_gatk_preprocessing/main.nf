@@ -22,7 +22,7 @@ include { SAMTOOLS_CONVERT as CRAM_TO_BAM_RECAL                } from '../../../
 
 workflow BAM_GATK_PREPROCESSING {
     take:
-    input_sample                  // channel: [optional] input from CSV if applicable
+    input_sample                  // channel: [optional]  input from CSV if applicable
     bam_mapped                    // channel: [mandatory] bam_mapped
     cram_mapped                   // channel: [mandatory] cram_mapped
     fasta                         // channel: [mandatory] fasta
@@ -35,18 +35,19 @@ workflow BAM_GATK_PREPROCESSING {
     intervals                     // channel: [mandatory] intervals/target regions
     intervals_for_preprocessing   // channel: [mandatory] intervals/wes
     intervals_and_num_intervals   // channel: [mandatory] [ intervals, num_intervals ] (or [ [], 0 ] if no intervals)
+    second_run                    // boolean
 
 
     main:
     reports   = Channel.empty()
     versions  = Channel.empty()
 
-
+    cram_variant_calling = Channel.empty()
     // check if preprocessing is skipped
     if (params.skip_tools && !params.skip_tools.split(',').contains('preprocessing')) {
 
         // Markduplicates
-        if (params.step in ['mapping', 'markduplicates'] ) {
+        if (params.step in ['mapping', 'markduplicates'] || second_run) {
 
             cram_markduplicates_no_spark = Channel.empty()
 
@@ -115,7 +116,7 @@ workflow BAM_GATK_PREPROCESSING {
 
 
         // SplitNCigarReads for RNA
-        if (params.step in ['mapping', 'markduplicates', 'splitncigar']) {
+        if (params.step in ['mapping', 'markduplicates', 'splitncigar'] || second_run) {
 			if (params.step == 'mapping') {
 	                cram_skip_splitncigar = cram_skip_markduplicates
 	        } else {
@@ -182,8 +183,8 @@ workflow BAM_GATK_PREPROCESSING {
         // BQSR
         if (params.step in ['mapping', 'markduplicates', 'splitncigar', 'prepare_recalibration']) {
 
-	        // Run if starting from step "prepare_recalibration"
-	        if (params.step == 'prepare_recalibration') {
+	        // Run if starting from step "prepare_recalibration". This will not run for second pass
+	        if (params.step == 'prepare_recalibration' && !second_run) {
 
 	            // Support if starting from BAM or CRAM files
 	            input_prepare_recal_convert = input_sample.branch{
@@ -231,10 +232,10 @@ workflow BAM_GATK_PREPROCESSING {
 		                known_sites_indels,
 		                known_sites_indels_tbi)
 
-		                ch_table_bqsr_no_spark = BAM_BASERECALIBRATOR.out.table_bqsr
+                ch_table_bqsr_no_spark = BAM_BASERECALIBRATOR.out.table_bqsr
 
-		                // Gather used softwares versions
-		                versions = versions.mix(BAM_BASERECALIBRATOR.out.versions)
+                // Gather used softwares versions
+                versions = versions.mix(BAM_BASERECALIBRATOR.out.versions)
 
 
 	            // ch_table_bqsr contains either:
@@ -254,7 +255,7 @@ workflow BAM_GATK_PREPROCESSING {
 	    if (params.step in ['mapping', 'markduplicates', 'prepare_recalibration', 'recalibrate']) {
 
 	        // Run if starting from step "prepare_recalibration"
-	        if (params.step == 'recalibrate') {
+	        if (params.step == 'recalibrate' && !second_run) {
 
 	            // Support if starting from BAM or CRAM files
 	            input_recal_convert = input_sample.branch{

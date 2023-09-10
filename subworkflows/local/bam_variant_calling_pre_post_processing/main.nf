@@ -39,7 +39,8 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     intervals_and_num_intervals     // channel: [mandatory] [ intervals, num_intervals ] (or [ [], 0 ] if no intervals)
     intervals_bed_gz_tbi_combined   // channel: [mandatory] intervals/target regions in one file zipped
     dna_consensus_maf               // to repeat rescue consensus
-    dna_varcall_mafs                 // to repeat rescue consensus
+    dna_varcall_mafs                // to repeat rescue consensus
+    second_run
 
     main:
     reports   = Channel.empty()
@@ -48,18 +49,19 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
 	// GATK PREPROCESSING - See: https://gatk.broadinstitute.org/hc/en-us/articles/360035535912-Data-pre-processing-for-variant-discovery
     BAM_GATK_PREPROCESSING(
         input_sample,
-        bam_mapped,                  // channel: [mandatory] [meta, [bam]]
-        cram_mapped,                 // channel: [mandatory] [meta, [cram]]
-        fasta,                       // channel: [mandatory] fasta
-        fasta_fai ,                  // channel: [mandatory] fasta_fai
-        dict,                        // channel: [mandatory] dict
-	    known_sites_indels,          // channel: [optional]  known_sites
-	    known_sites_indels_tbi,      // channel: [optional]  known_sites
-        germline_resource,           // channel: [optional]  germline_resource
-        germline_resource_tbi,       // channel: [optional]  germline_resource_tbi
-        intervals,                   // channel: [mandatory] intervals/target regions
-        intervals_for_preprocessing, // channel: [mandatory] intervals_for_preprocessing/wes
-        intervals_and_num_intervals  // channel: [mandatory] intervals_for_preprocessing/wes
+        bam_mapped,                               // channel: [mandatory] [meta, [bam]]
+        cram_mapped,                              // channel: [mandatory] [meta, [cram]]
+        fasta,                                    // channel: [mandatory] fasta
+        fasta_fai ,                               // channel: [mandatory] fasta_fai
+        dict.map{ it -> [ [ id:'dict' ], it ] },  // channel: [mandatory] dict
+	    known_sites_indels,                       // channel: [optional]  known_sites
+	    known_sites_indels_tbi,                   // channel: [optional]  known_sites
+        germline_resource,                        // channel: [optional]  germline_resource
+        germline_resource_tbi,                    // channel: [optional]  germline_resource_tbi
+        intervals,                                // channel: [mandatory] intervals/target regions
+        intervals_for_preprocessing,              // channel: [mandatory] intervals_for_preprocessing/wes
+        intervals_and_num_intervals,              // channel: [mandatory] intervals_for_preprocessing/wes
+        second_run
     )
 
     cram_variant_calling = BAM_GATK_PREPROCESSING.out.cram_variant_calling
@@ -81,7 +83,8 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
          intervals_bed_gz_tbi_combined,
          pon,
          pon_tbi,
-         input_sample
+         input_sample,
+         second_run
      )
      cram_variant_calling_pair     = BAM_VARIANT_CALLING.out.cram_variant_calling_pair  // use same crams for force calling later
      vcf_to_normalise              = BAM_VARIANT_CALLING.out.vcf_to_normalise
@@ -97,7 +100,8 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
                    vcf_to_normalise,
                    // Remap channel to match module/subworkflow
                    fasta.map{ it -> [ [ id:'fasta' ], it ] },
-                   input_sample
+                   input_sample,
+                   second_run
                    )
     versions                      = versions.mix(VCF_NORMALISE.out.versions)
     vcf_to_annotate               = VCF_NORMALISE.out.vcf
@@ -107,7 +111,8 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     VCF_ANNOTATE(
                 vcf_to_annotate.map{meta, vcf -> [ meta + [ file_name: vcf.baseName ], vcf ] },
                 fasta,
-                input_sample
+                input_sample,
+                second_run
                 )
 
     vcf_to_consensus              = VCF_ANNOTATE.out.vcf_ann
@@ -122,7 +127,8 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
 			fasta,
 			dna_consensus_maf, // null when first pass
 			dna_varcall_mafs,  // null when first pass
-			input_sample
+			input_sample,
+            second_run
 	         )
 
     dna_consensus_maf             = VCF_CONSENSUS.out.maf_consensus_dna
@@ -132,7 +138,7 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
 
 	maf_to_filter.dump(tag:"maf_to_filter0")
     // STEP 7: FILTERING
-	MAF_FILTERING(maf_to_filter, fasta, input_sample)
+	MAF_FILTERING(maf_to_filter, fasta, input_sample, second_run)
 	filtered_maf = MAF_FILTERING.out.maf
     versions     = versions.mix(MAF_FILTERING.out.versions)
 

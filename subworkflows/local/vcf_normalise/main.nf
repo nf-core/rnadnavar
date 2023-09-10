@@ -15,12 +15,17 @@ workflow VCF_NORMALISE {
     vcf_to_normalise
     fasta
     input_sample
+    second_run
 
     main:
     version          = Channel.empty()
     vcf_to_consensus = Channel.empty()
 
-    if (params.step in ['mapping', 'markduplicates', 'splitncigar', 'prepare_recalibration', 'recalibrate', 'variant_calling', 'normalise'] && (!(params.skip_tools && params.skip_tools.split(",").contains("normalise")))) {
+    if ((params.step in ['mapping', 'markduplicates', 'splitncigar',
+                        'prepare_recalibration', 'recalibrate',
+                        'variant_calling', 'normalise'] &&
+                        (!(params.skip_tools && params.skip_tools.split(",").contains("normalise")))) ||
+                        second_run) {
         
         if (params.step == 'normalise') vcf_to_normalise = input_sample
         

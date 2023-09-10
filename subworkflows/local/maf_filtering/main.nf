@@ -11,16 +11,18 @@ workflow MAF_FILTERING {
     maf_to_filter
     fasta
     input_sample
+    second_run
 
     main:
     versions  = Channel.empty()
     maf       = Channel.empty()
-    if (params.step in ['mapping', 'markduplicates', 'splitncigar',
+    if ((params.step in ['mapping', 'markduplicates', 'splitncigar',
                 'prepare_recalibration', 'recalibrate', 'variant_calling',
-                'normalise', 'consensus', 'filtering'] && (!(params.skip_tools && params.skip_tools.split(",").contains("filtering")))) {
+                'normalise', 'consensus', 'filtering'] &&
+                (!(params.skip_tools && params.skip_tools.split(",").contains("filtering")))) ||
+                second_run) {
 
         if (params.step == 'filtering') maf_to_filter = input_sample
-		maf_to_filter.dump(tag:"maf_to_filter")
         // BASIC FILTERING
         FILTERING(maf_to_filter, fasta)
 		maf      = FILTERING.out.maf

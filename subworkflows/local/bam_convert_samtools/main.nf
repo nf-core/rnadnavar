@@ -24,7 +24,6 @@ workflow BAM_CONVERT_SAMTOOLS {
     // Index File if not PROVIDED -> this also requires updates to samtools view possibly URGH
 
     // MAP - MAP
-    input.dump(tag:'input')
     SAMTOOLS_VIEW_MAP_MAP(input, fasta, [])
 
     // UNMAP - UNMAP

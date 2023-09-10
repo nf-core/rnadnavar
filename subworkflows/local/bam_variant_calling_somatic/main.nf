@@ -22,6 +22,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
     panel_of_normals              // channel: [optional]  panel_of_normals
     panel_of_normals_tbi          // channel: [optional]  panel_of_normals_tbi
     joint_mutect2                 // boolean: [mandatory] [default: false] run mutect2 in joint mode
+	second_run
 
     main:
     versions          = Channel.empty()
@@ -31,9 +32,8 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
     vcf_strelka       = Channel.empty()
     vcf_mutect2       = Channel.empty()
     vcf_sage          = Channel.empty()
-
     // SAGE
-    if (tools.split(',').contains('sage')) {
+    if (tools.split(',').contains('sage') || second_run) {
 
         BAM_VARIANT_CALLING_SOMATIC_SAGE(
             cram,
@@ -64,7 +64,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
     }
 
     // STRELKA
-    if (tools.split(',').contains('strelka')) {
+    if (tools.split(',').contains('strelka') || second_run) {
         // Remap channel to match module/subworkflow
         cram_strelka = (tools.split(',').contains('manta')) ?
             cram.join(BAM_VARIANT_CALLING_SOMATIC_MANTA.out.candidate_small_indels_vcf, failOnDuplicate: true, failOnMismatch: true).join(BAM_VARIANT_CALLING_SOMATIC_MANTA.out.candidate_small_indels_vcf_tbi, failOnDuplicate: true, failOnMismatch: true) :
@@ -84,7 +84,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
     }
 
     // MUTECT2
-    if (tools.split(',').contains('mutect2')) {
+    if (tools.split(',').contains('mutect2') || second_run) {
         BAM_VARIANT_CALLING_SOMATIC_MUTECT2(
             // Remap channel to match module/subworkflow
             cram.map { meta, normal_cram, normal_crai, tumor_cram, tumor_crai -> [ meta, [ normal_cram, tumor_cram ], [ normal_crai, tumor_crai ] ] },

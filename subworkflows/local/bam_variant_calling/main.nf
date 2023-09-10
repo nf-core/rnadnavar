@@ -29,12 +29,12 @@ workflow BAM_VARIANT_CALLING {
     pon
     pon_tbi
     input_sample
+    second_run
 
     main:
     reports   = Channel.empty()
     versions  = Channel.empty()
-
-    if (params.tools) {
+    if (tools || second_run) {
         if (params.step == 'annotate') cram_variant_calling = Channel.empty()
 
 	    //
@@ -113,7 +113,8 @@ workflow BAM_VARIANT_CALLING {
 	        intervals_bed_gz_tbi_combined,
 	        pon,
 	        pon_tbi,
-	        params.joint_mutect2
+	        params.joint_mutect2,
+	        second_run
 	        )
 
 
