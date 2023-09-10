@@ -155,6 +155,21 @@
             },
             "variantcaller": {
                 "type": "string"
+            },
+            "maf": {
+                "errorMessage": "MAF file for reads 1 cannot contain spaces and must have extension '.maf'",
+                "anyOf": [
+                    {
+                        "type": "string",
+                        "pattern": "^\\S+\\.maf$"
+                    },
+                    {
+                        "type": "string",
+                        "maxLength": 0
+                    }
+                ],
+                "format": "file-path",
+                "exists": true
             }
         },
         "required": ["patient", "sample"]
