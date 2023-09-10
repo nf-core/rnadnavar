@@ -27,7 +27,7 @@ workflow BAM_SPLITNCIGARREADS {
         cram_intervals,
         fasta,
         fasta_fai,
-        dict.map{ meta, dict -> [ dict ] }
+        dict.map{ meta, it ->  it  }
     )
 
     // Gather the recalibrated cram files
