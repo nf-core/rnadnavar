@@ -366,40 +366,76 @@ workflow RNADNAVAR {
         versions = versions.mix(ENSEMBLVEP_DOWNLOAD.out.versions)
     }
 
-// STEP 0: Build reference and indices if needed
-   PREPARE_REFERENCE_AND_INTERVALS()
-   versions = versions.mix(PREPARE_REFERENCE_AND_INTERVALS.out.versions)
+	// STEP 0: Build reference and indices if needed
+	PREPARE_REFERENCE_AND_INTERVALS()
+	versions = versions.mix(PREPARE_REFERENCE_AND_INTERVALS.out.versions)
 
-   // Reference and intervals variables
-   fasta                       =    PREPARE_REFERENCE_AND_INTERVALS.out.fasta
-   fasta_fai                   =    PREPARE_REFERENCE_AND_INTERVALS.out.fasta_fai
-   dict                        =    PREPARE_REFERENCE_AND_INTERVALS.out.dict
-   germline_resource           =    PREPARE_REFERENCE_AND_INTERVALS.out.germline_resource
-   germline_resource_tbi       =    PREPARE_REFERENCE_AND_INTERVALS.out.germline_resource_tbi
-   intervals                   =    PREPARE_REFERENCE_AND_INTERVALS.out.intervals
-   intervals_for_preprocessing =    PREPARE_REFERENCE_AND_INTERVALS.out.intervals_for_preprocessing
-   // specific for variant calling
-   intervals_bed_combined      =    PREPARE_REFERENCE_AND_INTERVALS.out.intervals_bed_combined
-   intervals_bed_gz_tbi        =    PREPARE_REFERENCE_AND_INTERVALS.out.intervals_bed_gz_tbi
-   dbsnp                       =    PREPARE_REFERENCE_AND_INTERVALS.out.dbsnp
-   dbsnp_tbi                   =    PREPARE_REFERENCE_AND_INTERVALS.out.dbsnp_tbi
-   pon                         =    PREPARE_REFERENCE_AND_INTERVALS.out.pon
-   pon_tbi                     =    PREPARE_REFERENCE_AND_INTERVALS.out.pon_tbi
-   germline_resource           =    PREPARE_REFERENCE_AND_INTERVALS.out.germline_resource
-   germline_resource_tbi       =    PREPARE_REFERENCE_AND_INTERVALS.out.germline_resource_tbi
+	// Reference and intervals variables
+	fasta                         =    PREPARE_REFERENCE_AND_INTERVALS.out.fasta
+	fasta_fai                     =    PREPARE_REFERENCE_AND_INTERVALS.out.fasta_fai
+	dict                          =    PREPARE_REFERENCE_AND_INTERVALS.out.dict
+	germline_resource             =    PREPARE_REFERENCE_AND_INTERVALS.out.germline_resource
+	germline_resource_tbi         =    PREPARE_REFERENCE_AND_INTERVALS.out.germline_resource_tbi
+	intervals                     =    PREPARE_REFERENCE_AND_INTERVALS.out.intervals
+	intervals_for_preprocessing   =    PREPARE_REFERENCE_AND_INTERVALS.out.intervals_for_preprocessing
+	// specific for variant calling
+	intervals_bed_combined        =    PREPARE_REFERENCE_AND_INTERVALS.out.intervals_bed_combined
+	intervals_bed_gz_tbi          =    PREPARE_REFERENCE_AND_INTERVALS.out.intervals_bed_gz_tbi
+	intervals_bed_gz_tbi_combined =    PREPARE_REFERENCE_AND_INTERVALS.out.intervals_bed_gz_tbi_combined
+	dbsnp                         =    PREPARE_REFERENCE_AND_INTERVALS.out.dbsnp
+	dbsnp_tbi                     =    PREPARE_REFERENCE_AND_INTERVALS.out.dbsnp_tbi
+	pon                           =    PREPARE_REFERENCE_AND_INTERVALS.out.pon
+	pon_tbi                       =    PREPARE_REFERENCE_AND_INTERVALS.out.pon_tbi
+	known_sites_indels            =    PREPARE_REFERENCE_AND_INTERVALS.out.known_sites_indels
+	known_sites_indels_tbi        =    PREPARE_REFERENCE_AND_INTERVALS.out.known_sites_indels_tbi
+	known_sites_snps              =    PREPARE_REFERENCE_AND_INTERVALS.out.known_sites_snps
+	known_sites_snps_tbi          =    PREPARE_REFERENCE_AND_INTERVALS.out.known_sites_snps_tbi
 
-
+	intervals_and_num_intervals = intervals.map{ interval, num_intervals ->
+        if ( num_intervals < 1 ) [ [], num_intervals ]
+        else [ interval, num_intervals ]
+    }
 // STEP 1: ALIGNMENT PREPROCESSING
-   BAM_ALIGN(
-       PREPARE_REFERENCE_AND_INTERVALS.out.bwa,
-       PREPARE_REFERENCE_AND_INTERVALS.out.bwamem2,
-       PREPARE_REFERENCE_AND_INTERVALS.out.dragmap,
-       PREPARE_REFERENCE_AND_INTERVALS.out.star_index,
-       PREPARE_REFERENCE_AND_INTERVALS.out.gtf,
-       input_sample
-       )
-   reports = reports.mix(BAM_ALIGN.out.reports)
-   versions = versions.mix(BAM_ALIGN.out.versions)
+	BAM_ALIGN(
+	   PREPARE_REFERENCE_AND_INTERVALS.out.bwa,
+	   PREPARE_REFERENCE_AND_INTERVALS.out.bwamem2,
+	   PREPARE_REFERENCE_AND_INTERVALS.out.dragmap,
+	   PREPARE_REFERENCE_AND_INTERVALS.out.star_index,
+	   PREPARE_REFERENCE_AND_INTERVALS.out.gtf,
+	   input_sample
+	   )
+
+	reports = reports.mix(BAM_ALIGN.out.reports)
+	versions = versions.mix(BAM_ALIGN.out.versions)
+	// 5 MAIN STEPS: GATK PREPROCESING - VARIANT CALLING - NORMALIZATION - CONSENSUS - ANNOTATION
+	BAM_VARIANT_CALLING_PRE_POST_PROCESSING(
+	    input_sample,              // input from CSV if applicable
+	    BAM_ALIGN.out.bam_mapped,  // input from mapping
+	    BAM_ALIGN.out.cram_mapped,  // input from mapping
+	    fasta,                     // fasta reference file
+	    fasta_fai,                 // fai for fasta file
+	    dict,                      //
+	    dbsnp,
+	    dbsnp_tbi,
+	    pon,
+	    pon_tbi,
+	    known_sites_indels,
+	    known_sites_indels_tbi,
+	    germline_resource,
+	    germline_resource_tbi,
+	    intervals,
+	    intervals_for_preprocessing,
+	    intervals_bed_gz_tbi,
+	    intervals_bed_combined,
+	    intervals_and_num_intervals,
+	    intervals_bed_gz_tbi_combined,
+	    null,  // to repeat rescue consensus TODO: is this the best strategy?
+	    null,  // to repeat rescue consensus
+	    false  // is second run
+	)
+
+    reports  = reports.mix(BAM_VARIANT_CALLING_PRE_POST_PROCESSING.out.reports)
+    versions = versions.mix(BAM_VARIANT_CALLING_PRE_POST_PROCESSING.out.versions)
 
 
     version_yaml = Channel.empty()
