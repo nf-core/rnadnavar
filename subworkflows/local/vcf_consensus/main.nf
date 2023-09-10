@@ -6,6 +6,9 @@
 include { VCF2MAF                                  } from '../../../modules/local/vcf2maf/vcf2maf/main'
 include { RUN_CONSENSUS                            } from '../../../modules/local/consensus/main'
 include { RUN_CONSENSUS as RUN_CONSENSUS_RESCUE    } from '../../../modules/local/consensus/main'
+// Create samplesheets to restart from consensus
+include { CHANNEL_CONSENSUS_CREATE_CSV                 } from '../channel_consensus_create_csv/main'
+include { CHANNEL_CONSENSUS_CREATE_CSV as CHANNEL_RESCUE_CREATE_CSV                 } from '../channel_consensus_create_csv/main'
 
 workflow VCF_CONSENSUS {
     take:
@@ -15,6 +18,7 @@ workflow VCF_CONSENSUS {
     previous_maf_consensus_dna  // results already done to avoid a second run when rna filterig
     previous_mafs_status_dna    // results already done to avoid a second run when rna filterig
     input_sample
+    second_run
 
     main:
     versions             = Channel.empty()
@@ -23,18 +27,25 @@ workflow VCF_CONSENSUS {
     mafs_from_varcal_dna    = Channel.empty()
     consensus_maf           = Channel.empty()
 
-    if (params.step in ['mapping', 'markduplicates', 'splitncigar',
+    if ((params.step in ['mapping', 'markduplicates', 'splitncigar',
                         'prepare_recalibration', 'recalibrate', 'variant_calling',
-                        'normalise', 'consensus'] && (!(params.skip_tools && params.skip_tools.split(",").contains("consensus")))) {
+                        'normalise', 'consensus'] &&
+                        (!(params.skip_tools && params.skip_tools.split(",").contains("consensus")))) ||
+                        second_run) {
 
         if (params.step == 'consensus') vcf_to_consensus = input_sample
+
+        vcf_to_consensus_type = vcf_to_consensus.branch{
+			                     vcf: it[0].data_type == "vcf"
+						         maf: it[0].data_type == "maf"
+	                            }
         // First we transform the maf to MAF
-        VCF2MAF(vcf_to_consensus.map{meta, vcf, tbi -> [meta, vcf]},
+        VCF2MAF(vcf_to_consensus_type.vcf.map{meta, vcf, tbi -> [meta, vcf]},
                 fasta)
-        maf_to_consensus = VCF2MAF.out.maf
+        maf_to_consensus = VCF2MAF.out.maf.mix(vcf_to_consensus_type.maf)
         versions         = versions.mix(VCF2MAF.out.versions)
         
-        maf_to_consensus.dump(tag:"maf_to_consensus")
+//        maf_to_consensus.dump(tag:"maf_to_consensus")
         // count number of callers to generate groupKey
         maf_to_consensus = maf_to_consensus.map{ meta, maf ->
                                     def toolsllist = tools.split(',')
@@ -51,12 +62,10 @@ workflow VCF_CONSENSUS {
                                      maf, meta.variantcaller
                                      ]} // groupKey should avoid the groupTuple wait but it does not seem to work atm
                                     .groupTuple() // makes the whole pipeline wait for all processes to finish
-		maf_to_consensus.dump(tag:"maf_to_consensus1")
 		// Run consensus on VCF with same id
 		RUN_CONSENSUS ( maf_to_consensus )
 
         consensus_maf = RUN_CONSENSUS.out.maf  // 1 consensus_maf from all callers
-		consensus_maf.dump(tag:'consensus_maf0')
         // Separate DNA from RNA
         // VCFs from variant calling
         mafs_from_varcal   = maf_to_consensus.branch{
@@ -80,6 +89,18 @@ workflow VCF_CONSENSUS {
             maf_from_consensus_dna = maf_from_consensus.dna.map{meta, maf -> [meta, maf, ['ConsensusDNA']]}
             mafs_from_varcal_dna   = mafs_from_varcal.dna
         }
+		maf_from_consensus_dna
+                                        .mix(maf_from_consensus_rna)
+                                        .mix(mafs_from_varcal_dna)
+                                        .mix(mafs_from_varcal_rna).transpose().dump(tag:'consensus')
+        CHANNEL_CONSENSUS_CREATE_CSV(
+                                        maf_from_consensus_dna
+                                        .mix(maf_from_consensus_rna)
+                                        .mix(mafs_from_varcal_dna)
+                                        .mix(mafs_from_varcal_rna)
+                                        .transpose(),
+                                        "consensus"
+                                        )
 
         // RESCUE STEP: cross dna / rna for a crossed second consensus
         if (!(params.skip_tools && params.skip_tools.split(',').contains('rescue'))) {
@@ -128,8 +149,8 @@ workflow VCF_CONSENSUS {
                                                 [meta, rna[2] + dna[2], rna[3] + dna[3]]
                                             }
 
-            mafs_dna_crossed_with_rna_rescue.dump(tag:"mafs_dna_crossed_with_rna_rescue")
-            mafs_rna_crossed_with_dna_rescue.dump(tag:"mafs_rna_crossed_with_dna_rescue")
+//            mafs_dna_crossed_with_rna_rescue.dump(tag:"mafs_dna_crossed_with_rna_rescue")
+//            mafs_rna_crossed_with_dna_rescue.dump(tag:"mafs_rna_crossed_with_dna_rescue")
             RUN_CONSENSUS_RESCUE ( mafs_dna_crossed_with_rna_rescue.mix(mafs_rna_crossed_with_dna_rescue) )
 
 			maf_from_rescue = RUN_CONSENSUS_RESCUE.out.maf.branch{
@@ -137,11 +158,21 @@ workflow VCF_CONSENSUS {
 				                rna: it[0].status == 2
 				                }
 
-            maf_from_consensus_dna = maf_from_rescue.dna
-            maf_from_consensus_rna = maf_from_rescue.rna
+            maf_from_consensus_dna = maf_from_rescue.dna.map{meta, maf -> [meta, maf, ['ConsensusDNA']]}
+            maf_from_consensus_rna = maf_from_rescue.rna.map{meta, maf -> [meta, maf, ['ConsensusRNA']]}
             consensus_maf = maf_from_consensus_dna.mix(maf_from_consensus_rna)
-            consensus_maf.dump(tag:'consensus_maf1')
-
+            maf_from_consensus_dna
+                                        .mix(maf_from_consensus_rna)
+                                        .mix(mafs_from_varcal_dna)
+                                        .mix(mafs_from_varcal_rna).transpose().dump(tag:'rescued')
+			CHANNEL_RESCUE_CREATE_CSV(
+                                        maf_from_consensus_dna
+                                        .mix(maf_from_consensus_rna)
+                                        .mix(mafs_from_varcal_dna)
+                                        .mix(mafs_from_varcal_rna)
+                                        .transpose(),
+                                        "rescued"
+										)
         }
     }
 
