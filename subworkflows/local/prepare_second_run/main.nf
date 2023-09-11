@@ -52,7 +52,7 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
 //	            MERGE_ALIGN(previous_alignment.map{meta, cram, crai, maf -> [meta, cram]})
 	        }  else {
 	            // TODO (remember to change id to _realign)
-
+	            cram_to_realign = Channel.empty()
 	        }
 	        // Get candidate regions
 	        // Add files to meta to keep them for next processes

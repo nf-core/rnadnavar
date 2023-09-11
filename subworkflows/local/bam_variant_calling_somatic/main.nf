@@ -98,7 +98,8 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
             panel_of_normals,
             panel_of_normals_tbi,
             intervals,
-            joint_mutect2
+            joint_mutect2,
+            second_run
         )
 
         vcf_mutect2                 = BAM_VARIANT_CALLING_SOMATIC_MUTECT2.out.vcf_filtered

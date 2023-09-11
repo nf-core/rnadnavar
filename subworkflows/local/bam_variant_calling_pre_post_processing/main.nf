@@ -53,7 +53,7 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
         cram_mapped,                              // channel: [mandatory] [meta, [cram]]
         fasta,                                    // channel: [mandatory] fasta
         fasta_fai ,                               // channel: [mandatory] fasta_fai
-        dict.map{ it -> [ [ id:'dict' ], it ] },  // channel: [mandatory] dict
+        dict.map{ it -> [ [ id:'dict' ], it[0] ] },  // channel: [mandatory] dict
 	    known_sites_indels,                       // channel: [optional]  known_sites
 	    known_sites_indels_tbi,                   // channel: [optional]  known_sites
         germline_resource,                        // channel: [optional]  germline_resource
