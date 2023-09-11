@@ -179,8 +179,6 @@ input_sample = ch_from_samplesheet
             }
         }
 
-
-
 // Check params logic
 if (params.step != 'annotate' && params.tools && !params.build_only_index) {
     // Two checks for ensuring that the pipeline stops with a meaningful error message if
@@ -313,13 +311,6 @@ ch_multiqc_custom_methods_description = params.multiqc_methods_description ? fil
    VARIABLES
 ========================================================================================
 */
-
-whitelist  = params.whitelist  ? Channel.fromPath(params.whitelist).collect() : Channel.value([])
-blacklist  = params.blacklist  ? Channel.fromPath(params.blacklist).collect() : Channel.value([])
-darned     = params.darned     ? Channel.fromPath(params.darned).collect()    : Channel.value([])
-radar      = params.radar      ? Channel.fromPath(params.radar).collect()     : Channel.value([])
-nat        = params.nat        ? Channel.fromPath(params.nat).collect()       : Channel.value([])
-redi       = params.redi       ? Channel.fromPath(params.redi).collect()      : Channel.value([])
 
 // Info required for completion email and summary
 def multiqc_report = []
