@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 # Date: Sun 20 Sep 2020
-# Author: Raquel Manzano - CRUK CI Caldas lab
+# Author: Raquel Manzano - @RaqManzano
 # Script: Find overlaps between vcf
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Libraries
@@ -12,7 +12,7 @@ suppressPackageStartupMessages(library(plyr))
 suppressPackageStartupMessages(library(ggpubr))
 suppressPackageStartupMessages(library(ComplexHeatmap))
 suppressPackageStartupMessages(library(ggrepel))
-
+suppressPackageStartupMessages(library(stringr))
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 options(datatable.fread.input.cmd.message=FALSE)
@@ -30,7 +30,6 @@ if("--help" %in% script_args) {
   cat("The consensusR script:
  
       Arguments:
-      --id=sampleID              - character, sample id to put in the plots
       --input=input_file.maf     - character, VCf/MAF file, can be specfied more than once for several inputs
       --caller=caller_name       - character, caller that was used to generate input file - has to be in the SAME order as input
       --out_prefix=output_prefix - character, preffix for outputs
@@ -69,9 +68,11 @@ vcfs <- strsplit(argsL[["input"]], split=",")[[1]]
 callers <- strsplit(argsL[["caller"]], split=",")[[1]]
 names(vcfs) <- callers
 
+is.vcf <- grepl(x = vcfs[1], pattern = ".vcf$|.vcf.gz$", perl = T)
+
 # output files
 pdf.out <- paste0(argsL$out_prefix, ".pdf")
-if (grepl(x = vcfs[1], pattern = ".vcf", fixed = T)){
+if (is.vcf){
   vcf.out <- paste0(argsL$out_prefix, ".vcf")
 } else{
   vcf.out <- paste0(argsL$out_prefix, ".maf")
@@ -85,7 +86,7 @@ contigs_meta <- paste0(contigs_meta$V1, collapse = "\n")
 callers_meta <- list()
 for ( c in callers){
   vcf_meta <- fread(paste0("zgrep -E '##|#version' ", vcfs[c]), sep = NULL, header = F)
-  if (grepl(pattern = ".vcf", x = vcfs[c] )){
+  if (is.vcf){
     vcf_header <- fread(paste0("zgrep '#CHROM' ", vcfs[c]), sep = NULL, header = F)
     callers_meta[[c]] <-  list(meta=paste0(vcf_meta$V1, collapse = "\n"),
                              header=strsplit(vcf_header$V1, "\t")[[1]])
@@ -105,7 +106,7 @@ muts <-  list()
 for(c in callers[1:length(callers)]){
   v <- vcfs[c]
   tmp <- fread(paste0("zgrep -v '##' ", v))
-  if (!grepl(x = vcfs[1], pattern = ".vcf", fixed = T)){
+  if (!is.vcf){
     tmp$`#CHROM` <- tmp$Chromosome
     tmp$POS <- tmp$Start_Position
     tmp$REF <- tmp$Reference_Allele
@@ -135,7 +136,6 @@ for(c in callers[1:length(callers)]){
 
 message("- Finding overlaps")
 # Third, we find overlaps
-overlaps <- list()
 overlapping.vars <- data.frame(DNAchange=character(), caller=character(), FILTER=character())
 for (c1 in callers){
   for (c2 in callers){
@@ -143,46 +143,58 @@ for (c1 in callers){
     group_name <- paste0(c1, "vs", c2)
     # The gap between 2 adjacent ranges is 0.
     hits <- GenomicRanges::findOverlaps(query = mutsGR[[c1]], subject = mutsGR[[c2]], maxgap = 0)
-    overlaps[[group_name]] <- hits
-    m.hits <- muts[[c1]][queryHits(hits)]$DNAchange
-    filt <- muts[[c1]][queryHits(hits)]$FILTER
+    dnachange.hits <- muts[[c1]][queryHits(hits)]$DNAchange
+    filt.hits <- muts[[c1]][queryHits(hits)]$FILTER
     # due to normalization we might find the same variant with different filters - these come from homopolymer regions
-    overlapping.vars <- rbind(overlapping.vars, data.frame(DNAchange=m.hits, caller=c1, FILTER=filt))
+    overlapping.vars <- rbind(overlapping.vars, unique(data.frame(DNAchange=dnachange.hits, caller=c1, FILTER=filt.hits)))
     }
   }
 }
 
 # Finally, extract the set of variants that will be the consensus set
 overlapping.vars <- overlapping.vars[!duplicated(overlapping.vars),]
-overlapping.vars <- aggregate( FILTER  ~  DNAchange + caller, overlapping.vars, paste, collapse=";" )
+overlapping.vars <- as.data.table(overlapping.vars)[, .(caller = paste(caller, collapse = "|"), FILTER = paste(FILTER, collapse = "|")), by = DNAchange]
+overlapping.vars <- as.data.frame(overlapping.vars)
 
-# Set of variants that are called in at least 2 callers
-con.vars <- overlapping.vars$DNAchange
-#tail(sort(table(con.vars)[table(con.vars)>=2]))
-con.vars.ths <- names(table(con.vars)[table(con.vars)>=2])
+# Overlaps that are adjacent, and only SNVs are removed if not DNP
+overlapping.variants.count        <- stringr::str_count(string = overlapping.vars$caller, pattern =  stringr::fixed("|")) + 1
+names(overlapping.variants.count) <- overlapping.vars$DNAchange
+overlapping.variants.count.snvs   <- overlapping.variants.count[ grepl(pattern = "[0-9](A|C|G|T)>(A|C|G|T)$", x = names(overlapping.variants.count))] 
+overlapping.variants.count.indels <- overlapping.variants.count[!grepl(pattern = "[0-9](A|C|G|T)>(A|C|G|T)$", x = names(overlapping.variants.count))] 
 
-message("- There are ", prettyNum(length(con.vars.ths), big.mark = ','), " variants that are consensus")
+# only snvs with exact match will be in the consensus list
+con.vars.ths.snv <- names(overlapping.variants.count.snvs[overlapping.variants.count.snvs >= argsL$thr])
+# we let all indels pass as they have shown overlap
+con.vars.ths.indel <- names(overlapping.variants.count.indels)
 
+message("- There are ", prettyNum(length(con.vars.ths.snv), big.mark = ','),   " SNVs that are consensus")
+message("- There are ", prettyNum(length(con.vars.ths.indel), big.mark = ','), " indels that are consensus")
+
+con.vars.ths <- c(con.vars.ths.snv, con.vars.ths.indel)
 
 # The next steps are for the output
 # To keep the information from the consensus we extract the callers that called each mutation and its correspondent filters.
 what.caller.called <- function(row, consensus, variants){
   variant <- row["DNAchange"]
-  var.callers <- variants[variants$DNAchange==variant,]$caller
-  var.callers <- paste(var.callers, collapse = "|")
-  filters <- variants[variants$DNAchange==variant,]$FILTER
-  filters <- paste(sub(pattern = ";",
-                       replacement = ",",
-                       x =filters),
-                   collapse = "|")
-  if (var.callers == ""){
-    var.callers <- row["Caller"]
-    filters <- row["FILTER"]
+  if (variant %in% consensus){
+    var.callers <- variants[variants$DNAchange==variant,]$caller
+    var.callers <- paste(var.callers, collapse = "|")
+    filters <- variants[variants$DNAchange==variant,]$FILTER
+    filters <- paste(sub(pattern = ";",
+                         replacement = ",",
+                         x =filters),
+                     collapse = "|")
+    if (var.callers == ""){
+      var.callers <- row["Caller"]
+      filters <- row["FILTER"]
+    }
+    list(callers=var.callers, filters=filters)
+  } else {
+    list(callers=row["Caller"], filters=row['FILTER'])
   }
-  list(callers=var.callers, filters=filters)
 }
 
-     for (c in callers){
+for (c in callers){
   message("- Annotating calls from ", c)
   values <-  apply(X = muts[[c]], MARGIN = 1, FUN = what.caller.called, consensus=con.vars.ths, variants=overlapping.vars)
   muts[[c]] <- cbind( muts[[c]], as.data.frame(do.call(rbind, values)))
@@ -201,10 +213,10 @@ simplified.filter <- sapply(all.muts$filters, FUN = function(x){
 })
 simplified.filter <- ifelse(is.na(simplified.filter), "PASS", simplified.filter)
 all.muts$FILTER_consensus <- simplified.filter
-all.muts$INFO_consensus <-  paste0("callers=", all.muts$callers, ";filters=", all.muts$filters, ";consensus_filter=", all.muts$FILTER_consensus)
+all.muts$INFO_consensus   <-  paste0("callers=", all.muts$callers, ";filters=", all.muts$filters, ";consensus_filter=", all.muts$FILTER_consensus)
 
 ## write consensus
-# I want to keep the ingo without duplicating the mutations
+# I want to keep the info without duplicating the mutations
 all.muts$isconsensus <- grepl(pattern = "|", x = all.muts$callers, fixed = T)
 
 # WRITE OUTPUTS
@@ -214,7 +226,7 @@ meta_consensus <- paste0('##INFO=<ID=callers,Number=1,Type=String,Description="V
 '##INFO=<ID=consensus_filter,Number=1,Type=String,Description="PASS if 50% or more of the callers give the mutation, otherwise FAIL.">')
 extra.cols <- c()
 for ( c in callers){
-  if (grepl(x = vcfs[c], pattern = ".vcf", fixed = T)){
+  if (is.vcf){
     updated_meta <-  paste(callers_meta[[c]]$meta, 
                            meta_consensus, 
                            sep="\n")
@@ -231,8 +243,10 @@ for ( c in callers){
   }
   write(x = updated_meta, file = vcf.out.caller, ncolumns = 1, append = F)
   extra_cols <- c()
-  if (grepl(x = vcfs[c], pattern = ".vcf", fixed = T)){
-    fwrite(x = all.muts[all.muts$Caller==c,][,callers_meta[[c]]$header], 
+  if (is.vcf){
+    fields_to_write <- all.muts[all.muts$Caller==c,][,callers_meta[[c]]$header]
+    fields_to_write$INFO <- paste(fields_to_write$INFO, all.muts[all.muts$Caller==c,]$INFO_consensus, sep=";")
+    fwrite(x = fields_to_write, 
            file = vcf.out.caller, 
            append = T, 
            sep = "\t", 
@@ -250,7 +264,7 @@ for ( c in callers){
 
 
 # Final VCF consensus
-if (grepl(x = vcfs[1], pattern = ".vcf", fixed = T)){
+if (is.vcf){
   meta <- paste0("##fileformat=VCFv4.2\n##source=Consensus", length(callers), "Callers (", paste0(callers, collapse = ","), ")\n", contigs_meta,
                  '##FILTER=<ID=PASS,Description="All filters passed">\n##FILTER=<ID=FAIL,Description="More than half the callers did not give a PASS">\n')
   # we need the meta contigs and the INFO
@@ -260,18 +274,19 @@ if (grepl(x = vcfs[1], pattern = ".vcf", fixed = T)){
   meta <- "#version 2.4"
 }
 
-# to.vcf <- all.muts[all.muts$isconsensus==T,]
-if (grepl(x = vcfs[1], pattern = ".vcf", fixed = T)){
+to.vcf <- all.muts[all.muts$isconsensus==T,]
+if (is.vcf){
   col.out <- c("#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT")
   to.vcf$ID <- to.vcf$DNAchange
   to.vcf$QUAL <- "."
-  to.vcf$INFO <- to.vcf$INFO_consensus 
+  to.vcf$INFO <- to.vcf$INFO_consensus
   to.vcf$FORMAT <- "."
   to.vcf$FILTER <- to.vcf$FILTER_consensus
 } else{
   col.out <- callers_meta[[c]]$header
 }
-to.vcf <- all.muts[,col.out]
+
+to.vcf <- to.vcf[,col.out][!duplicated(to.vcf),]
 message("- Total variants ", prettyNum(nrow(to.vcf), big.mark = ","))
 message("- Variants in consensus ", prettyNum(nrow(all.muts[(!duplicated(all.muts$DNAchange) & all.muts$isconsensus==T),]), big.mark = ","))
 

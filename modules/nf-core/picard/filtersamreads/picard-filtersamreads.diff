@@ -1,0 +1,13 @@
+Changes in module 'nf-core/picard/filtersamreads'
+--- modules/nf-core/picard/filtersamreads/main.nf
++++ modules/nf-core/picard/filtersamreads/main.nf
+@@ -13,6 +13,7 @@
+ 
+     output:
+     tuple val(meta), path("*.bam"), emit: bam
++    tuple val(meta), path("*.bai"), emit: bai
+     path "versions.yml"           , emit: versions
+ 
+     when:
+
+************************************************************

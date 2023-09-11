@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """
-Date: 13 Feb 2023
 Author: @RaqManzano
 Script: Filter variants from a MAF file producing another MAF file with the new filters added.
 """
@@ -89,7 +88,8 @@ def remove_ig_and_pseudo(maf):
     """
     # fill na values
     maf[['BIOTYPE', 'SYMBOL']] = maf[['BIOTYPE', 'SYMBOL']].fillna(value="")
-    maf["ig_pseudo"] = maf["BIOTYPE"].str.contains('IG_C_gene|IG_D_gene|IG_J_gene|IG_V_gene|TR_C_gene|TR_J_gene|TR_V_gene|pseudogene')
+    maf["ig_pseudo"] = maf["BIOTYPE"].str.contains(
+        'IG_C_gene|IG_D_gene|IG_J_gene|IG_V_gene|TR_C_gene|TR_J_gene|TR_V_gene|pseudogene')
     return maf
 
 
@@ -130,7 +130,6 @@ def add_context(chrom, pos, ref, genome, flank=10):
     if ref != "-":  # if it is a deletion we cannot check
         assert ref[0] == context[flank]  # check that the REF matches the context we just extracted
     return context
-
 
 
 def remove_homopolymers(maf, ref):
@@ -177,16 +176,17 @@ def filtering(maf, gnomad_thr, whitelist, blacklist, filters):
     """
     if "PASS" not in filters:
         filters += ["PASS"]  # a PASS is always allowed
-    maf["whitelist"] = maf['DNAchange'].isin(whitelist)  # whitelist
-    maf = remove_muts_in_range(df=maf, blacklist=blacklist)  # blacklist
+    if whitelist:
+        maf["whitelist"] = maf['DNAchange'].isin(whitelist)  # whitelist
+    if blacklist:
+        maf = remove_muts_in_range(df=maf, blacklist=blacklist)  # blacklist
     maf["ingnomAD"] = maf["MAX_AF"] >= gnomad_thr  # gnomad
 
     return maf
 
 
-
 def add_ravex_filters(maf, filters, noncoding=False, homopolymer=False, ig_pseudo=False, min_alt_reads=2,
-                      consensus=True):
+                      blacklist=False,whitelist=False):
     maf["RaVeX_FILTER"] = "PASS"
     maf["Existing_variation"] = maf["Existing_variation"].fillna("")
     maf["SOMATIC"] = maf["SOMATIC"].fillna("")
@@ -196,8 +196,9 @@ def add_ravex_filters(maf, filters, noncoding=False, homopolymer=False, ig_pseud
             ravex_filter += ["min_alt_reads"]
         if row["ingnomAD"]:
             ravex_filter += ["gnomad"]
-        if row["blacklist"]:
-            ravex_filter += ["blacklist"]
+        if blacklist:
+            if row["blacklist"]:
+                ravex_filter += ["blacklist"]
         if not noncoding:
             if row["noncoding"]:
                 ravex_filter += ["noncoding"]
@@ -214,46 +215,43 @@ def add_ravex_filters(maf, filters, noncoding=False, homopolymer=False, ig_pseud
         else:
             if not row["FILTER_consensus"] in filters:
                 ravex_filter += ["vc_filter"]
-        if not ravex_filter or row["whitelist"]:
-            ravex_filter = ["PASS"]
+        if whitelist:
+            if not ravex_filter or row["whitelist"]:
+                ravex_filter = ["PASS"]
+        else:
+            if not ravex_filter:
+                ravex_filter = ["PASS"]
         ravex_filter = ";".join(ravex_filter)
         maf.at[idx, "RaVeX_FILTER"] = ravex_filter
     return maf
 
 
 def dedup_maf(dnachange, maf):
-    """If more than one caller, then we need to dedup the entries. We select according to the caller we trust more:
-    mutect2, strelka, sage, others for SNVs, strelka, mutect2, sage for indels
+    """If more than one caller, then we need to dedup the entries. We select according to this caller list:
+    mutect2, sage, strelka
     TODO: this is too slow, need to think on a better implementation
     """
     maf_variant = maf[maf["DNAchange"] == dnachange]
 
-    if maf_variant.iloc[0]["Variant_Type"] == "SNP":
-        maf_variant_dedup = maf_variant[maf_variant["Caller"].str.contains("mutect")]
+    maf_variant_dedup = maf_variant[maf_variant["Caller"].str.contains("mutect")]
+    if maf_variant_dedup.empty:
+        maf_variant_dedup = maf_variant[maf_variant["Caller"].str.contains("sage")]
         if maf_variant_dedup.empty:
             maf_variant_dedup = maf_variant[maf_variant["Caller"].str.contains("strelka")]
             if maf_variant_dedup.empty:
-                maf_variant_dedup = maf_variant[maf_variant["Caller"].str.contains("sage")]
-                if maf_variant_dedup.empty:
-                    maf_variant_dedup = maf_variant.drop_duplicates(subset='DNAchange', keep="first")
-    else:
-        maf_variant_dedup = maf_variant[maf_variant["Caller"].str.contains("strelka")]
-        if maf_variant_dedup.empty:
-            maf_variant_dedup = maf_variant[maf_variant["Caller"].str.contains("mutect")]
-            if maf_variant_dedup.empty:
-                maf_variant_dedup = maf_variant[maf_variant["Caller"].str.contains("sage")]
-                if maf_variant_dedup.empty:
-                    maf_variant_dedup = maf_variant.drop_duplicates(subset='DNAchange', keep="first")
+                maf_variant_dedup = maf_variant.drop_duplicates(subset='DNAchange', keep="first")
     return maf_variant_dedup
 
 
-def write_maf(maf_df, mafin_file, mafout_file, vc_priority=["mutect2", "strelka", 'sage', 'consensus']):
+def write_maf(maf_df, mafin_file, mafout_file, vc_priority=["mutect2", 'sage', "strelka"]):
     """Write output"""
     header_lines = subprocess.getoutput(f"zgrep -Eh '#|Hugo_Symbol' {mafin_file} 2>/dev/null")
     print("Removing duplicated variants from maf (only one entry from a caller will be kept)")
     maf_dedup = []
+    all_callers = maf_df["Caller"].unique()
+    vc_priority = vc_priority + [x for x in all_callers if x not in vc_priority]
     for caller in vc_priority:
-        maf_dedup += [maf_df[maf_df["Caller"]==caller]]
+        maf_dedup += [maf_df[maf_df["Caller"] == caller]]
     maf_dedup = pd.concat(maf_dedup).drop_duplicates(subset='DNAchange', keep="first")
     with open(mafout_file, "w") as mafout:
         mafout.write(header_lines)
@@ -268,9 +266,15 @@ def main():
                       'IGR', 'INTRON', 'RNA']
     args = argparser()
     maf = read_maf(args.input)
+    whitelist = False
+    blacklist = False
+    if args.whitelist:
+        whitelist = read_whitelist_bed(args.whitelist)
+    if args.blacklist:
+        blacklist = read_blacklist_bed(args.blacklist)
     maf = filtering(maf=maf, gnomad_thr=args.gnomad_thr,
-                    whitelist=read_whitelist_bed(args.whitelist),
-                    blacklist=read_blacklist_bed(args.blacklist),
+                    whitelist=whitelist,
+                    blacklist=blacklist,
                     filters=args.filters)
     # tag noncoding
     maf = noncoding(maf=maf, noncoding=noncoding_list)
@@ -279,7 +283,7 @@ def main():
     # tag homopolymers
     maf = remove_homopolymers(maf=maf, ref=args.ref)
     # tag consensus
-    maf = add_ravex_filters(maf=maf, filters=args.filters)
+    maf = add_ravex_filters(maf=maf, filters=args.filters, blacklist=blacklist, whitelist=whitelist)
     if not args.output:
         args.output = args.input.replace(".maf", "filtered.maf")
     write_maf(maf_df=maf, mafin_file=args.input, mafout_file=args.output)
