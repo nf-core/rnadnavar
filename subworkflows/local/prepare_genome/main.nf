@@ -135,7 +135,7 @@ workflow PREPARE_GENOME {
 
 
     // HISAT2 not necessary if second pass skipped
-    if ((params.skip_tools && !params.skip_tools.split(',').contains("second_pass"))){
+    if ((params.skip_tools && !params.skip_tools.split(',').contains("second_run"))){
         if (params.splicesites) {
             ch_splicesites  = Channel.fromPath(params.splicesites).collect()
         } else{

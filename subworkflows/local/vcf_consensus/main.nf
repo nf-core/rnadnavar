@@ -30,7 +30,7 @@ workflow VCF_CONSENSUS {
     if ((params.step in ['mapping', 'markduplicates', 'splitncigar',
                         'prepare_recalibration', 'recalibrate', 'variant_calling',
                         'normalise', 'consensus'] &&
-                        (!(params.skip_tools && params.skip_tools.split(",").contains("consensus")))) ||
+                        ((params.tools && params.tools.split(",").contains("consensus")))) ||
                         second_run) {
 
         if (params.step == 'consensus') vcf_to_consensus = input_sample

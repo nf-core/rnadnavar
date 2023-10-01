@@ -178,7 +178,7 @@ def filtering(maf, gnomad_thr, whitelist, blacklist, filters):
         filters += ["PASS"]  # a PASS is always allowed
     if whitelist:
         maf["whitelist"] = maf['DNAchange'].isin(whitelist)  # whitelist
-    if blacklist:
+    if not blacklist.empty:
         maf = remove_muts_in_range(df=maf, blacklist=blacklist)  # blacklist
     maf["ingnomAD"] = maf["MAX_AF"] >= gnomad_thr  # gnomad
 
@@ -196,7 +196,7 @@ def add_ravex_filters(maf, filters, noncoding=False, homopolymer=False, ig_pseud
             ravex_filter += ["min_alt_reads"]
         if row["ingnomAD"]:
             ravex_filter += ["gnomad"]
-        if blacklist:
+        if not blacklist.empty:
             if row["blacklist"]:
                 ravex_filter += ["blacklist"]
         if not noncoding:
@@ -272,6 +272,8 @@ def main():
         whitelist = read_whitelist_bed(args.whitelist)
     if args.blacklist:
         blacklist = read_blacklist_bed(args.blacklist)
+    else:
+        blacklist = pd.DataFrame()
     maf = filtering(maf=maf, gnomad_thr=args.gnomad_thr,
                     whitelist=whitelist,
                     blacklist=blacklist,

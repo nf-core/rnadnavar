@@ -19,7 +19,7 @@ workflow MAF_FILTERING {
     if ((params.step in ['mapping', 'markduplicates', 'splitncigar',
                 'prepare_recalibration', 'recalibrate', 'variant_calling',
                 'normalise', 'consensus', 'filtering'] &&
-                (!(params.skip_tools && params.skip_tools.split(",").contains("filtering")))) ||
+                ((params.tools && params.tools.split(",").contains("filtering")))) ||
                 second_run) {
 
         if (params.step == 'filtering') maf_to_filter = input_sample

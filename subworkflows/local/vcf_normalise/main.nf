@@ -24,7 +24,7 @@ workflow VCF_NORMALISE {
     if ((params.step in ['mapping', 'markduplicates', 'splitncigar',
                         'prepare_recalibration', 'recalibrate',
                         'variant_calling', 'normalise'] &&
-                        (!(params.skip_tools && params.skip_tools.split(",").contains("normalise")))) ||
+                        ((params.tools && params.tools.split(",").contains("consensus")))) ||
                         second_run) {
         
         if (params.step == 'normalise') vcf_to_normalise = input_sample

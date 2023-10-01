@@ -15,23 +15,20 @@ def argparser():
     parser = argparse.ArgumentParser(description='')
     parser.add_argument("--maf", help="Input MAF file")
     parser.add_argument("--maf_2pass", help="Input MAF file after a second pass")
-    parser.add_argument('--pon19', help='Path to binary pon',
-                        default='/rds/project/rds-70r4qFasPsQ/PBCP/Work/rm889/projects/rna_mutectv2/inputs/GTeX/77759/PhenoGenotypeFiles/RootStudyConsentSet_phs000424.GTEx.v8.p2.c1.GRU/GenotypeFiles/phg000830.v1.GTEx_WES.panel-of-normals.c1/PoN_GTEx')
-    parser.add_argument('--pon', help='Path to binary pon',
-                        default='/rds/project/rds-70r4qFasPsQ/PBCP/Work/rm889/projects/rna_mutectv2/inputs/GTeX/77759/PhenoGenotypeFiles/RootStudyConsentSet_phs000424.GTEx.v8.p2.c1.GRU/GenotypeFiles/phg000830.v1.GTEx_WES.panel-of-normals.c1/PoN_GTEx')
+    parser.add_argument('--pon19', help='Path to binary pon')
+    parser.add_argument('--pon', help='Path to binary pon')
     parser.add_argument("--whitelist", help="Input MAF file after a second pass")
     parser.add_argument("--output", help="output file name")
     parser.add_argument("--out_suffix", help="Suffix for intermidiate output", default="withRNAfilters")
     parser.add_argument('--ref',
-                        help='FASTA - HG38 (GDC)')
+                        help='FASTA - HG38')
     parser.add_argument('--ref19',
                         help='FASTA - HG19 (hs37d5)')
     parser.add_argument('--rnaedits',
                         help="BED file(s) with known RNA editing events separated by space",
                         nargs="+")
     parser.add_argument("--thr", default=-2.8)
-    parser.add_argument('--chain', help='Chain file',
-                        default='/rds/project/rds-70r4qFasPsQ/PBCP/Work/rm889/resources/hg38ToHg19.over.chain.gz')
+    parser.add_argument('--chain', help='Chain file')
 
     return parser.parse_args()
 
@@ -108,9 +105,9 @@ def run_capy(M, pon, ref, thr, chroms, suffix="_hg38"):
     M['n_alt'] = M["t_alt_count"]
     M['n_ref'] = M["t_ref_count"]
     M = M.astype({'chr': 'int32', 'pos': 'int32'})
-    M["pon_score" + suffix] = mut.filter_mutations_against_token_PoN(M=M,
-                                                                     ponfile=pon,
-                                                                     ref=ref)
+    pon_scores = mut.filter_mutations_against_token_PoN(M=M, ponfile=pon, ref=ref)
+    assert len(pon_scores) == M.shape[0], "PoN scores are not same length as nrow"
+    M["pon_score" + suffix] = pon_scores
     M['pon_thr' + suffix] = M['pon_score' + suffix] >= thr
     return M
 
@@ -123,7 +120,8 @@ def add_hg19_coords_with_liftover(M, chain_file):
     starting_size = M.shape[0]
     M["coordinates19"] = M.apply(lambda x: converter[x["Chromosome"]][x["Start_Position"]], axis=1)
     # Replace with tuple of None's when position has been deleted in new reference genome
-    tmp = pd.DataFrame(M['coordinates19'].tolist(), index=M.index).apply(lambda ds: ds.map(lambda x: x if x != None else (None, None, None)))
+    tmp = pd.DataFrame(M['coordinates19'].tolist(), index=M.index).apply(
+        lambda ds: ds.map(lambda x: x if x != None else (None, None, None)))
     tmp[['Chromosome19', 'Start_Position19', "STRAND19"]] = pd.DataFrame(tmp[0].tolist(), index=M.index)
     liftover_size = tmp.shape[0]
     assert starting_size == liftover_size, "Liftovered positions are not the same number as in original MAF"
@@ -161,8 +159,9 @@ def write_output(args, results, output, out_suffix):
 
 def main():
     args = argparser()
-    if "," in args.rnaedits[0]:
-        args.rnaedits = args.rnaedits[0].strip().split(",")
+    if args.rnaedits:
+        if "," in args.rnaedits[0]:
+            args.rnaedits = args.rnaedits[0].strip().split(",")
     # chromosomes
     chroms = [f'chr{x}' for x in list(range(1, 23)) + ['X', 'Y']]
 
@@ -187,17 +186,19 @@ def main():
         if args.pon19 and args.chain and args.ref19:
             calls = add_hg19_coords_with_liftover(calls, chain_file=args.chain)
             calls = run_capy(M=calls, pon=args.pon19, ref=args.ref19, thr=args.thr, suffix="_hg19", chroms=chroms)
-        calls = run_capy(M=calls, pon=args.pon, ref=args.ref, thr=args.thr, suffix="_hg38", chroms=chroms)
+        if args.pon:
+            calls = run_capy(M=calls, pon=args.pon, ref=args.ref, thr=args.thr, suffix="_hg38", chroms=chroms)
         # Annotate known RNA editing
-        rnadbs = []
-        for rnadb_file in args.rnaedits:
-            rnadb = pd.read_csv(rnadb_file, sep="\t", names=["chr", "start", "end", "ref", "alt"], header=None)
-            rnadb["DNAchange"] = rnadb["chr"] + ":g." + \
-                                 rnadb["start"].map(str) + \
-                                 rnadb["ref"] + ">" + rnadb["alt"]
-            rnadbs += [rnadb]
-        rnadbs = pd.concat(rnadbs)
-        calls = add_rnaediting_sites(maf=calls, rnaeditingsites=rnadbs, realignment=didrealignment)
+        if args.rnaedits:
+            rnadbs = []
+            for rnadb_file in args.rnaedits:
+                rnadb = pd.read_csv(rnadb_file, sep="\t", names=["chr", "start", "end", "ref", "alt"], header=None)
+                rnadb["DNAchange"] = rnadb["chr"] + ":g." + \
+                                     rnadb["start"].map(str) + \
+                                     rnadb["ref"] + ">" + rnadb["alt"]
+                rnadbs += [rnadb]
+            rnadbs = pd.concat(rnadbs)
+            calls = add_rnaediting_sites(maf=calls, rnaeditingsites=rnadbs, realignment=didrealignment)
         results[idx] = calls
     # write maf files
     write_output(args, results, args.output, args.out_suffix)
