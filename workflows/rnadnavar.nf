@@ -268,6 +268,7 @@ if ((params.download_cache) && (params.snpeff_cache || params.vep_cache)) {
 //
 // Build the genome index and other reference files
 include { PREPARE_REFERENCE_AND_INTERVALS   } from '../subworkflows/local/prepare_reference_and_intervals/main'
+include { PREPARE_INTERVALS as PREPARE_INTERVALS_FOR_REALIGNMENT   } from '../subworkflows/local/prepare_intervals/main'
 // Download annotation cache if needed
 include { ENSEMBLVEP_DOWNLOAD               } from '../modules/nf-core/ensemblvep/download/main'
 
@@ -280,7 +281,9 @@ include { BAM_VARIANT_CALLING_PRE_POST_PROCESSING               } from '../subwo
 // Second run
 include { BAM_EXTRACT_READS_HISAT2_ALIGN as PREPARE_SECOND_RUN  } from '../subworkflows/local/prepare_second_run/main'
 include { BAM_VARIANT_CALLING_PRE_POST_PROCESSING as SECOND_RUN } from '../subworkflows/local/bam_variant_calling_pre_post_processing/main'
-//include { FILTERING_RNA          } from '../subworkflows/local/rna_filtering'
+
+// Filter RNA
+include { MAF_FILTERING_RNA } from '../subworkflows/local/maf_rna_filtering/main'
 //
 //
 // MODULE: Installed directly from nf-core/modules
@@ -386,6 +389,7 @@ workflow RNADNAVAR {
 
 	reports = reports.mix(BAM_ALIGN.out.reports)
 	versions = versions.mix(BAM_ALIGN.out.versions)
+
 	// 5 MAIN STEPS: GATK PREPROCESING - VARIANT CALLING - NORMALIZATION - CONSENSUS - ANNOTATION
 	BAM_VARIANT_CALLING_PRE_POST_PROCESSING(
 	    input_sample,              // input from CSV if applicable
@@ -412,10 +416,77 @@ workflow RNADNAVAR {
 	    null,  // to repeat rescue consensus
 	    false  // is second run
 	)
+	filtered_maf = BAM_VARIANT_CALLING_PRE_POST_PROCESSING.out.maf
+    reports      = reports.mix(BAM_VARIANT_CALLING_PRE_POST_PROCESSING.out.reports)
+    versions     = versions.mix(BAM_VARIANT_CALLING_PRE_POST_PROCESSING.out.versions)
+    if (params.tools && params.tools.split(',').contains('second_run')) {
+        // fastq will not be split when realignment
+        params.split_fastq = 0
+        // reset intervals to none (realignment files are small)
+		PREPARE_INTERVALS_FOR_REALIGNMENT(fasta_fai, null, true)
 
-    reports  = reports.mix(BAM_VARIANT_CALLING_PRE_POST_PROCESSING.out.reports)
-    versions = versions.mix(BAM_VARIANT_CALLING_PRE_POST_PROCESSING.out.versions)
 
+        PREPARE_SECOND_RUN(input_sample,           // input from CSV if applicable
+							filtered_maf,
+							BAM_ALIGN.out.cram_mapped,
+							fasta,
+							fasta_fai,
+							dict,
+							PREPARE_REFERENCE_AND_INTERVALS.out.hisat2_index,
+							PREPARE_REFERENCE_AND_INTERVALS.out.splicesites,
+							BAM_VARIANT_CALLING_PRE_POST_PROCESSING.out.dna_consensus_maf,
+                            BAM_VARIANT_CALLING_PRE_POST_PROCESSING.out.dna_varcall_mafs
+                               ) // do mapping with hisat2
+
+        versions = versions.mix(PREPARE_SECOND_RUN.out.versions)
+        SECOND_RUN(
+        	Channel.empty(),                   // input from CSV if applicable: already processed in previous subworkflow
+		    PREPARE_SECOND_RUN.out.bam_mapped, // input from mapping
+		    Channel.empty(),                  // no cram from hisat2 for now
+		    fasta,
+		    fasta_fai,
+		    dict,
+		    dbsnp,
+		    dbsnp_tbi,
+		    pon,
+		    pon_tbi,
+		    known_sites_indels,
+		    known_sites_indels_tbi,
+		    germline_resource,
+		    germline_resource_tbi,
+		    PREPARE_INTERVALS_FOR_REALIGNMENT.intervals_bed,
+		    Channel.value([ [ id:'null' ], [] ],
+		    PREPARE_INTERVALS_FOR_REALIGNMENT.intervals_bed_gz_tbi,
+		    PREPARE_INTERVALS_FOR_REALIGNMENT.intervals_bed_combined,
+		    [ [], num_intervals ],
+		    PREPARE_INTERVALS_FOR_REALIGNMENT.intervals_bed_gz_tbi_combined,
+		    PREPARE_SECOND_RUN.out.dna_consensus_maf,  // to repeat rescue consensus TODO: is this the best strategy?
+		    PREPARE_SECOND_RUN.out.dna_varcall_mafs,   // to repeat rescue consensus
+		    true  // is second run
+		    )
+//
+        reports                = reports.mix(SECOND_RUN.out.reports)
+        versions               = versions.mix(SECOND_RUN.out.versions)
+        realigned_filtered_maf = SECOND_RUN.out.maf
+    } else{
+        realigned_filtered_maf = Channel.empty()
+    }
+	filtered_maf.dump(tag:"filtered_maf")
+	realigned_filtered_maf.dump(tag:"realigned_filtered_maf")
+    MAF_FILTERING_RNA(
+	                  filtered_maf.branch{  dna:  it[0].status < 2
+								            rna:  it[0].status >= 2
+								          }.rna,
+	                  realigned_filtered_maf.branch{  dna:  it[0].status < 2
+								            rna:  it[0].status >= 2
+								          }.rna,
+	                  fasta,
+	                  fasta_fai,
+	                  input_sample
+	                  )
+    versions = versions.mix(MAF_FILTERING_RNA.out.versions)
+//
+// REPORTING TODO: this is updated now, see if it works with the variables that we currently have
 
     version_yaml = Channel.empty()
     if (!(params.skip_tools && params.skip_tools.split(',').contains('versions'))) {
