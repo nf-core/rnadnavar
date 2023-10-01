@@ -17,7 +17,7 @@ workflow MAF_FILTERING {
     versions  = Channel.empty()
     maf       = Channel.empty()
     if ((params.step in ['mapping', 'markduplicates', 'splitncigar',
-                'prepare_recalibration', 'recalibrate', 'variant_calling',
+                'prepare_recalibration', 'recalibrate', 'variant_calling', 'annotate',
                 'normalise', 'consensus', 'filtering'] &&
                 ((params.tools && params.tools.split(",").contains("filtering")))) ||
                 second_run) {

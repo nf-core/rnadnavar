@@ -21,20 +21,20 @@ workflow VCF_CONSENSUS {
     second_run
 
     main:
-    versions             = Channel.empty()
+    versions                = Channel.empty()
 
     maf_from_consensus_dna  = Channel.empty()
     mafs_from_varcal_dna    = Channel.empty()
     consensus_maf           = Channel.empty()
 
     if ((params.step in ['mapping', 'markduplicates', 'splitncigar',
-                        'prepare_recalibration', 'recalibrate', 'variant_calling',
+                        'prepare_recalibration', 'recalibrate', 'variant_calling', 'annotate',
                         'normalise', 'consensus'] &&
                         ((params.tools && params.tools.split(",").contains("consensus")))) ||
                         second_run) {
 
         if (params.step == 'consensus') vcf_to_consensus = input_sample
-
+		vcf_to_consensus.dump(tag:"vcf_to_consensus")
         vcf_to_consensus_type = vcf_to_consensus.branch{
 			                     vcf: it[0].data_type == "vcf"
 						         maf: it[0].data_type == "maf"
@@ -47,21 +47,18 @@ workflow VCF_CONSENSUS {
         
 //        maf_to_consensus.dump(tag:"maf_to_consensus")
         // count number of callers to generate groupKey
+        if (second_run) tools = "sage,strelka,mutect2"
+        maf_to_consensus.dump(tag:"maf_to_consensus0")
         maf_to_consensus = maf_to_consensus.map{ meta, maf ->
                                     def toolsllist = tools.split(',')
                                     def ncallers   = toolsllist.count('sage') +
                                                      toolsllist.count('strelka') +
-                                                     toolsllist.count('mutect2') +
-                                                     toolsllist.count("consensus")
-                                    [groupKey([
-                                                id       : meta.id,
-                                                patient  : meta.patient,
-                                                status   : meta.status,
-                                                ncallers : ncallers
-                                                ], ncallers),
-                                     maf, meta.variantcaller
-                                     ]} // groupKey should avoid the groupTuple wait but it does not seem to work atm
-                                    .groupTuple() // makes the whole pipeline wait for all processes to finish
+                                                     toolsllist.count('mutect2')
+                                    key = groupKey(meta.subMap('id', 'patient', 'status') +
+                                                [ncallers : ncallers], ncallers)
+                                    [key, maf, meta.variantcaller]}
+                                    .groupTuple()
+		maf_to_consensus.dump(tag:"maf_to_consensus1")
 		// Run consensus on VCF with same id
 		RUN_CONSENSUS ( maf_to_consensus )
 
@@ -89,10 +86,7 @@ workflow VCF_CONSENSUS {
             maf_from_consensus_dna = maf_from_consensus.dna.map{meta, maf -> [meta, maf, ['ConsensusDNA']]}
             mafs_from_varcal_dna   = mafs_from_varcal.dna
         }
-		maf_from_consensus_dna
-                                        .mix(maf_from_consensus_rna)
-                                        .mix(mafs_from_varcal_dna)
-                                        .mix(mafs_from_varcal_rna).transpose().dump(tag:'consensus')
+
         CHANNEL_CONSENSUS_CREATE_CSV(
                                         maf_from_consensus_dna
                                         .mix(maf_from_consensus_rna)
@@ -150,7 +144,7 @@ workflow VCF_CONSENSUS {
                                             }
 
 //            mafs_dna_crossed_with_rna_rescue.dump(tag:"mafs_dna_crossed_with_rna_rescue")
-//            mafs_rna_crossed_with_dna_rescue.dump(tag:"mafs_rna_crossed_with_dna_rescue")
+            mafs_dna_crossed_with_rna_rescue.mix(mafs_rna_crossed_with_dna_rescue).dump(tag:"mafs_to_rescue")
             RUN_CONSENSUS_RESCUE ( mafs_dna_crossed_with_rna_rescue.mix(mafs_rna_crossed_with_dna_rescue) )
 
 			maf_from_rescue = RUN_CONSENSUS_RESCUE.out.maf.branch{

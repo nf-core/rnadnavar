@@ -104,6 +104,8 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
 	    // Generate artifactpriors using learnreadorientationmodel on the f1r2 output of mutect2
 	    LEARNREADORIENTATIONMODEL(f1r2)
 
+	    artifact_priors        = LEARNREADORIENTATIONMODEL.out.artifactprior
+
 	    pileup = input_intervals.multiMap{  meta, input_list, input_index_list, intervals ->
 	        tumor: [ meta, input_list[1], input_index_list[1], intervals ]
 	        normal: [ meta, input_list[0], input_index_list[0], intervals ]
@@ -176,13 +178,23 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
 	                        .join(ch_seg_to_filtermutectcalls)
 	                        .join(ch_cont_to_filtermutectcalls)
 	                    .map{ meta, vcf, tbi, stats, orientation, seg, cont -> [ meta, vcf, tbi, stats, orientation, seg, cont, [] ] }
+
+        versions = versions.mix(CALCULATECONTAMINATION.out.versions)
+        versions = versions.mix(GETPILEUPSUMMARIES_NORMAL.out.versions)
+	    versions = versions.mix(GETPILEUPSUMMARIES_TUMOR.out.versions)
+	    versions = versions.mix(GATHERPILEUPSUMMARIES_NORMAL.out.versions)
+	    versions = versions.mix(GATHERPILEUPSUMMARIES_TUMOR.out.versions)
+	    versions = versions.mix(LEARNREADORIENTATIONMODEL.out.versions)
     } else{
 	    vcf_to_filter = vcf.join(tbi, failOnDuplicate: true, failOnMismatch: true)
 	                       .join(stats, failOnDuplicate: true, failOnMismatch: true)
 	                       .map{ meta, vcf, tbi, stats -> [ meta, vcf, tbi, stats, [], [], [], [] ] }
-
-
-
+		// TODO: when second_run, can we reuse artifact_priors, calculate contamination and learnorientation?
+		artifact_priors              = Channel.empty()
+		ch_cont_to_filtermutectcalls = Channel.empty()
+		ch_seg_to_filtermutectcalls  = Channel.empty()
+		pileup_table_normal          = Channel.empty()
+		pileup_table_tumor           = Channel.empty()
     }
 
     FILTERMUTECTCALLS(vcf_to_filter, fasta, fai, dict)
@@ -192,13 +204,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
         .map{ meta, vcf -> [ meta + [ variantcaller:'mutect2' ], vcf ] }
 
     versions = versions.mix(MERGE_MUTECT2.out.versions)
-    versions = versions.mix(CALCULATECONTAMINATION.out.versions)
     versions = versions.mix(FILTERMUTECTCALLS.out.versions)
-    versions = versions.mix(GETPILEUPSUMMARIES_NORMAL.out.versions)
-    versions = versions.mix(GETPILEUPSUMMARIES_TUMOR.out.versions)
-    versions = versions.mix(GATHERPILEUPSUMMARIES_NORMAL.out.versions)
-    versions = versions.mix(GATHERPILEUPSUMMARIES_TUMOR.out.versions)
-    versions = versions.mix(LEARNREADORIENTATIONMODEL.out.versions)
     versions = versions.mix(MERGEMUTECTSTATS.out.versions)
     versions = versions.mix(MUTECT2_PAIRED.out.versions)
 
@@ -210,10 +216,10 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
     index_filtered = FILTERMUTECTCALLS.out.tbi    // channel: [ meta, tbi ]
     stats_filtered = FILTERMUTECTCALLS.out.stats  // channel: [ meta, stats ]
 
-    artifact_priors        = LEARNREADORIENTATIONMODEL.out.artifactprior // channel: [ meta, artifactprior ]
+    artifact_priors                                // channel: [ meta, artifactprior ]
 
-    pileup_table_normal // channel: [ meta, table_normal ]
-    pileup_table_tumor  // channel: [ meta, table_tumor ]
+    pileup_table_normal                            // channel: [ meta, table_normal ]
+    pileup_table_tumor                             // channel: [ meta, table_tumor ]
 
     contamination_table    = ch_cont_to_filtermutectcalls    // channel: [ meta, contamination ]
     segmentation_table     = ch_seg_to_filtermutectcalls     // channel: [ meta, segmentation ]

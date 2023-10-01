@@ -23,7 +23,7 @@ workflow VCF_NORMALISE {
 
     if ((params.step in ['mapping', 'markduplicates', 'splitncigar',
                         'prepare_recalibration', 'recalibrate',
-                        'variant_calling', 'normalise'] &&
+                        'variant_calling', 'annotate','consensus', 'normalise'] &&
                         ((params.tools && params.tools.split(",").contains("consensus")))) ||
                         second_run) {
         

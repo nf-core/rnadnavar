@@ -426,9 +426,10 @@ workflow RNADNAVAR {
 		PREPARE_INTERVALS_FOR_REALIGNMENT(fasta_fai, null, true)
 
 
-        PREPARE_SECOND_RUN(input_sample,           // input from CSV if applicable
+        PREPARE_SECOND_RUN(
+                            input_sample,           // input from CSV if applicable
 							filtered_maf,
-							BAM_ALIGN.out.cram_mapped,
+							BAM_VARIANT_CALLING_PRE_POST_PROCESSING.out.cram_variant_calling,  // input from mapping
 							fasta,
 							fasta_fai,
 							dict,
@@ -454,17 +455,17 @@ workflow RNADNAVAR {
 		    known_sites_indels_tbi,
 		    germline_resource,
 		    germline_resource_tbi,
-		    PREPARE_INTERVALS_FOR_REALIGNMENT.intervals_bed,
-		    Channel.value([ [ id:'null' ], [] ],
-		    PREPARE_INTERVALS_FOR_REALIGNMENT.intervals_bed_gz_tbi,
-		    PREPARE_INTERVALS_FOR_REALIGNMENT.intervals_bed_combined,
-		    [ [], num_intervals ],
-		    PREPARE_INTERVALS_FOR_REALIGNMENT.intervals_bed_gz_tbi_combined,
+		    PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_bed,
+		    Channel.value([ [ id:'null' ], [] ]),
+		    PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_bed_gz_tbi,
+		    PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_bed_combined,
+		    PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_bed,
+		    PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_bed_gz_tbi_combined,
 		    PREPARE_SECOND_RUN.out.dna_consensus_maf,  // to repeat rescue consensus TODO: is this the best strategy?
 		    PREPARE_SECOND_RUN.out.dna_varcall_mafs,   // to repeat rescue consensus
 		    true  // is second run
 		    )
-//
+
         reports                = reports.mix(SECOND_RUN.out.reports)
         versions               = versions.mix(SECOND_RUN.out.versions)
         realigned_filtered_maf = SECOND_RUN.out.maf

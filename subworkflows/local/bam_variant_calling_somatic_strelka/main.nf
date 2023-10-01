@@ -41,31 +41,38 @@ workflow BAM_VARIANT_CALLING_SOMATIC_STRELKA {
         no_intervals: it[0].num_intervals <= 1
     }
 
-    // Only when using intervals
-    vcf_indels_to_merge = vcf_indels.intervals.map{ meta, vcf -> [ groupKey(meta, meta.num_intervals), vcf ]}.groupTuple()
-    vcf_snvs_to_merge = vcf_snvs.intervals.map{ meta, vcf -> [ groupKey(meta, meta.num_intervals), vcf ]}.groupTuple()
+    // Only when using intervals TODO: check that commenting map does not break things
+    vcfs_to_merge = STRELKA_SOMATIC.out.vcf_indels
+                    .mix(STRELKA_SOMATIC.out.vcf_snvs)
+                    .map{ meta, vcf -> [ groupKey(meta, meta.num_intervals * 2), vcf ]}
+                    .groupTuple()
+//    vcf_snvs_to_merge = vcf_snvs.intervals.map{ meta, vcf -> [ groupKey(meta, meta.num_intervals), vcf ]}.groupTuple()
 
-    MERGE_STRELKA_INDELS(vcf_indels_to_merge, dict)
-    MERGE_STRELKA_SNVS(vcf_snvs_to_merge, dict)
+//    MERGE_STRELKA_INDELS(vcf_indels_to_merge, dict)
+//    MERGE_STRELKA_SNVS(vcf_snvs_to_merge, dict)
 
     // Mix intervals and no_intervals channels together
-    vcf = Channel.empty().mix(MERGE_STRELKA_INDELS.out.vcf, MERGE_STRELKA_SNVS.out.vcf, vcf_indels.no_intervals, vcf_snvs.no_intervals).groupTuple()
-
+//    vcf_indels_to_merge.dump(tag:"vcf_indels_to_merge")
+//    vcf_snvs_to_merge.dump(tag:"vcf_snvs_to_merge")
+//    vcf_snvs.no_intervals.dump(tag:"vcf_snvs.no_intervals")
+	vcfs_to_merge.dump(tag:"vcfs_to_merge")
 	// Merge SNVs and indels
-	MERGE_STRELKA(vcf, dict)
+	MERGE_STRELKA(vcfs_to_merge, dict)
 
-	vcf_merged = MERGE_STRELKA.out.vcf
-					// add variantcaller to meta map and remove no longer necessary field: num_intervals
-                    .map{ meta, vcf -> [ meta - meta.subMap('normal_id', 'tumor_id','num_intervals') + [ variantcaller:'strelka' ], vcf ] }
+	// Mix intervals and no_intervals channels together
+    vcf = MERGE_STRELKA.out.vcf
+        // add variantcaller to meta map and remove no longer necessary field: num_intervals
+        .map{ meta, vcf ->
+                [ meta.subMap('id', 'patient', 'status', 'variantcaller', 'file_name', 'data_type') + [ variantcaller:'strelka' ], vcf ] }
 
 
-    versions = versions.mix(MERGE_STRELKA_SNVS.out.versions)
-    versions = versions.mix(MERGE_STRELKA_INDELS.out.versions)
+//    versions = versions.mix(MERGE_STRELKA_SNVS.out.versions)
+//    versions = versions.mix(MERGE_STRELKA_INDELS.out.versions)
     versions = versions.mix(MERGE_STRELKA.out.versions)
     versions = versions.mix(STRELKA_SOMATIC.out.versions)
 
     emit:
-    vcf      = vcf_merged
+    vcf      = vcf
 
     versions
 }
