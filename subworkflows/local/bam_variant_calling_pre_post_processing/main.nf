@@ -53,7 +53,7 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
         cram_mapped,                              // channel: [mandatory] [meta, [cram]]
         fasta,                                    // channel: [mandatory] fasta
         fasta_fai ,                               // channel: [mandatory] fasta_fai
-        dict.map{ it -> [ [ id:'dict' ], it[0] ] },  // channel: [mandatory] dict
+        dict,                                     // channel: [mandatory] dict
 	    known_sites_indels,                       // channel: [optional]  known_sites
 	    known_sites_indels_tbi,                   // channel: [optional]  known_sites
         germline_resource,                        // channel: [optional]  germline_resource
@@ -146,6 +146,7 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
      emit:
      dna_consensus_maf           = dna_consensus_maf
      dna_varcall_mafs            = dna_varcall_mafs
+     cram_variant_calling        = cram_variant_calling
      maf                         = filtered_maf
      versions                    = versions  // channel: [ versions.yml ]
      reports                     = reports

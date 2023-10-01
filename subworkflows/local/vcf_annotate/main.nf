@@ -13,17 +13,17 @@ workflow VCF_ANNOTATE {
     second_run
 
     main:
-    reports = Channel.empty()
-    vcf_ann = Channel.empty()
-    tab_ann = Channel.empty()
+    reports  = Channel.empty()
+    vcf_ann  = Channel.empty()
+    tab_ann  = Channel.empty()
     json_ann = Channel.empty()
     versions = Channel.empty()
 
-    if (params.step == 'annotate') vcf_to_annotate = input_sample
+    if (params.step == 'annotate') vcf = input_sample
 
     if (params.tools && params.tools.split(',').contains('vep') || second_run) {
 
-	    if (params.tools.split(',').contains('vep')) {
+	    if (params.tools && params.tools.split(',').contains('vep') || second_run) {
 	        fasta = (params.vep_include_fasta) ? fasta.map{ fasta -> [ [ id:fasta.baseName ], fasta ] } : [[id: 'null'], []]
 			vep_cache_version  = params.vep_cache_version  ?: Channel.empty()
 			vep_genome         = params.vep_genome         ?: Channel.empty()

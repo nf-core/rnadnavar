@@ -98,6 +98,8 @@ workflow BAM_VARIANT_CALLING {
                 [ meta, normal[2], normal[3], tumor[2], tumor[3] ]
             }
 
+        cram_variant_calling_pair.dump(tag:"cram_variant_calling_pair")
+
 	    // PAIR VARIANT CALLING
 	    BAM_VARIANT_CALLING_SOMATIC(
 	        tools,

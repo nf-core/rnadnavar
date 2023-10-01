@@ -33,8 +33,8 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
     vcf_mutect2       = Channel.empty()
     vcf_sage          = Channel.empty()
     // SAGE
-    if (tools.split(',').contains('sage') || second_run) {
-
+    if (tools && tools.split(',').contains('sage') || second_run) {
+		cram.dump(tag:"sage_cram")
         BAM_VARIANT_CALLING_SOMATIC_SAGE(
             cram,
             // Remap channel to match module/subworkflow
@@ -51,7 +51,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
     }
 
     // MANTA
-    if (tools.split(',').contains('manta')) {
+    if (tools && tools.split(',').contains('manta')) {
         BAM_VARIANT_CALLING_SOMATIC_MANTA(
             cram,
             fasta,
@@ -64,9 +64,9 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
     }
 
     // STRELKA
-    if (tools.split(',').contains('strelka') || second_run) {
+    if (tools && tools.split(',').contains('strelka') || second_run) {
         // Remap channel to match module/subworkflow
-        cram_strelka = (tools.split(',').contains('manta')) ?
+        cram_strelka = (tools && tools.split(',').contains('manta')) ?
             cram.join(BAM_VARIANT_CALLING_SOMATIC_MANTA.out.candidate_small_indels_vcf, failOnDuplicate: true, failOnMismatch: true).join(BAM_VARIANT_CALLING_SOMATIC_MANTA.out.candidate_small_indels_vcf_tbi, failOnDuplicate: true, failOnMismatch: true) :
             cram.map{ meta, normal_cram, normal_crai, tumor_cram, tumor_crai -> [ meta, normal_cram, normal_crai, tumor_cram, tumor_crai, [], [] ] }
 
@@ -84,7 +84,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
     }
 
     // MUTECT2
-    if (tools.split(',').contains('mutect2') || second_run) {
+    if (tools && tools.split(',').contains('mutect2') || second_run) {
         BAM_VARIANT_CALLING_SOMATIC_MUTECT2(
             // Remap channel to match module/subworkflow
             cram.map { meta, normal_cram, normal_crai, tumor_cram, tumor_crai -> [ meta, [ normal_cram, tumor_cram ], [ normal_crai, tumor_crai ] ] },
