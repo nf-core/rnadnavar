@@ -45,7 +45,6 @@ def realignment(maf1, maf2):
                         maf2["Reference_Allele"] + ">" + maf2["Tumor_Seq_Allele2"]
     maf1["realignment"] = maf1["DNAchange"].isin(maf2["DNAchange"])
     maf2["realignment"] = maf2["DNAchange"].isin(maf1["DNAchange"])
-
     maf_intersect = maf1[maf1["realignment"] == True]
     maf1 = maf1[~maf1["DNAchange"].isin(maf_intersect["DNAchange"])]
     maf2 = maf2[~maf2["DNAchange"].isin(maf_intersect["DNAchange"])]

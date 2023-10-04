@@ -13,6 +13,8 @@ suppressPackageStartupMessages(library(ggpubr))
 suppressPackageStartupMessages(library(ComplexHeatmap))
 suppressPackageStartupMessages(library(ggrepel))
 suppressPackageStartupMessages(library(stringr))
+suppressPackageStartupMessages(library(parallel))
+
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 options(datatable.fread.input.cmd.message=FALSE)
@@ -24,21 +26,21 @@ if(length(script_args) < 1) {
 }
 
 
-
 # Help section
 if("--help" %in% script_args) {
   cat("The consensusR script:
- 
+
       Arguments:
       --input=input_file.maf     - character, VCf/MAF file, can be specfied more than once for several inputs
       --caller=caller_name       - character, caller that was used to generate input file - has to be in the SAME order as input
       --out_prefix=output_prefix - character, preffix for outputs
       --thr=thr                  - integer, the number of callers that support a mutation to be called consensus (default: 2)
+      --cpu=cpu                  - integer, number of threads/cores to use in the parallelisation
       --help                     - print this text
- 
+
       Example:
       ./consensusR.R --id=sample01 --input=caller1.vcf --input=caller2.vcf --callers C1 --callers C2  --out_prefix=consensus \n\n")
-  
+
   q(save="no")
 }
 if(!grepl(pattern = "--input=", x = paste(script_args, collapse = ""))) {
@@ -82,7 +84,7 @@ message("- Parsing headers")
 # First, get contigs from one of the VCFs
 contigs_meta <- fread(paste0("zgrep '##contig' ", vcfs[1]), sep = NULL, header = F)
 contigs_meta <- paste0(contigs_meta$V1, collapse = "\n")
-# Collexting vcf headers for the outputs
+# Collecting vcf headers for the outputs
 callers_meta <- list()
 for ( c in callers){
   vcf_meta <- fread(paste0("zgrep -E '##|#version' ", vcfs[c]), sep = NULL, header = F)
@@ -95,13 +97,12 @@ for ( c in callers){
     callers_meta[[c]] <-  list(meta=paste0(vcf_meta$V1, collapse = "\n"),
                                header=strsplit(maf_header$V1, "\t")[[1]])
   }
-  
 }
 
 
 # Second, we read and convert the VCFs in GenomicRanges for easy manipulation.
 message("- Converting to genomic ranges")
-mutsGR <- list() 
+mutsGR <- list()
 muts <-  list()
 for(c in callers[1:length(callers)]){
   v <- vcfs[c]
@@ -111,14 +112,14 @@ for(c in callers[1:length(callers)]){
     tmp$POS <- tmp$Start_Position
     tmp$REF <- tmp$Reference_Allele
     tmp$ALT <- tmp$Tumor_Seq_Allele2
-  } 
-  
+  }
+
   tmp$Caller <- c
   tmp$mut <- paste0(tmp$REF, ">", tmp$ALT)
   tmp$DNAchange <- paste0(tmp$`#CHROM`, ":g.", tmp$POS, tmp$REF, ">", tmp$ALT)
   tmp$start <- tmp$POS
   # get end position to create a range
-  tmp$end <- ifelse(nchar(tmp$REF) > nchar(tmp$ALT),  
+  tmp$end <- ifelse(nchar(tmp$REF) > nchar(tmp$ALT),
                      tmp$POS + nchar(tmp$REF)-1,
                      ifelse(nchar(tmp$REF) < nchar(tmp$ALT), tmp$POS + nchar(tmp$ALT)-1,
                             ifelse(nchar(tmp$REF) == nchar(tmp$ALT) & nchar(tmp$ALT) > 1, tmp$POS + nchar(tmp$REF),
@@ -126,10 +127,10 @@ for(c in callers[1:length(callers)]){
                      )
   )
   muts[[c]] <- tmp
-  mutsGR[[c]] <- GenomicRanges::makeGRangesFromDataFrame(df = tmp, 
-                                                    ignore.strand=TRUE, 
-                                                    start.field = "start", 
-                                                    end.field = "end", 
+  mutsGR[[c]] <- GenomicRanges::makeGRangesFromDataFrame(df = tmp,
+                                                    ignore.strand=TRUE,
+                                                    start.field = "start",
+                                                    end.field = "end",
                                                     seqnames.field = "#CHROM",
                                                     keep.extra.columns = T)
 }
@@ -159,8 +160,8 @@ overlapping.vars <- as.data.frame(overlapping.vars)
 # Overlaps that are adjacent, and only SNVs are removed if not DNP
 overlapping.variants.count        <- stringr::str_count(string = overlapping.vars$caller, pattern =  stringr::fixed("|")) + 1
 names(overlapping.variants.count) <- overlapping.vars$DNAchange
-overlapping.variants.count.snvs   <- overlapping.variants.count[ grepl(pattern = "[0-9](A|C|G|T)>(A|C|G|T)$", x = names(overlapping.variants.count))] 
-overlapping.variants.count.indels <- overlapping.variants.count[!grepl(pattern = "[0-9](A|C|G|T)>(A|C|G|T)$", x = names(overlapping.variants.count))] 
+overlapping.variants.count.snvs   <- overlapping.variants.count[ grepl(pattern = "[0-9](A|C|G|T)>(A|C|G|T)$", x = names(overlapping.variants.count))]
+overlapping.variants.count.indels <- overlapping.variants.count[!grepl(pattern = "[0-9](A|C|G|T)>(A|C|G|T)$", x = names(overlapping.variants.count))]
 
 # only snvs with exact match will be in the consensus list
 con.vars.ths.snv <- names(overlapping.variants.count.snvs[overlapping.variants.count.snvs >= argsL$thr])
@@ -193,14 +194,17 @@ what.caller.called <- function(row, consensus, variants){
     list(callers=row["Caller"], filters=row['FILTER'])
   }
 }
+cpu <- ifelse(is.na(argsL$cpu)| is.null(argsL$cpu), 1, as.integer(argsL$cpu))
+cl <- makeCluster(cpu)
 
 for (c in callers){
   message("- Annotating calls from ", c)
-  values <-  apply(X = muts[[c]], MARGIN = 1, FUN = what.caller.called, consensus=con.vars.ths, variants=overlapping.vars)
+  values <-  parApply(cl=cl, X = muts[[c]], MARGIN = 1, FUN = what.caller.called, consensus=con.vars.ths, variants=overlapping.vars)
   muts[[c]] <- cbind( muts[[c]], as.data.frame(do.call(rbind, values)))
   muts[[c]]$callers <- unlist(muts[[c]]$callers )
   muts[[c]]$filters <- unlist(muts[[c]]$filters )
 }
+
 
 all.muts <- do.call(rbind.fill, muts)
 
@@ -227,15 +231,15 @@ meta_consensus <- paste0('##INFO=<ID=callers,Number=1,Type=String,Description="V
 extra.cols <- c()
 for ( c in callers){
   if (is.vcf){
-    updated_meta <-  paste(callers_meta[[c]]$meta, 
-                           meta_consensus, 
+    updated_meta <-  paste(callers_meta[[c]]$meta,
+                           meta_consensus,
                            sep="\n")
     vcf.out.caller <- paste0(argsL$out_prefix, "_", c,".vcf")
   } else{
     if ("Caller" %in% callers_meta[[c]]$header){
       extra.cols <- c()
     } else{
-      extra.cols <- c("Caller", "callers", "filters", "FILTER_consensus", "isconsensus") 
+      extra.cols <- c("Caller", "callers", "filters", "FILTER_consensus", "isconsensus")
     }
     callers_meta[[c]]$header <- c(callers_meta[[c]]$header, extra.cols)
     updated_meta <- "#version 2.4" ## is a maf file
@@ -246,17 +250,17 @@ for ( c in callers){
   if (is.vcf){
     fields_to_write <- all.muts[all.muts$Caller==c,][,callers_meta[[c]]$header]
     fields_to_write$INFO <- paste(fields_to_write$INFO, all.muts[all.muts$Caller==c,]$INFO_consensus, sep=";")
-    fwrite(x = fields_to_write, 
-           file = vcf.out.caller, 
-           append = T, 
-           sep = "\t", 
+    fwrite(x = fields_to_write,
+           file = vcf.out.caller,
+           append = T,
+           sep = "\t",
            col.names = T)
   } else{
-    colnames(all.muts)[colnames(all.muts)=="FILTER_consensus"] <- "FILTER_consensus" 
-    fwrite(x = all.muts[all.muts$Caller==c,][,callers_meta[[c]]$header], 
-           file = vcf.out.caller, 
-           append = T, 
-           sep = "\t", 
+    colnames(all.muts)[colnames(all.muts)=="FILTER_consensus"] <- "FILTER_consensus"
+    fwrite(x = all.muts[all.muts$Caller==c,][,callers_meta[[c]]$header],
+           file = vcf.out.caller,
+           append = T,
+           sep = "\t",
            col.names = T)
   }
   message(" - Output in: ", vcf.out.caller)
@@ -268,7 +272,7 @@ if (is.vcf){
   meta <- paste0("##fileformat=VCFv4.2\n##source=Consensus", length(callers), "Callers (", paste0(callers, collapse = ","), ")\n", contigs_meta,
                  '##FILTER=<ID=PASS,Description="All filters passed">\n##FILTER=<ID=FAIL,Description="More than half the callers did not give a PASS">\n')
   # we need the meta contigs and the INFO
-  meta <- paste0(meta, 
+  meta <- paste0(meta,
                  meta_consensus)
 } else{
   meta <- "#version 2.4"
@@ -310,15 +314,15 @@ m <- make_comb_mat(variants_list)
 comb_order <- order(comb_size(m), decreasing = T)
 m2 <- make_comb_mat(variants_list_pass)
 comb_order2 <- order(comb_size(m2), decreasing = T)
-g <- ggplot(all.muts, aes(Caller, fill=isconsensus)) + 
-  geom_bar() + 
-  coord_flip() + 
+g <- ggplot(all.muts, aes(Caller, fill=isconsensus)) +
+  geom_bar() +
+  coord_flip() +
   scale_fill_manual(values = c(`TRUE`='#247671', `FALSE`='#92C2B5')) +
   geom_text_repel(stat='count', aes(label=prettyNum(..count.., big.mark = ","))) +
   ggtitle(subtitle = "PASS=All filters passed (note that '.' will be considered FAIL)", label = "") +
   facet_grid(.~FILTER_consensus, scales="free")  + theme(title = element_text(color="grey40"))
-u  <- grid.grabExpr(draw(UpSet(m = m, comb_order = comb_order, column_title="All variants"), newpage = FALSE)) 
-u2 <- grid.grabExpr(draw(UpSet(m = m2, comb_order = comb_order2, column_title="PASS variants"), newpage = FALSE)) 
+u  <- grid.grabExpr(draw(UpSet(m = m, comb_order = comb_order, column_title="All variants"), newpage = FALSE))
+u2 <- grid.grabExpr(draw(UpSet(m = m2, comb_order = comb_order2, column_title="PASS variants"), newpage = FALSE))
 
 
 # 8.27 x 11.69
@@ -326,7 +330,7 @@ pdf(pdf.out, width = 8.3, height = 11.7, paper = "A4")
 plot <- ggarrange(g, u, u2,
           labels = c("A", "B", "C"),
           ncol = 1, nrow = 3)
-annotate_figure(plot, top = text_grob(paste("Consensus summary for", sampleid), 
+annotate_figure(plot, top = text_grob(paste("Consensus summary for", sampleid),
                                       face = "bold", size = 14, family="Courier"))
 
 dev.off()

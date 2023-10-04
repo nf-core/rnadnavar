@@ -27,7 +27,7 @@ process RUN_CONSENSUS {
         def caller_list = caller.collect{ "--caller=$it"}.join(' ')
 
         """
-        run_consensus.R ${input_list} ${caller_list} --out_prefix=${prefix}.consensus $args
+        run_consensus.R ${input_list} ${caller_list} --out_prefix=${prefix}.consensus --cpu=$task.cpus $args
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
             R: \$(echo \$(R --version 2>&1) | head -n 1)
