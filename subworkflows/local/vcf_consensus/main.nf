@@ -97,7 +97,7 @@ workflow VCF_CONSENSUS {
                                         )
 
         // RESCUE STEP: cross dna / rna for a crossed second consensus
-        if (!(params.skip_tools && params.skip_tools.split(',').contains('rescue'))) {
+        if (!(params.tools && params.tools.split(',').contains('rescue'))) {
             // VCF from consensus
             maf_consensus_status_dna_to_cross = maf_from_consensus_dna.map{
 	                                                meta, maf, caller ->
