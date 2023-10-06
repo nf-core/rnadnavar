@@ -38,7 +38,7 @@ def read_whitelist_bed(bed_file):
             colnames = ["#CHROM", "POS", "REF", "ALT"]
         bed.columns = colnames
         try:
-            bed["DNAchange"] = bed['#CHROM'] + ":g." + bed['POS'].map(str) + bed['REF'] + ">" + bed['ALT']
+            bed["DNAchange"] = bed['#CHROM'].map(str) + ":g." + bed['POS'].map(str) + bed['REF'] + ">" + bed['ALT']
         except TypeError:
             print(
                 "[ERROR] BED file for whitelist should contain CHROM, START, END, REF and ALT columns with no headers.")
@@ -68,7 +68,7 @@ def read_maf(maf_file):
     else:
         maf = pd.read_csv(maf_file, sep="\t", comment="#")
     if "DNAchange" not in maf.columns:
-        maf["DNAchange"] = maf['Chromosome'] + ":g." + maf['Start_Position'].map(str) + \
+        maf["DNAchange"] = maf['Chromosome'].map(str) + ":g." + maf['Start_Position'].map(str) + \
                            maf['Reference_Allele'] + ">" + maf['Tumor_Seq_Allele2']
     return maf
 
@@ -139,7 +139,7 @@ def remove_homopolymers(maf, ref):
     # read genome to get context
     genome = pysam.FastaFile(ref)
     # Add context
-    maf["CONTEXT"] = maf.apply(lambda row: add_context(row["Chromosome"],
+    maf["CONTEXT"] = maf.apply(lambda row: add_context(str(row["Chromosome"]),
                                                        row["Start_Position"],
                                                        row["Reference_Allele"],
                                                        genome),
