@@ -55,6 +55,9 @@ if(!grepl(pattern = "--out_prefix=", x = paste(script_args, collapse = ""))) {
 if(!grepl(pattern = "---thr=", x = paste(script_args, collapse = ""))) {
   script_args <- c(script_args, "--thr=2")
 }
+if(!grepl(pattern = "--cpu=", x = paste(script_args, collapse = ""))) {
+  script_args <- c(script_args, "--cpu=1")
+}
 
 
 ## Parse arguments (we expect the form --arg=value)
