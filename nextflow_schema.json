@@ -89,6 +89,20 @@
                     "type": "boolean",
                     "description": "Saves output from Markduplicates & Baserecalibration as BAM file instead of CRAM",
                     "fa_icon": "fas fa-download"
+                },
+                "rna": {
+                    "type": "boolean",
+                    "fa_icon": "fas fa-download",
+                    "description": "True if there are RNA samples to be analysed",
+                    "help_text": "Avoids STAR indexing otherwise",
+                    "default": true
+                },
+                "dna": {
+                    "type": "boolean",
+                    "fa_icon": "fas fa-download",
+                    "description": "True if there are DNA samples to be analysed",
+                    "help_text": "Avoids BWA indexing otherwise",
+                    "default": true
                 }
             }
         },
