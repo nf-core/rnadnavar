@@ -56,8 +56,18 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
 //	            MERGE_ALIGN(previous_alignment.map{meta, cram, crai, maf -> [meta, cram]})
 	        }  else {
 	            reads_to_realign.dump(tag:'reads_to_realign0')
-	            maf_with_candidates.dump(tag:'maf_with_candidates0')
-	            maf_with_candidates = maf_with_candidates.map{
+	            // Filter DNA tumour samples, only DNA matched normal and RNA will be processed for the realignment
+	            reads_to_realign_branch = reads_to_realign.branch{
+	                                    norealign: it[0].status == 1
+				                        realign:   it[0].status == 2 || it[0].status == 0
+	                                    }  // [meta, reads]
+	            maf_with_candidates_branch = maf_with_candidates.branch{
+	                                    norealign: it[0].status == 1
+				                        realign:   it[0].status == 2 || it[0].status == 0
+	                                    }
+	            maf_with_candidates_branch.realign.dump(tag:'maf_with_candidates0')
+	            // map and change ids with _realign tag to differentiate from first alignment
+	            maf_with_candidates_tumor = maf_with_candidates_branch.realign.map{
 	                                    meta, maf ->
 	                                    [[
 	                                    patient: meta.patient,
@@ -66,15 +76,25 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
 	                                    id:      meta.id.split('_vs_')[0] + "_realign"
 	                                     ], maf]
 	                                    }
-	            reads_to_realign = reads_to_realign.map{meta, cram, crai ->
+	            maf_with_candidates_normal = maf_with_candidates_branch.realign.map{
+	                                    meta, maf ->
+	                                    [[
+	                                    patient: meta.patient,
+	                                    sample:  meta.id.split('_vs_')[1] + "_realign",
+	                                    status:  0,
+	                                    id:      meta.id.split('_vs_')[1] + "_realign"
+	                                     ], maf]
+	                                    }
+	            maf_with_candidates_to_realign = maf_with_candidates_tumor.mix(maf_with_candidates_normal)
+	            reads_to_realign_and_join = reads_to_realign_branch.realign.map{meta, cram, crai ->
 	                                   [[patient: meta.patient,
 	                                    sample:  meta.id + "_realign",
 	                                    status:  meta.status,
 	                                    id:      meta.id + "_realign"], cram, crai]
 	                                    }
-	            reads_to_realign.dump(tag:'reads_to_realign1')
-	            maf_with_candidates.dump(tag:'maf_with_candidates1')
-	            cram_to_realign = reads_to_realign.join(maf_with_candidates)
+	            reads_to_realign_and_join.dump(tag:'reads_to_realign1')
+	            maf_with_candidates_to_realign.dump(tag:'maf_with_candidates_to_realign')
+	            cram_to_realign = reads_to_realign_and_join.join(maf_with_candidates_to_realign)
 	            cram_to_realign.dump(tag:"cram_to_realign")
 	        }
 	        // Get candidate regions
@@ -115,12 +135,5 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
     dna_consensus_maf  = dna_consensus_maf
     dna_varcall_mafs   = dna_varcall_mafs
     versions           = versions                                                         // channel: [ versions.yml ]
-
-
-
-
-
-
-
 
 }
