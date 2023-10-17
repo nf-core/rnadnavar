@@ -37,7 +37,7 @@ workflow PREPARE_REFERENCE_AND_INTERVALS {
     bwa                    = params.fasta                   ? params.bwa                        ? Channel.fromPath(params.bwa).collect()                           : PREPARE_GENOME.out.bwa                   : []
     bwamem2                = params.fasta                   ? params.bwamem2                    ? Channel.fromPath(params.bwamem2).collect()                       : PREPARE_GENOME.out.bwamem2               : []
     dragmap                = params.fasta                   ? params.dragmap                    ? Channel.fromPath(params.dragmap).collect()                       : PREPARE_GENOME.out.hashtable             : []
-    hisat2_index           = params.fasta                   ? params.hisat2_index               ? Channel.fromPath(params.hisat2_index).collect()                  : PREPARE_GENOME.out.hisat2_index          : []
+    hisat2_index           = params.fasta                   ? Channel.fromPath(params.hisat2_index).map{ it -> [ [id:'ht_idx'], it ] }.collect()                   : PREPARE_GENOME.out.hisat2_index
     splicesites            = params.fasta                   ? params.splicesites                ? Channel.fromPath(params.splicesites).collect()                   : PREPARE_GENOME.out.splicesites           : []
 	dict                   = params.dict                    ? Channel.fromPath(params.dict).map{ it -> [ [id:'dict'], it ] }.collect()                             : PREPARE_GENOME.out.dict
     fasta_fai              = params.fasta                   ? params.fasta_fai                  ? Channel.fromPath(params.fasta_fai).collect()                     : PREPARE_GENOME.out.fasta_fai             : []
@@ -47,7 +47,6 @@ workflow PREPARE_REFERENCE_AND_INTERVALS {
     known_snps_tbi         = params.known_snps              ? params.known_snps_tbi             ? Channel.fromPath(params.known_snps_tbi).collect()                : PREPARE_GENOME.out.known_snps_tbi        : Channel.value([])
     pon_tbi                = params.pon                     ? params.pon_tbi                    ? Channel.fromPath(params.pon_tbi).collect()                       : PREPARE_GENOME.out.pon_tbi               : []
 
-    dict.dump(tag:"dict00")
     // known_sites is made by grouping both the dbsnp and the known snps/indels resources
     // Which can either or both be optional
     known_sites_indels     = dbsnp.concat(known_indels).collect()
@@ -60,25 +59,7 @@ workflow PREPARE_REFERENCE_AND_INTERVALS {
     PREPARE_INTERVALS(fasta_fai, params.intervals, params.no_intervals)
     versions = versions.mix(PREPARE_INTERVALS.out.versions)
 
-    // Intervals for speed up preprocessing/variant calling by spread/gather
-    intervals_bed_combined         = params.no_intervals ? Channel.value([])      : PREPARE_INTERVALS.out.intervals_bed_combined
-    // For QC during preprocessing, we don't need any intervals (MOSDEPTH doesn't take them for WGS)
-    intervals_for_preprocessing = params.wes ?
-        intervals_bed_combined.map{it -> [ [ id:it.baseName ], it ]}.collect() :
-        Channel.value([ [ id:'null' ], [] ])
-    intervals                     = PREPARE_INTERVALS.out.intervals_bed        // [interval, num_intervals] multiple interval.bed files, divided by useful intervals for scatter/gather
-    intervals_bed_gz_tbi          = PREPARE_INTERVALS.out.intervals_bed_gz_tbi // [interval_bed, tbi, num_intervals] multiple interval.bed.gz/.tbi files, divided by useful intervals for scatter/gather
-    intervals_bed_gz_tbi_combined = PREPARE_INTERVALS.out.intervals_bed_gz_tbi_combined   // [ intervals.bed.gz, intervals.bed.gz.tbi]
 
-	intervals_and_num_intervals   = intervals.map{ interval, num_intervals ->
-	        if ( num_intervals < 1 ) [ [], num_intervals ]
-	        else [ interval, num_intervals ]
-        }
-
-    intervals_bed_gz_tbi_and_num_intervals = intervals_bed_gz_tbi.map{ intervals, num_intervals ->
-        if ( num_intervals < 1 ) [ [], [], num_intervals ]
-        else [ intervals[0], intervals[1], num_intervals ]
-    }
 
 
     emit:
@@ -92,11 +73,11 @@ workflow PREPARE_REFERENCE_AND_INTERVALS {
     dragmap                       = dragmap
     star_index                    = PREPARE_GENOME.out.star_index
     gtf                           = PREPARE_GENOME.out.gtf
-    intervals                     = intervals
-    intervals_bed_gz_tbi          = intervals_bed_gz_tbi
-    intervals_for_preprocessing   = intervals_for_preprocessing
-    intervals_bed_combined        = intervals_bed_combined
-    intervals_bed_gz_tbi_combined = intervals_bed_gz_tbi_combined
+    intervals                     = PREPARE_INTERVALS.out.intervals_bed
+    intervals_bed_gz_tbi          = PREPARE_INTERVALS.out.intervals_bed_gz_tbi
+    intervals_for_preprocessing   = PREPARE_INTERVALS.out.intervals_for_preprocessing
+    intervals_bed_combined        = PREPARE_INTERVALS.out.intervals_bed_combined
+    intervals_bed_gz_tbi_combined = PREPARE_INTERVALS.out.intervals_bed_gz_tbi_combined
     dbsnp                         = dbsnp
     dbsnp_tbi                     = dbsnp_tbi
     pon                           = pon
