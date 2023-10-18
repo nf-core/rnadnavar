@@ -85,9 +85,10 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
 
     // MUTECT2
     if (tools && tools.split(',').contains('mutect2') || second_run) {
+        mutect_cram = cram.map { meta, normal_cram, normal_crai, tumor_cram, tumor_crai -> [ meta, [ normal_cram, tumor_cram ], [ normal_crai, tumor_crai ] ] }
         BAM_VARIANT_CALLING_SOMATIC_MUTECT2(
             // Remap channel to match module/subworkflow
-            cram.map { meta, normal_cram, normal_crai, tumor_cram, tumor_crai -> [ meta, [ normal_cram, tumor_cram ], [ normal_crai, tumor_crai ] ] },
+            mutect_cram,
             // Remap channel to match module/subworkflow
             fasta.map{ it -> [ [ id:'fasta' ], it ] },
             // Remap channel to match module/subworkflow
