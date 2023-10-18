@@ -149,8 +149,10 @@ for (c1 in callers){
     hits <- GenomicRanges::findOverlaps(query = mutsGR[[c1]], subject = mutsGR[[c2]], maxgap = 0)
     dnachange.hits <- muts[[c1]][queryHits(hits)]$DNAchange
     filt.hits <- muts[[c1]][queryHits(hits)]$FILTER
-    # due to normalization we might find the same variant with different filters - these come from homopolymer regions
-    overlapping.vars <- rbind(overlapping.vars, unique(data.frame(DNAchange=dnachange.hits, caller=c1, FILTER=filt.hits)))
+    if (length(dnachange.hits) > 0){
+      # due to normalization we might find the same variant with different filters - these come from homopolymer regions
+      overlapping.vars <- rbind(overlapping.vars, unique(data.frame(DNAchange=dnachange.hits, caller=c1, FILTER=filt.hits)))
+      }
     }
   }
 }

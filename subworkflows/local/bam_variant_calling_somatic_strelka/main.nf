@@ -16,15 +16,21 @@ workflow BAM_VARIANT_CALLING_SOMATIC_STRELKA {
     fasta         // channel: [mandatory] [ fasta ]
     fasta_fai     // channel: [mandatory] [ fasta_fai ]
     intervals     // channel: [mandatory] [ interval.bed.gz, interval.bed.gz.tbi, num_intervals ] or [ [], [], 0 ] if no intervals
+	no_intervals  // true/false
 
     main:
     versions = Channel.empty()
 
     // Combine cram and intervals for spread and gather strategy
-    cram_intervals = cram.combine(intervals)
+    if (no_intervals){
+        cram_intervals = cram.combine(intervals)
+        // Move num_intervals to meta map
+        .map{ meta, normal_cram, normal_crai, tumor_cram, tumor_crai, manta_vcf, manta_tbi, intervals_gz_tbi, num_intervals -> [ meta + [ num_intervals:0 ], normal_cram, normal_crai, tumor_cram, tumor_crai, manta_vcf, manta_tbi, [], [] ] }
+    } else{
+       cram_intervals = cram.combine(intervals)
         // Move num_intervals to meta map
         .map{ meta, normal_cram, normal_crai, tumor_cram, tumor_crai, manta_vcf, manta_tbi, intervals_gz_tbi, num_intervals -> [ meta + [ num_intervals:num_intervals ], normal_cram, normal_crai, tumor_cram, tumor_crai, manta_vcf, manta_tbi, intervals_gz_tbi[0], intervals_gz_tbi[1] ] }
-
+    }
     STRELKA_SOMATIC(cram_intervals, fasta, fasta_fai )
 
     // Figuring out if there is one or more vcf(s) from the same sample
