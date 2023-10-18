@@ -267,8 +267,9 @@ if ((params.download_cache) && (params.snpeff_cache || params.vep_cache)) {
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
 //
 // Build the genome index and other reference files
-include { PREPARE_REFERENCE_AND_INTERVALS   } from '../subworkflows/local/prepare_reference_and_intervals/main'
-include { PREPARE_INTERVALS as PREPARE_INTERVALS_FOR_REALIGNMENT   } from '../subworkflows/local/prepare_intervals/main'
+include { SAMPLESHEET_TO_CHANNEL                                  } from '../subworkflows/local/samplesheet_to_channel/main'
+include { PREPARE_REFERENCE_AND_INTERVALS                         } from '../subworkflows/local/prepare_reference_and_intervals/main'
+include { PREPARE_INTERVALS as PREPARE_INTERVALS_FOR_REALIGNMENT  } from '../subworkflows/local/prepare_intervals/main'
 // Download annotation cache if needed
 include { ENSEMBLVEP_DOWNLOAD               } from '../modules/nf-core/ensemblvep/download/main'
 
@@ -325,6 +326,18 @@ def multiqc_report = []
 */
 
 workflow RNADNAVAR {
+
+	// Set input, can either be from --input or from automatic retrieval in WorkflowSarek.groovy
+	if (params.input) {
+	    ch_from_samplesheet = params.build_only_index ? Channel.empty() : Channel.fromSamplesheet("input")
+	} else {
+	    ch_from_samplesheet = params.build_only_index ? Channel.empty() : Channel.fromSamplesheet("input_restart")
+	}
+	// Parse samplesheet
+	SAMPLESHEET_TO_CHANNEL(ch_from_samplesheet)
+
+	input_sample = SAMPLESHEET_TO_CHANNEL.out.input_sample
+
 
     // Initialise MULTIQC
     ch_multiqc_config                     = Channel.fromPath("$projectDir/assets/multiqc_config.yml", checkIfExists: true)
