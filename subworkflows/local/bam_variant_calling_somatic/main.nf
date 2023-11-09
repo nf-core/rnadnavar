@@ -23,6 +23,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
     panel_of_normals_tbi          // channel: [optional]  panel_of_normals_tbi
     joint_mutect2                 // boolean: [mandatory] [default: false] run mutect2 in joint mode
 	second_run
+	no_intervals
 
     main:
     versions          = Channel.empty()
@@ -76,7 +77,8 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
             dict,
             fasta,
             fasta_fai,
-            intervals_bed_gz_tbi
+            intervals_bed_gz_tbi,
+            no_intervals
         )
 
         vcf_strelka = Channel.empty().mix(BAM_VARIANT_CALLING_SOMATIC_STRELKA.out.vcf)

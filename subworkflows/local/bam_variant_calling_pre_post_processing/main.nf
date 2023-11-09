@@ -41,6 +41,7 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     dna_consensus_maf               // to repeat rescue consensus
     dna_varcall_mafs                // to repeat rescue consensus
     second_run
+    no_intervals
 
     main:
     reports   = Channel.empty()
@@ -84,7 +85,8 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
          pon,
          pon_tbi,
          input_sample,
-         second_run
+         second_run,
+         no_intervals
      )
      cram_variant_calling_pair     = BAM_VARIANT_CALLING.out.cram_variant_calling_pair  // use same crams for force calling later
      vcf_to_normalise              = BAM_VARIANT_CALLING.out.vcf_to_normalise
@@ -105,6 +107,8 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
                    )
     versions                      = versions.mix(VCF_NORMALISE.out.versions)
     vcf_to_annotate               = VCF_NORMALISE.out.vcf
+
+    vcf_to_annotate.dump(tag:"vcf_to_annotate")
 
     // ANNOTATION
 
