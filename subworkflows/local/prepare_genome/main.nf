@@ -75,7 +75,7 @@ workflow PREPARE_GENOME {
     TABIX_KNOWN_INDELS(known_indels.flatten().map{ it -> [ [ id:it.baseName ], it ] } )
     TABIX_PON(pon.flatten().map{ it -> [ [ id:it.baseName ], it ] })
 
- //
+    //
     // Uncompress GTF annotation file or create from GFF3 if required
     //
     if (params.rna){
@@ -178,7 +178,7 @@ workflow PREPARE_GENOME {
         ch_star_index   = Channel.empty()
         ch_gtf          = Channel.empty()
         ch_hisat2_index = Channel.empty()
-	    ch_splicesites  = Channel.empty()
+	    ch_splicesites  = Channel.value([])
 	    ch_exon_bed     = Channel.empty()
     }
 
