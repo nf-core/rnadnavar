@@ -30,7 +30,7 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
         bam_mapped = Channel.empty()
 
         if (params.step in ['mapping', 'markduplicates', 'splitncigar', 
-        'prepare_recalibration', 'recalibrate', 'variant_calling', 'normalize', 'consensus', 
+        'prepare_recalibration', 'recalibrate', 'variant_calling', 'normalise', 'consensus',
         'second_run'] && !(params.skip_tools && params.skip_tools.split(",").contains("second_run"))) {
 	        if (params.step == 'second_run') {
 	            input_elements_status = input_sample.branch{
@@ -129,6 +129,7 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
             // Mix with index add data type and change id to sample
             bam_mapped = FASTQ_ALIGN_HISAT2.out.bam.join(FASTQ_ALIGN_HISAT2.out.bai).map{meta,bam,bai -> [meta + [ id:meta.sample, data_type:"bam"], bam, bai]}
     }
+    bam_mapped.dump(tag:"bam_mapped_REALIGN")
 
     emit:
     bam_mapped         = bam_mapped
