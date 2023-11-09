@@ -40,7 +40,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
         // Move num_intervals to meta map and reorganize channel for MUTECT2_PAIRED module
         .map{ meta, input_list, input_index_list, intervals, num_intervals -> [ meta + [ num_intervals:num_intervals ], input_list, input_index_list, intervals ] }
 
-    if (joint_mutect2) {
+    if (joint_mutect2) { // TODO: test this mode
         // Separate normal cram files and remove duplicates
         ch_normal_cram = input.map{ meta, cram, crai -> [ meta - meta.subMap('tumor_id') + [id:meta.patient], cram[0], crai[0] ] }.unique()
         // Extract tumor cram files
@@ -99,7 +99,6 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
     tbi = Channel.empty().mix(MERGE_MUTECT2.out.tbi, tbi_branch.no_intervals).map{ meta, tbi -> [ meta - meta.subMap('normal_id', 'tumor_id', 'num_intervals'), tbi ]}
     stats = Channel.empty().mix(MERGEMUTECTSTATS.out.stats, stats_branch.no_intervals).map{ meta, stats -> [ meta - meta.subMap('normal_id', 'tumor_id', 'num_intervals'), stats ]}
     f1r2 = Channel.empty().mix(f1r2_to_merge, f1r2_branch.no_intervals).map{ meta, f1r2 -> [ meta - meta.subMap('normal_id', 'tumor_id', 'num_intervals'), f1r2 ]}
-	// TODO: skip below if realignment
 	if (!second_run){
 	    // Generate artifactpriors using learnreadorientationmodel on the f1r2 output of mutect2
 	    LEARNREADORIENTATIONMODEL(f1r2)
