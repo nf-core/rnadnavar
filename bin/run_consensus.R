@@ -109,49 +109,54 @@ mutsGR <- list()
 muts <-  list()
 for(c in callers[1:length(callers)]){
   v <- vcfs[c]
-  tmp <- fread(paste0("zgrep -v '##' ", v))
+
   if (!is.vcf){
+    tmp <- fread(paste0("zgrep -v '#' ", v))
     tmp$`#CHROM` <- tmp$Chromosome
     tmp$POS <- tmp$Start_Position
     tmp$REF <- tmp$Reference_Allele
     tmp$ALT <- tmp$Tumor_Seq_Allele2
+  } else {
+    tmp <- fread(paste0("zgrep -v '##' ", v))
   }
+  if (nrow(tmp)>0) {
+    tmp$Caller <- c
+    tmp$mut <- paste0(tmp$REF, ">", tmp$ALT)
+    tmp$DNAchange <- paste0(tmp$`#CHROM`, ":g.", tmp$POS, tmp$REF, ">", tmp$ALT)
+    tmp$start <- tmp$POS
+    # get end position to create a range
+    tmp$end <- ifelse(nchar(tmp$REF) > nchar(tmp$ALT),
+                      tmp$POS + nchar(tmp$REF) - 1,
+                      ifelse(nchar(tmp$REF) < nchar(tmp$ALT), tmp$POS + nchar(tmp$ALT) - 1,
+                             ifelse(nchar(tmp$REF) == nchar(tmp$ALT) & nchar(tmp$ALT) > 1, tmp$POS + nchar(tmp$REF),
+                                    tmp$POS)
+                      )
+    )
 
-  tmp$Caller <- c
-  tmp$mut <- paste0(tmp$REF, ">", tmp$ALT)
-  tmp$DNAchange <- paste0(tmp$`#CHROM`, ":g.", tmp$POS, tmp$REF, ">", tmp$ALT)
-  tmp$start <- tmp$POS
-  # get end position to create a range
-  tmp$end <- ifelse(nchar(tmp$REF) > nchar(tmp$ALT),
-                     tmp$POS + nchar(tmp$REF)-1,
-                     ifelse(nchar(tmp$REF) < nchar(tmp$ALT), tmp$POS + nchar(tmp$ALT)-1,
-                            ifelse(nchar(tmp$REF) == nchar(tmp$ALT) & nchar(tmp$ALT) > 1, tmp$POS + nchar(tmp$REF),
-                                   tmp$POS)
-                     )
-  )
-  muts[[c]] <- tmp
-  mutsGR[[c]] <- GenomicRanges::makeGRangesFromDataFrame(df = tmp,
-                                                    ignore.strand=TRUE,
-                                                    start.field = "start",
-                                                    end.field = "end",
-                                                    seqnames.field = "#CHROM",
-                                                    keep.extra.columns = T)
+    muts[[c]] <- tmp
+    mutsGR[[c]] <- GenomicRanges::makeGRangesFromDataFrame(df = tmp,
+                                                           ignore.strand = TRUE,
+                                                           start.field = "start",
+                                                           end.field = "end",
+                                                           seqnames.field = "#CHROM",
+                                                           keep.extra.columns = T) }
 }
 
+callers <- names(mutsGR)
 message("- Finding overlaps")
 # Third, we find overlaps
 overlapping.vars <- data.frame(DNAchange=character(), caller=character(), FILTER=character())
-for (c1 in callers){
-  for (c2 in callers){
+for (c1 in names(mutsGR)){
+  for (c2 in names(mutsGR)){
     if (c1!=c2){
     group_name <- paste0(c1, "vs", c2)
     # The gap between 2 adjacent ranges is 0.
-    hits <- GenomicRanges::findOverlaps(query = mutsGR[[c1]], subject = mutsGR[[c2]], maxgap = 0)
-    dnachange.hits <- muts[[c1]][queryHits(hits)]$DNAchange
-    filt.hits <- muts[[c1]][queryHits(hits)]$FILTER
-    if (length(dnachange.hits) > 0){
-      # due to normalization we might find the same variant with different filters - these come from homopolymer regions
-      overlapping.vars <- rbind(overlapping.vars, unique(data.frame(DNAchange=dnachange.hits, caller=c1, FILTER=filt.hits)))
+      hits <- GenomicRanges::findOverlaps(query = mutsGR[[c1]], subject = mutsGR[[c2]], maxgap = 0)
+      dnachange.hits <- muts[[c1]][queryHits(hits)]$DNAchange
+      filt.hits <- muts[[c1]][queryHits(hits)]$FILTER
+      if (length(dnachange.hits) > 0) {
+        # due to normalization we might find the same variant with different filters - these come from homopolymer regions
+        overlapping.vars <- rbind(overlapping.vars, unique(data.frame(DNAchange = dnachange.hits, caller = c1, FILTER = filt.hits)))
       }
     }
   }
@@ -315,8 +320,12 @@ for (c in callers){
   variants_list_pass[[c]] <- all.muts[all.muts$Caller==c & all.muts$FILTER_consensus=="PASS",]$DNAchange
 }
 
-m <- make_comb_mat(variants_list)
-comb_order <- order(comb_size(m), decreasing = T)
+if (length(unlist(variants_list)) > 0 & length(unlist(variants_list_pass)) > 0){
+  m <- make_comb_mat(variants_list)
+  comb_order <- order(comb_size(m), decreasing = T)
+  u  <- grid.grabExpr(draw(UpSet(m = m, comb_order = comb_order, column_title="All variants"), newpage = FALSE))
+
+
 m2 <- make_comb_mat(variants_list_pass)
 comb_order2 <- order(comb_size(m2), decreasing = T)
 g <- ggplot(all.muts, aes(Caller, fill=isconsensus)) +
@@ -326,20 +335,19 @@ g <- ggplot(all.muts, aes(Caller, fill=isconsensus)) +
   geom_text_repel(stat='count', aes(label=prettyNum(..count.., big.mark = ","))) +
   ggtitle(subtitle = "PASS=All filters passed (note that '.' will be considered FAIL)", label = "") +
   facet_grid(.~FILTER_consensus, scales="free")  + theme(title = element_text(color="grey40"))
-u  <- grid.grabExpr(draw(UpSet(m = m, comb_order = comb_order, column_title="All variants"), newpage = FALSE))
-u2 <- grid.grabExpr(draw(UpSet(m = m2, comb_order = comb_order2, column_title="PASS variants"), newpage = FALSE))
+  u2 <- grid.grabExpr(draw(UpSet(m = m2, comb_order = comb_order2, column_title="PASS variants"), newpage = FALSE))
+  # 8.27 x 11.69
+  pdf(pdf.out, width = 8.3, height = 11.7, paper = "A4")
+  plot <- ggarrange(g, u, u2,
+            labels = c("A", "B", "C"),
+            ncol = 1, nrow = 3)
+  annotate_figure(plot, top = text_grob(paste("Consensus summary for", sampleid),
+                                        face = "bold", size = 14, family="Courier"))
 
+  dev.off()
+  message(" - Output in: ", pdf.out)
 
-# 8.27 x 11.69
-pdf(pdf.out, width = 8.3, height = 11.7, paper = "A4")
-plot <- ggarrange(g, u, u2,
-          labels = c("A", "B", "C"),
-          ncol = 1, nrow = 3)
-annotate_figure(plot, top = text_grob(paste("Consensus summary for", sampleid),
-                                      face = "bold", size = 14, family="Courier"))
-
-dev.off()
-message(" - Output in: ", pdf.out)
+}
 
 # check whether the unwanted file exists and remove it
 file.exists("Rplots.pdf")
