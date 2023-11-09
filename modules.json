@@ -266,21 +266,6 @@
                         "git_sha": "a6e11ac655e744f7ebc724be669dd568ffdc0e80",
                         "installed_by": ["modules"]
                     },
-                    "picard/collecthsmetrics": {
-                        "branch": "master",
-                        "git_sha": "0ce3ab0ac301f160225b22254fa238478b4389f2",
-                        "installed_by": ["bam_qc_picard"]
-                    },
-                    "picard/collectmultiplemetrics": {
-                        "branch": "master",
-                        "git_sha": "911696ea0b62df80e900ef244d7867d177971f73",
-                        "installed_by": ["bam_qc_picard"]
-                    },
-                    "picard/collectwgsmetrics": {
-                        "branch": "master",
-                        "git_sha": "735e1e04e7e01751d2d6e97055bbdb6f70683cc1",
-                        "installed_by": ["bam_qc_picard"]
-                    },
                     "picard/filtersamreads": {
                         "branch": "master",
                         "git_sha": "911696ea0b62df80e900ef244d7867d177971f73",
@@ -403,11 +388,6 @@
             "subworkflows": {
                 "nf-core": {
                     "bam_markduplicates_picard": {
-                        "branch": "master",
-                        "git_sha": "dedc0e31087f3306101c38835d051bf49789445a",
-                        "installed_by": ["subworkflows"]
-                    },
-                    "bam_qc_picard": {
                         "branch": "master",
                         "git_sha": "dedc0e31087f3306101c38835d051bf49789445a",
                         "installed_by": ["subworkflows"]
