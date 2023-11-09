@@ -41,14 +41,18 @@ workflow BAM_GATK_PREPROCESSING {
     main:
     reports   = Channel.empty()
     versions  = Channel.empty()
-
-    ch_sncr_cram_for_restart = Channel.empty()
-    cram_variant_calling     = Channel.empty()
+    cram_variant_calling = Channel.empty()
     // Markduplicates
     if (params.step in ['mapping', 'markduplicates'] || second_run) {
 
         cram_markduplicates_no_spark = Channel.empty()
-
+		// make sure data_type is present
+		bam_mapped = bam_mapped.map { infoMap ->
+                                    infoMap[0] = (infoMap[0] + [data_type: "bam"])
+                                    infoMap }
+        cram_mapped = cram_mapped.map { infoMap ->
+                                    infoMap[0] = (infoMap[0] + [data_type: "cram"])
+                                    infoMap }
 		// cram_for_markduplicates will contain bam mapped with FASTQ_ALIGN_BWAMEM_MEM2_DRAGMAP when step is mapping
         // Or bams that are specified in the samplesheet.csv when step is prepare_recalibration
         cram_for_markduplicates = params.step == 'mapping' || second_run ? bam_mapped : input_sample.map{ meta, input, index -> [ meta, input ] }
@@ -59,11 +63,11 @@ workflow BAM_GATK_PREPROCESSING {
 
         // Should it be possible to restart from converted crams?
         // For now, conversion from bam to cram is only done when skipping markduplicates
-		if (params.skip_tools && params.skip_tools.split(',').contains('markduplicates')) {
+		if ((params.skip_tools && params.skip_tools.split(',').contains('markduplicates')) && !second_run) {
             if (params.step == 'mapping') {
-                cram_skip_markduplicates = cram_mapped
+                cram_skip_markduplicates = cram_for_markduplicates
             } else {
-                input_markduplicates_convert = input_sample.branch{
+                input_markduplicates_convert = cram_for_markduplicates.branch{
                     bam:  it[0].data_type == "bam"
                     cram: it[0].data_type == "cram"
                 }
@@ -111,15 +115,16 @@ workflow BAM_GATK_PREPROCESSING {
         // Create CSV to restart from this step
         csv_subfolder = 'markduplicates'
         params.save_output_as_bam ? CHANNEL_MARKDUPLICATES_CREATE_CSV(CRAM_TO_BAM.out.alignment_index, csv_subfolder, params.outdir, params.save_output_as_bam) : CHANNEL_MARKDUPLICATES_CREATE_CSV(ch_md_cram_for_restart, csv_subfolder, params.outdir, params.save_output_as_bam)
+    } else {
+        ch_md_cram_for_restart   = Channel.empty().mix(input_sample)
+        cram_skip_markduplicates = Channel.empty().mix(input_sample)
     }
 
 
     // SplitNCigarReads for RNA
+    cram_skip_splitncigar = ch_md_cram_for_restart?: cram_skip_markduplicates
     if (params.step in ['mapping', 'markduplicates', 'splitncigar'] || second_run) {
-		if (params.step == 'mapping') {
-                cram_skip_splitncigar = cram_skip_markduplicates
-        } else {
-			if (params.step == "splitncigarreads"){
+        if (params.step == "splitncigarreads"){
 		        // Support if starting from BAM or CRAM files
 		        input_sncr_convert = input_sample.branch{
 		            bam:  it[0].data_type == "bam"
@@ -131,23 +136,22 @@ workflow BAM_GATK_PREPROCESSING {
 	            BAM_TO_CRAM(input_sncr_convert, fasta, fasta_fai)
 	            versions = versions.mix(BAM_TO_CRAM.out.versions)
 
-	            ch_cram_from_bam = BAM_TO_CRAM.out.alignment_index
+	            sncr_cram_from_bam = BAM_TO_CRAM.out.alignment_index
 	                // Make sure correct data types are carried through
 	                .map{ meta, cram, crai -> [ meta + [data_type: "cram"], cram, crai ] }
 
-	            cram_skip_splitncigar = Channel.empty().mix(ch_cram_from_bam, input_sncr_convert.cram)
-	            }
-		}
+	            cram_skip_splitncigar = Channel.empty().mix(sncr_cram_from_bam, input_sncr_convert.cram)
+	    }
 
         // cram_for_bam_splitncigar contains either:
         // - crams from markduplicates
         // - crams converted from bam mapped when skipping markduplicates
         // - input cram files, when start from step markduplicates
-        cram_skip_splitncigar = Channel.empty().mix(ch_md_cram_for_restart, cram_skip_markduplicates )
+        cram_skip_splitncigar = cram_skip_splitncigar
             // Make sure correct data types are carried through
             .map{ meta, cram, crai -> [ meta + [data_type: "cram"], cram, crai ] }
-
-        if (!(params.skip_tools && params.skip_tools.split(',').contains('splitncigar'))) {
+		cram_splitncigar_no_spark = Channel.empty()
+        if (!(params.skip_tools && params.skip_tools.split(',').contains('splitncigar')) || second_run) {
 			cram_skip_splitncigar.dump(tag:"cram_skip_splitncigar")
             cram_for_splitncigar_status = cram_skip_splitncigar.branch{
 									            dna:  it[0].status < 2
@@ -167,23 +171,16 @@ workflow BAM_GATK_PREPROCESSING {
             versions = versions.mix(BAM_SPLITNCIGARREADS.out.versions)
 
             cram_skip_splitncigar = Channel.empty()
-
-        } else {
-
-            // ch_cram_for_bam_baserecalibrator contains either:
-	        // - crams from markduplicates
-	        // - crams converted from bam mapped when skipping markduplicates
-	        // - input cram files, when start from step markduplicates
-	        ch_cram_for_bam_baserecalibrator = Channel.empty().mix(cram_for_splitncigar)
         }
 
-        // ch_md_cram_for_restart contains crams from markduplicates
-        ch_sncr_cram_for_restart = Channel.empty().mix(cram_splitncigar_no_spark)
+        // cram_splitncigar_no_spark contains crams from splitncigar or markduplicates if applicable
+        ch_sncr_cram_for_restart = Channel.empty().mix(cram_splitncigar_no_spark).mix(cram_skip_splitncigar)
             // Make sure correct data types are carried through
             .map{ meta, cram, crai -> [ meta + [data_type: "cram"], cram, crai ] }
     }
 
     // BQSR
+	ch_cram_for_bam_baserecalibrator = ch_sncr_cram_for_restart?: cram_skip_splitncigar
     if (params.step in ['mapping', 'markduplicates', 'splitncigar', 'prepare_recalibration'] & !second_run) {
 
         // Run if starting from step "prepare_recalibration". This will not run for second pass
@@ -199,12 +196,12 @@ workflow BAM_GATK_PREPROCESSING {
             BAM_TO_CRAM(input_prepare_recal_convert.bam, fasta, fasta_fai)
             versions = versions.mix(BAM_TO_CRAM.out.versions)
 
-            ch_cram_from_bam = BAM_TO_CRAM.out.alignment_index
+            sncr_cram_from_bam = BAM_TO_CRAM.out.alignment_index
                 // Make sure correct data types are carried through
                 .map{ meta, cram, crai -> [ meta + [data_type: "cram"], cram, crai ] }
 
             ch_cram_for_bam_baserecalibrator = Channel.empty().mix(ch_cram_for_bam_baserecalibrator, input_prepare_recal_convert.cram)
-            ch_sncr_cram_for_restart = ch_cram_from_bam
+            ch_sncr_cram_for_restart = sncr_cram_from_bam
 
         } else {
 
@@ -246,7 +243,6 @@ workflow BAM_GATK_PREPROCESSING {
                 ch_table_bqsr_no_spark)
 
             reports = reports.mix(ch_table_bqsr.collect{ meta, table -> table })
-			ch_cram_for_bam_baserecalibrator.dump(tag:"ch_cram_for_bam_baserecalibrator")
             cram_applybqsr = ch_cram_for_bam_baserecalibrator.join(ch_table_bqsr, failOnDuplicate: true, failOnMismatch: true)
             cram_applybqsr = cram_applybqsr.dump(tag:"cram_applybqsr")
             // Create CSV to restart from this step
@@ -258,7 +254,7 @@ workflow BAM_GATK_PREPROCESSING {
 
     }
 
-    if (params.step in ['mapping', 'markduplicates', 'prepare_recalibration', 'recalibrate'] && !second_run) {
+    if (params.step in ['mapping', 'markduplicates', 'splitncigar','prepare_recalibration', 'recalibrate'] && !second_run) {
 
         // Run if starting from step "prepare_recalibration"
         if (params.step == 'recalibrate' && !second_run) {
@@ -355,6 +351,11 @@ workflow BAM_GATK_PREPROCESSING {
     cram_variant_calling = Channel.empty().mix(BAM_TO_CRAM.out.alignment_index, input_variant_calling_convert.cram)
 
     }
+    // Remove lane from id (which is sample)
+    cram_variant_calling = cram_variant_calling.map{meta, cram, crai ->
+//													meta['read_group'] = meta['read_group'].replaceFirst(/ID:[^\s]+/, "ID:" + meta['sample'])
+                                                    meta['id'] = meta['sample']
+                                                    [meta,cram, crai]}
     cram_variant_calling.dump(tag:"cram_variant_calling")
 
     emit:
