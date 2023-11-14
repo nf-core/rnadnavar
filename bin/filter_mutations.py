@@ -77,8 +77,11 @@ def noncoding(maf, noncoding):
     """
     Classifies as noncoding TRUE if first consequence is in noncoding list
     """
-    maf["noncoding"] = maf["Consequence"].apply(
-        lambda consequence: consequence.split('&')[0].split(',')[0] in noncoding)
+    try:
+        maf["noncoding"] = maf["Consequence"].apply(
+            lambda consequence: consequence.split('&')[0].split(',')[0] in noncoding)
+    except AttributeError:
+        maf["noncoding"] = "NA"
     return maf
 
 
@@ -190,6 +193,8 @@ def add_ravex_filters(maf, filters, noncoding=False, homopolymer=False, ig_pseud
     maf["RaVeX_FILTER"] = "PASS"
     maf["Existing_variation"] = maf["Existing_variation"].fillna("")
     maf["SOMATIC"] = maf["SOMATIC"].fillna("")
+    if not "isconsensus" in maf.columns:
+        maf["isconsensus"] = False
     for idx, row in maf.iterrows():
         ravex_filter = []
         if row["t_alt_count"] <= min_alt_reads:
@@ -248,6 +253,8 @@ def write_maf(maf_df, mafin_file, mafout_file, vc_priority=["mutect2", 'sage', "
     header_lines = subprocess.getoutput(f"zgrep -Eh '#|Hugo_Symbol' {mafin_file} 2>/dev/null")
     print("Removing duplicated variants from maf (only one entry from a caller will be kept)")
     maf_dedup = []
+    if not "Caller" in maf_df.columns:
+        maf_df["Caller"] = "NA"
     all_callers = maf_df["Caller"].unique()
     vc_priority = vc_priority + [x for x in all_callers if x not in vc_priority]
     for caller in vc_priority:
