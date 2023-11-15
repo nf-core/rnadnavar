@@ -189,7 +189,7 @@ def filtering(maf, gnomad_thr, whitelist, blacklist, filters):
 
 
 def add_ravex_filters(maf, filters, noncoding=False, homopolymer=False, ig_pseudo=False, min_alt_reads=2,
-                      blacklist=False,whitelist=False):
+                      blacklist=False, whitelist=False):
     maf["RaVeX_FILTER"] = "PASS"
     maf["Existing_variation"] = maf["Existing_variation"].fillna("")
     maf["SOMATIC"] = maf["SOMATIC"].fillna("")
@@ -231,35 +231,29 @@ def add_ravex_filters(maf, filters, noncoding=False, homopolymer=False, ig_pseud
     return maf
 
 
-def dedup_maf(dnachange, maf):
-    """If more than one caller, then we need to dedup the entries. We select according to this caller list:
-    mutect2, sage, strelka
-    TODO: this is too slow, need to think on a better implementation
-    """
-    maf_variant = maf[maf["DNAchange"] == dnachange]
-
-    maf_variant_dedup = maf_variant[maf_variant["Caller"].str.contains("mutect")]
-    if maf_variant_dedup.empty:
-        maf_variant_dedup = maf_variant[maf_variant["Caller"].str.contains("sage")]
-        if maf_variant_dedup.empty:
-            maf_variant_dedup = maf_variant[maf_variant["Caller"].str.contains("strelka")]
-            if maf_variant_dedup.empty:
-                maf_variant_dedup = maf_variant.drop_duplicates(subset='DNAchange', keep="first")
-    return maf_variant_dedup
+def deduplicate_maf(variants, vc_priority):
+    deduped = []
+    for caller in vc_priority:
+        deduped.append(variants[variants["Caller"] == caller])
+    return pd.concat(deduped).drop_duplicates(subset='DNAchange', keep="first")
 
 
 def write_maf(maf_df, mafin_file, mafout_file, vc_priority=["mutect2", 'sage', "strelka"]):
     """Write output"""
     header_lines = subprocess.getoutput(f"zgrep -Eh '#|Hugo_Symbol' {mafin_file} 2>/dev/null")
     print("Removing duplicated variants from maf (only one entry from a caller will be kept)")
-    maf_dedup = []
-    if not "Caller" in maf_df.columns:
-        maf_df["Caller"] = "NA"
-    all_callers = maf_df["Caller"].unique()
-    vc_priority = vc_priority + [x for x in all_callers if x not in vc_priority]
-    for caller in vc_priority:
-        maf_dedup += [maf_df[maf_df["Caller"] == caller]]
-    maf_dedup = pd.concat(maf_dedup).drop_duplicates(subset='DNAchange', keep="first")
+    # Separate the multiallelic variants
+    multiallelic_variants = maf_df[maf_df['FILTER'].str.contains('multiallelic', case=False, na=False)]
+    other_variants = maf_df[~maf_df['FILTER'].str.contains('multiallelic', case=False, na=False)]
+
+    # Combine variants with Caller for multiallelic changed
+    multiallelic_variants["Caller"] = multiallelic_variants["Caller"] + "_multiallelic"
+    maf_to_dedup = pd.concat([other_variants, multiallelic_variants])
+
+    # Deduplicate variants
+    maf_dedup = deduplicate_maf(maf_to_dedup, vc_priority + list(multiallelic_variants["Caller"].unique()))
+
+    # Write the header and deduplicated MAF to the output file
     with open(mafout_file, "w") as mafout:
         mafout.write(header_lines)
     maf_dedup.to_csv(mafout_file, mode="a", index=False, header=True, sep="\t")
