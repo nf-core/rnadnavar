@@ -84,19 +84,23 @@ if (is.vcf){
 }
 
 message("- Parsing headers")
-# First, get contigs from one of the VCFs
-contigs_meta <- fread(paste0("zgrep '##contig' ", vcfs[1]), sep = NULL, header = F)
-contigs_meta <- paste0(contigs_meta$V1, collapse = "\n")
+if (is.vcf){
+  # First, get contigs from one of the VCFs
+  contigs_meta <- fread(cmd=paste0("zgrep '##contig' ", vcfs[1]), sep = NULL, header = F)
+  contigs_meta <- paste0(contigs_meta$V1, collapse = "\n")
+} else {
+  contigs_meta <- ""
+}
 # Collecting vcf headers for the outputs
 callers_meta <- list()
 for ( c in callers){
-  vcf_meta <- fread(paste0("zgrep -E '##|#version' ", vcfs[c]), sep = NULL, header = F)
+  vcf_meta <- fread(cmd=paste0("zgrep -E '##|#version' ", vcfs[c]), sep = NULL, header = F)
   if (is.vcf){
-    vcf_header <- fread(paste0("zgrep '#CHROM' ", vcfs[c]), sep = NULL, header = F)
+    vcf_header <- fread(cmd=paste0("zgrep '#CHROM' ", vcfs[c]), sep = NULL, header = F)
     callers_meta[[c]] <-  list(meta=paste0(vcf_meta$V1, collapse = "\n"),
                              header=strsplit(vcf_header$V1, "\t")[[1]])
   } else{
-    maf_header <- fread(paste0("zgrep 'Hugo_Symbol' ", vcfs[c]), sep = NULL, header = F)
+    maf_header <- fread(cmd=paste0("zgrep 'Hugo_Symbol' ", vcfs[c]), sep = NULL, header = F)
     callers_meta[[c]] <-  list(meta=paste0(vcf_meta$V1, collapse = "\n"),
                                header=strsplit(maf_header$V1, "\t")[[1]])
   }
@@ -111,7 +115,7 @@ for(c in callers[1:length(callers)]){
   v <- vcfs[c]
 
   if (!is.vcf){
-    tmp <- fread(paste0("zgrep -v '#' ", v))
+    tmp <- fread(cmd=paste0("zgrep -v '#' ", v))
     tmp$`#CHROM` <- tmp$Chromosome
     tmp$POS <- tmp$Start_Position
     tmp$REF <- tmp$Reference_Allele
@@ -142,7 +146,7 @@ for(c in callers[1:length(callers)]){
                                                            keep.extra.columns = T) }
 }
 
-callers <- names(mutsGR)
+callers <- names(mutsGR) # All callers might not be present
 message("- Finding overlaps")
 # Third, we find overlaps
 overlapping.vars <- data.frame(DNAchange=character(), caller=character(), FILTER=character())
@@ -204,6 +208,7 @@ what.caller.called <- function(row, consensus, variants){
     list(callers=row["Caller"], filters=row['FILTER'])
   }
 }
+
 cpu <- ifelse(is.na(argsL$cpu)| is.null(argsL$cpu), 1, as.integer(argsL$cpu))
 cl <- makeCluster(cpu)
 
@@ -217,6 +222,13 @@ for (c in callers){
 
 
 all.muts <- do.call(rbind.fill, muts)
+
+# Remove duplication if consensus input came annotated with more than one caller
+all.consensus.muts <- all.muts[stringi::stri_detect_regex(all.muts$Caller, "consensus", case_insensitive=TRUE),]
+all.consensus.muts <- all.consensus.muts[!duplicated(all.consensus.muts$DNAchange),]
+# 1) remove the consensus variants that might be duplicated 2) put back the deduplicated consensus variants
+all.muts <-  all.muts[!stringi::stri_detect_regex(all.muts$Caller, "consensus", case_insensitive=TRUE),]
+all.muts <- rbind(all.muts, all.consensus.muts)
 
 message("- Preparing output")
 ## Prepare output
