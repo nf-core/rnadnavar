@@ -35,19 +35,28 @@ def argparser():
 
 def realignment(maf1, maf2):
     """
-    Get variants that intersect both mafs
+    Get variants that intersect both mafs without taking into account potential consensus variants
     """
-    maf1["DNAchange"] = maf1["Chromosome"] + ":g." + \
-                        maf1["Start_Position"].map(str) + \
-                        maf1["Reference_Allele"] + ">" + maf1["Tumor_Seq_Allele2"]
-    maf2["DNAchange"] = maf2["Chromosome"] + ":g." + \
-                        maf2["Start_Position"].map(str) + \
-                        maf2["Reference_Allele"] + ">" + maf2["Tumor_Seq_Allele2"]
-    maf1["realignment"] = maf1["DNAchange"].isin(maf2["DNAchange"])
-    maf2["realignment"] = maf2["DNAchange"].isin(maf1["DNAchange"])
-    maf_intersect = maf1[maf1["realignment"] == True]
-    maf1 = maf1[~maf1["DNAchange"].isin(maf_intersect["DNAchange"])]
-    maf2 = maf2[~maf2["DNAchange"].isin(maf_intersect["DNAchange"])]
+    pd.set_option('display.max_columns', 500)
+    pd.set_option('display.width', 1000)
+
+    # Create the 'DNAchange' column
+    for maf in [maf1, maf2]:
+        maf["DNAchange"] = maf["Chromosome"] + ":g." + \
+                           maf["Start_Position"].astype(str) + \
+                           maf["Reference_Allele"] + ">" + maf["Tumor_Seq_Allele2"]
+    # Filter out consensus 'DNAchange' values from both mafs (consensus is unrelated to realignment)
+    maf1_non_consensus = maf1[~maf1["Caller"].str.contains("consensus", case=False)]
+    maf2_non_consensus = maf2[~maf2["Caller"].str.contains("consensus", case=False)]
+    # Find intersection of non-consensus 'DNAchange' values
+    intersect_changes = maf1_non_consensus["DNAchange"].isin(maf2_non_consensus["DNAchange"])
+    # Update 'realignment' columns based on the intersection
+    maf1["realignment"] = maf1["DNAchange"].isin(intersect_changes)
+    maf2["realignment"] = maf2["DNAchange"].isin(intersect_changes)
+    # Subset to intersected variants excluding any consensus variants
+    maf1_intersect = maf1[maf1["realignment"]]
+    maf2_intersect = maf2[maf2["realignment"]]
+    maf_intersect = pd.concat([maf1_intersect, maf2_intersect]).drop_duplicates(subset="DNAchange")
 
     return maf1, maf2, maf_intersect
 
