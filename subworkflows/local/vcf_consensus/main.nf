@@ -27,20 +27,21 @@ workflow VCF_CONSENSUS {
     mafs_from_varcal_dna    = Channel.empty()
     consensus_maf           = Channel.empty()
 
+    if (params.step == 'consensus') vcf_to_consensus = input_sample
+
+
     if ((params.step in ['mapping', 'markduplicates', 'splitncigar',
                         'prepare_recalibration', 'recalibrate', 'variant_calling', 'annotate',
                         'normalise', 'consensus'] &&
                         ((params.tools && params.tools.split(",").contains("consensus")))) ||
                         second_run) {
 
-        if (params.step == 'consensus') vcf_to_consensus = input_sample
-		vcf_to_consensus.dump(tag:"vcf_to_consensus")
         vcf_to_consensus_type = vcf_to_consensus.branch{
 			                     vcf: it[0].data_type == "vcf"
 						         maf: it[0].data_type == "maf"
 	                            }
         // First we transform the maf to MAF
-        VCF2MAF(vcf_to_consensus_type.vcf.map{meta, vcf, tbi -> [meta, vcf]},
+        VCF2MAF(vcf_to_consensus_type.vcf.map{metaVCF -> [metaVCF[0], metaVCF[1]]},
                 fasta)
         maf_to_consensus = VCF2MAF.out.maf.mix(vcf_to_consensus_type.maf)
         versions         = versions.mix(VCF2MAF.out.versions)
@@ -79,7 +80,7 @@ workflow VCF_CONSENSUS {
 		mafs_from_varcal_rna   = mafs_from_varcal.rna
 
 		// Only RNA mafs are processed again if second run
-        if (previous_maf_consensus_dna && (!(params.skip_tools && params.skip_tools.split(',').contains('second_run')))){
+        if (previous_maf_consensus_dna && ((params.tools && params.tools.split(',').contains('second_run')))){
             maf_from_consensus_dna = previous_maf_consensus_dna   // VCF with consensus calling
             mafs_from_varcal_dna   = previous_mafs_status_dna     // VCFs with consensus calling
         } else {
@@ -119,7 +120,7 @@ workflow VCF_CONSENSUS {
 	                                                [meta.patient, meta, mafs, callers]
 	                                                }
 
-            // cross results keeping metadata
+            // cross results keeping metadata // TODO make the id somehow shorter (atm is tumor_vs_normal_with_tumor_vs_normal -- too long)
             mafs_dna_crossed_with_rna_rescue = mafs_status_dna_to_cross
                                                .cross(maf_consensus_status_rna_to_cross)
                                                .map { dna, rna ->
@@ -143,7 +144,6 @@ workflow VCF_CONSENSUS {
                                                 [meta, rna[2] + dna[2], rna[3] + dna[3]]
                                             }
 
-//            mafs_dna_crossed_with_rna_rescue.dump(tag:"mafs_dna_crossed_with_rna_rescue")
             mafs_dna_crossed_with_rna_rescue.mix(mafs_rna_crossed_with_dna_rescue).dump(tag:"mafs_to_rescue")
             RUN_CONSENSUS_RESCUE ( mafs_dna_crossed_with_rna_rescue.mix(mafs_rna_crossed_with_dna_rescue) )
 
@@ -168,6 +168,22 @@ workflow VCF_CONSENSUS {
                                         "rescued"
 										)
         }
+    } else {
+
+        if (params.tools && (params.tools.split(",").contains('filtering') || params.tools.split(",").contains('rna_filtering') )){
+            vcf_to_consensus_type = vcf_to_consensus.branch{
+			                     vcf: it[0].data_type == "vcf"
+						         maf: it[0].data_type == "maf"
+	                            }
+	        // First we transform the maf to MAF
+	        VCF2MAF(vcf_to_consensus_type.vcf.map{metaVCF -> [metaVCF[0], metaVCF[1]]},
+	                fasta)
+	        consensus_maf    = VCF2MAF.out.maf.mix(vcf_to_consensus_type.maf)
+	        versions         = versions.mix(VCF2MAF.out.versions)
+
+        }
+
+
     }
 
     emit:

@@ -54,6 +54,10 @@ workflow VCF_ANNOTATE {
 	        CHANNEL_ANNOTATE_CREATE_CSV(vcf_ann.map{meta, vcf, tbi -> [meta, vcf]}, "annotated")
 
 	    }
+	} else{
+
+		vcf_ann = vcf.map{metaVCF -> [metaVCF[0] + [data_type:"vcf"], metaVCF[1]]}
+
 	}
 
     emit:

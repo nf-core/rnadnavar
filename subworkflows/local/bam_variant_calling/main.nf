@@ -143,7 +143,6 @@ workflow BAM_VARIANT_CALLING {
 		}
 
 	    // QC
-	    vcf_to_normalise.dump(tag:"vcf_to_normalise")
 	    VCF_QC_BCFTOOLS_VCFTOOLS(vcf_to_normalise, intervals_bed_combined)
 		versions = versions.mix(VCF_QC_BCFTOOLS_VCFTOOLS.out.versions)
 

@@ -71,18 +71,18 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
 	                                    meta, maf ->
 	                                    [[
 	                                    patient: meta.patient,
-	                                    sample:  meta.id.split('_vs_')[0] + "_realign",
+	                                    sample:  meta.id.split('_vs_')[0].split('_with_')[0] + "_realign",
 	                                    status:  meta.status,
-	                                    id:      meta.id.split('_vs_')[0] + "_realign"
+	                                    id:      meta.id.split('_vs_')[0].split('_with_')[0] + "_realign"
 	                                     ], maf]
 	                                    }
 	            maf_with_candidates_normal = maf_with_candidates_branch.realign.map{
 	                                    meta, maf ->
 	                                    [[
 	                                    patient: meta.patient,
-	                                    sample:  meta.id.split('_vs_')[1] + "_realign",
+	                                    sample:  meta.id.split('_vs_')[1].split('_with_')[0] + "_realign",
 	                                    status:  0,
-	                                    id:      meta.id.split('_vs_')[1] + "_realign"
+	                                    id:      meta.id.split('_vs_')[1].split('_with_')[0] + "_realign"
 	                                     ], maf]
 	                                    }
 	            maf_with_candidates_to_realign = maf_with_candidates_tumor.mix(maf_with_candidates_normal)

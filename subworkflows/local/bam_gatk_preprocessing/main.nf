@@ -177,6 +177,8 @@ workflow BAM_GATK_PREPROCESSING {
         ch_sncr_cram_for_restart = Channel.empty().mix(cram_splitncigar_no_spark).mix(cram_skip_splitncigar)
             // Make sure correct data types are carried through
             .map{ meta, cram, crai -> [ meta + [data_type: "cram"], cram, crai ] }
+    } else {
+        ch_sncr_cram_for_restart = Channel.empty()
     }
 
     // BQSR
@@ -204,7 +206,6 @@ workflow BAM_GATK_PREPROCESSING {
             ch_sncr_cram_for_restart = sncr_cram_from_bam
 
         } else {
-
             // ch_cram_for_bam_baserecalibrator contains either:
             // - crams from markduplicates
             // - crams from splitncigarreads
