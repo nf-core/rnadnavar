@@ -42,7 +42,7 @@ workflow RECALIBRATE_SPARK {
     MERGE_INDEX_CRAM(APPLYBQSR_SPARK.out.cram, fasta)
 
     ch_cram_recal_out = MERGE_INDEX_CRAM.out.cram_crai.map{ meta, cram, crai ->
-                             // remove no longer necessary fields to make sure joining can be done correctly: num_intervals
+                            // remove no longer necessary fields to make sure joining can be done correctly: num_intervals
                             [[
                                 id:         meta.id,
                                 data_type:  meta.data_type,

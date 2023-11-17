@@ -71,8 +71,8 @@ workflow GATK_TUMOR_NORMAL_SOMATIC_VARIANT_CALLING {
             }.set{ mutect2_f1r2_branch }
         mutect2_vcf_branch.intervals.dump(tag:'[STEP3] GATK4 - mutect2_vcf_branch.intervals')
         mutect2_to_merge = mutect2_vcf_branch.intervals
-                                             .unique()  // Potential bug is nextflow were some files are duplicated
-                                             .groupTuple()
+                                            .unique()  // Potential bug is nextflow were some files are duplicated
+                                            .groupTuple()
         mutect2_to_merge.dump(tag:'[STEP3] GATK4 - mutect2_to_merge')
         //Only when using intervals
         MERGE_MUTECT2(
@@ -94,7 +94,7 @@ workflow GATK_TUMOR_NORMAL_SOMATIC_VARIANT_CALLING {
 
         mutect2_stats = MERGEMUTECTSTATS.out.stats.mix(
             mutect2_stats_branch.no_intervals)
-         mutect2_stats.dump(tag:'[STEP3] GATK4 - MUTECTSTATS')
+        mutect2_stats.dump(tag:'[STEP3] GATK4 - MUTECTSTATS')
 
         if (prior_orientation) {
             artifactprior = mutect2_vcf.map{meta, vcf -> [meta, file("${meta.id}_PRIOR_NO_ARTPRIOR")]}
@@ -116,7 +116,7 @@ workflow GATK_TUMOR_NORMAL_SOMATIC_VARIANT_CALLING {
         }
 
         if (prior_contamination) {
-           // prior contamination and segmentation tables calculated from a previous run
+            // prior contamination and segmentation tables calculated from a previous run
             segmentation = mutect2_vcf.map{meta, vcf -> [meta, file("${meta.id}_PRIOR_NO_SEG")]}
             contamination =  mutect2_vcf.map{meta, vcf -> [meta, file("${meta.id}_PRIOR_NO_TABLE")]}
             gather_table_tumor  = Channel.empty()
@@ -238,14 +238,14 @@ workflow GATK_TUMOR_NORMAL_SOMATIC_VARIANT_CALLING {
         FILTERMUTECTCALLS ( ch_filtermutect_in, fasta, fai, dict )
         filtered_vcf = FILTERMUTECTCALLS.out.vcf.map{ meta, vcf ->
                                                 [[patient:meta.patient,
-                                                  normal_id:meta.normal_id,
-                                                  tumor_id:meta.tumor_id,
-                                                  status:meta.status,
-                                                  id:meta.tumor_id + "_vs_" + meta.normal_id,
-                                                  num_intervals:meta.num_intervals,
-                                                  alleles:meta.alleles,
-                                                  variantcaller:"mutect2"
-                                                  ], vcf]}
+                                                normal_id:meta.normal_id,
+                                                tumor_id:meta.tumor_id,
+                                                status:meta.status,
+                                                id:meta.tumor_id + "_vs_" + meta.normal_id,
+                                                num_intervals:meta.num_intervals,
+                                                alleles:meta.alleles,
+                                                variantcaller:"mutect2"
+                                                ], vcf]}
         ch_versions = ch_versions.mix(MERGE_MUTECT2.out.versions)
         ch_versions = ch_versions.mix(FILTERMUTECTCALLS.out.versions)
 

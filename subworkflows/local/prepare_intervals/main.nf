@@ -90,17 +90,17 @@ workflow PREPARE_INTERVALS {
         versions = versions.mix(TABIX_BGZIPTABIX_INTERVAL_SPLIT.out.versions)
 
         TABIX_BGZIPTABIX_INTERVAL_COMBINED(intervals_combined)
-	    versions = versions.mix(TABIX_BGZIPTABIX_INTERVAL_COMBINED.out.versions)
+        versions = versions.mix(TABIX_BGZIPTABIX_INTERVAL_COMBINED.out.versions)
 
 
-	    intervals_bed_gz_tbi_combined = TABIX_BGZIPTABIX_INTERVAL_COMBINED.out.gz_tbi.map{meta, gz, tbi -> [gz, tbi] }.collect()
+        intervals_bed_gz_tbi_combined = TABIX_BGZIPTABIX_INTERVAL_COMBINED.out.gz_tbi.map{meta, gz, tbi -> [gz, tbi] }.collect()
         intervals_bed_gz_tbi_and_num_intervals = intervals_bed_gz_tbi.map{ intervals, num_intervals ->
         if ( num_intervals < 1 ) [ [], [], num_intervals ]
         else [ intervals[0], intervals[1], num_intervals ]
         }
     }
 
-	// Intervals for speed up preprocessing/variant calling by spread/gather
+    // Intervals for speed up preprocessing/variant calling by spread/gather
     intervals_bed_combined = no_intervals ?
         Channel.value([]) :
         intervals_combined.map{meta, bed -> bed }.collect()
@@ -109,9 +109,9 @@ workflow PREPARE_INTERVALS {
         intervals_bed_combined.map{it -> [ [ id:it.baseName ], it ]}.collect() :
         Channel.value([ [ id:'null' ], [] ])
 
-	intervals_and_num_intervals   = intervals_bed.map{ interval, num_intervals ->
-	        if ( num_intervals < 1 ) [ [], num_intervals ]
-	        else [ interval, num_intervals ]
+    intervals_and_num_intervals   = intervals_bed.map{ interval, num_intervals ->
+            if ( num_intervals < 1 ) [ [], num_intervals ]
+            else [ interval, num_intervals ]
         }
 
     emit:

@@ -6,16 +6,16 @@
 
 ## Introduction
 
-RaVEX is an end-to-end workflow designed for detecting somatic mutations in bulk RNA sequencing data, with the option to apply it to whole genome or whole exome sequencing data. It follows 
+RaVEX is an end-to-end workflow designed for detecting somatic mutations in bulk RNA sequencing data, with the option to apply it to whole genome or whole exome sequencing data. It follows
 [GATK best practices](https://gatk.broadinstitute.org/hc/en-us/articles/360035531192-RNAseq-short-variant-discovery-SNPs-Indels-) for data cleanup, utilises
-[Mutect2](https://gatk.broadinstitute.org/hc/en-us/articles/360037593851-Mutect2), [Strelka2](https://gatk.broadinstitute.org/hc/en-us/articles/360037593851-Mutect2) 
-and 
-[SAGE](https://github.com/hartwigmedical/hmftools/blob/master/sage/README.md) 
-for variant calling, and includes post-processing steps 
-such as VCF normalization, consensus of called variants 
+[Mutect2](https://gatk.broadinstitute.org/hc/en-us/articles/360037593851-Mutect2), [Strelka2](https://gatk.broadinstitute.org/hc/en-us/articles/360037593851-Mutect2)
+and
+[SAGE](https://github.com/hartwigmedical/hmftools/blob/master/sage/README.md)
+for variant calling, and includes post-processing steps
+such as VCF normalization, consensus of called variants
 (resulting in a MAF file), and filtering. Additionally, an optional realignment with HISAT2 is performed only in the coordinates where mutations were detected during the variant calling subworkflow.
 
-Originally, this pipeline was developed for human and 
+Originally, this pipeline was developed for human and
 mouse data.
 
 
@@ -31,10 +31,10 @@ nextflow run nf-core/rnadnavar -r <VERSION> -profile <PROFILE> --input ./samples
 
 `-profile <PROFILE>` is mandatory and should reflect either your own institutional profile or any pipeline profile specified in the profile section.
 
-This will launch the pipeline and perform variant 
-calling, normalisation, consensus and filtering if specified in 
+This will launch the pipeline and perform variant
+calling, normalisation, consensus and filtering if specified in
 `--tools`, see the [parameter section](https://nf-co.
-re/rnadnavar/latest/parameters#tools) for details on the 
+re/rnadnavar/latest/parameters#tools) for details on the
 tools. In the above example the pipeline runs with the docker configuration profile. See below for more information about profiles.
 
 
@@ -42,10 +42,10 @@ tools. In the above example the pipeline runs with the docker configuration prof
 
 You will need to create a samplesheet with information about the samples you would like to analyse before running the pipeline. It has to be a comma-separated file with columns, and a header row as shown in the examples below. It is recommended to use the absolute path of the files, but a relative path should also work.
 
-An RNA tumor sample must be associated to a DNA normal 
+An RNA tumor sample must be associated to a DNA normal
 sample at the moment, specified with the
 same `patient` ID. The sample
-type can be specified with the `status`: 0 (normal DNA), 
+type can be specified with the `status`: 0 (normal DNA),
 1 (tumour DNA) and 2 (tumour RNA). An
 additional tumor sample (such as a
 relapse for example), can be added if specified with the
@@ -55,7 +55,7 @@ value 1 or 2.
 The pipeline will output results in a different
 directory for _each sample_.
 
-These are the accepted columns for the sample sheet, 
+These are the accepted columns for the sample sheet,
 although not all of them are mandatory at the same time:
 
 | Column    | Description                                                                                                                                                                                                                                                                                                 |

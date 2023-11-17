@@ -40,7 +40,7 @@ workflow BAM_SPLITNCIGARREADS {
     // Remove no longer necessary field: num_intervals
     .map{ meta, cram, crai -> [ meta - meta.subMap('num_intervals'), cram, crai ] }
 
-	// Gather versions of all tools used
+    // Gather versions of all tools used
     versions = versions.mix(GATK4_SPLITNCIGARREADS.out.versions)
     versions = versions.mix(CRAM_MERGE_INDEX_SAMTOOLS.out.versions)
 

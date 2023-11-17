@@ -16,7 +16,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_STRELKA {
     fasta         // channel: [mandatory] [ fasta ]
     fasta_fai     // channel: [mandatory] [ fasta_fai ]
     intervals     // channel: [mandatory] [ interval.bed.gz, interval.bed.gz.tbi, num_intervals ] or [ [], [], 0 ] if no intervals
-	no_intervals  // true/false
+    no_intervals  // true/false
 
     main:
     versions = Channel.empty()
@@ -27,7 +27,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_STRELKA {
         // Move num_intervals to meta map
         .map{ meta, normal_cram, normal_crai, tumor_cram, tumor_crai, manta_vcf, manta_tbi, intervals_gz_tbi, num_intervals -> [ meta + [ num_intervals:0 ], normal_cram, normal_crai, tumor_cram, tumor_crai, manta_vcf, manta_tbi, [], [] ] }
     } else{
-       cram_intervals = cram.combine(intervals)
+        cram_intervals = cram.combine(intervals)
         // Move num_intervals to meta map
         .map{ meta, normal_cram, normal_crai, tumor_cram, tumor_crai, manta_vcf, manta_tbi, intervals_gz_tbi, num_intervals -> [ meta + [ num_intervals:num_intervals ], normal_cram, normal_crai, tumor_cram, tumor_crai, manta_vcf, manta_tbi, intervals_gz_tbi[0], intervals_gz_tbi[1] ] }
     }
@@ -61,11 +61,11 @@ workflow BAM_VARIANT_CALLING_SOMATIC_STRELKA {
 //    vcf_indels_to_merge.dump(tag:"vcf_indels_to_merge")
 //    vcf_snvs_to_merge.dump(tag:"vcf_snvs_to_merge")
 //    vcf_snvs.no_intervals.dump(tag:"vcf_snvs.no_intervals")
-	vcfs_to_merge.dump(tag:"vcfs_to_merge")
-	// Merge SNVs and indels
-	MERGE_STRELKA(vcfs_to_merge, dict)
+    vcfs_to_merge.dump(tag:"vcfs_to_merge")
+    // Merge SNVs and indels
+    MERGE_STRELKA(vcfs_to_merge, dict)
 
-	// Mix intervals and no_intervals channels together
+    // Mix intervals and no_intervals channels together
     vcf = MERGE_STRELKA.out.vcf
         // add variantcaller to meta map and remove no longer necessary field: num_intervals
         .map{ meta, vcf ->

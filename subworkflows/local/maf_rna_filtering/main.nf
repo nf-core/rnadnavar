@@ -27,11 +27,11 @@ workflow MAF_FILTERING_RNA {
             }
             if (maf_to_filter_realigned){
                 // RNA filtering after realignment
-		        maf_to_cross_first_pass = maf_to_filter
-		                                    .map{meta, maf -> [meta.patient, meta, maf]}
+                maf_to_cross_first_pass = maf_to_filter
+                                            .map{meta, maf -> [meta.patient, meta, maf]}
 
 
-		        maf_to_cross_first_pass.dump(tag:"[STEP9: FILTERING] maf_to_cross_first_pass")
+                maf_to_cross_first_pass.dump(tag:"[STEP9: FILTERING] maf_to_cross_first_pass")
 
                 maf_to_cross_second_pass = maf_to_filter_realigned
                                             .map{meta, maf -> [meta.patient, meta, maf]}
@@ -62,8 +62,8 @@ workflow MAF_FILTERING_RNA {
 //        maf_to_filter_status_dna.dump(tag:"[STEP9: FILTERING] maf_to_filter_status_dna")
 //        maf_crossed = maf_crossed.mix(maf_to_filter_status.dna)
         RNA_FILTERING(maf_crossed,
-                      fasta,
-                      fasta_fai)
+                    fasta,
+                    fasta_fai)
         versions = versions.mix(RNA_FILTERING.out.versions)
     }
 

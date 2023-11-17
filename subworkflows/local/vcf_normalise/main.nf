@@ -20,14 +20,14 @@ workflow VCF_NORMALISE {
     main:
     version          = Channel.empty()
 
-	if (params.step == 'normalise') vcf_to_normalise = input_sample
+    if (params.step == 'normalise') vcf_to_normalise = input_sample
 
     if ((params.step in ['mapping', 'markduplicates', 'splitncigar',
                         'prepare_recalibration', 'recalibrate',
                         'variant_calling', 'normalise'] &&
                         ((params.tools && params.tools.split(",").contains("consensus")))) ||
                         second_run) {
-        
+
         vcf_decomposed  = Channel.empty()
         // Separate variants
         VT_DECOMPOSE(vcf_to_normalise)
@@ -37,7 +37,7 @@ workflow VCF_NORMALISE {
 
         // Normalise variants
         VT_NORMALISE(vcf_decomposed,
-                     fasta)
+                    fasta)
 
         vcf_to_consensus = VT_NORMALISE.out.vcf
         version = version.mix(VT_NORMALISE.out.versions.first())
