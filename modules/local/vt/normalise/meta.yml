@@ -27,7 +27,6 @@ input:
       type: file
       description: Input genome fasta file
 
-
 output:
   - meta:
       type: map

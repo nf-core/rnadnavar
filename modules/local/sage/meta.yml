@@ -46,7 +46,6 @@ input:
       description: reference fasta file
       pattern: ".{fa,fa.gz,fasta,fasta.gz}"
 
-
 output:
   - meta:
       type: map

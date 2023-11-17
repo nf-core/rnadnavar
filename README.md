@@ -1,4 +1,4 @@
-# :warning: UNDER ACTIVE DEVELOPMENT :warning: 
+# :warning: UNDER ACTIVE DEVELOPMENT :warning:
 
 # ![nf-core/rnadnavar](docs/images/nf-core-rnadnavar_logo_light.png#gh-light-mode-only) ![nf-core/rnadnavar](docs/images/nf-core-rnadnavar_logo_dark.png#gh-dark-mode-only)
 
@@ -14,23 +14,23 @@
 
 ## Introduction
 
-The **nf-core/rnadnavar** is a bioinformatics best-practice 
-analysis pipeline for Pipeline for RNA and DNA 
+The **nf-core/rnadnavar** is a bioinformatics best-practice
+analysis pipeline for Pipeline for RNA and DNA
 integrated analysis for somatic mutation detection.
 
 Initially designed for cancer research, the pipeline  
-uses different variant calling algorithms and applies a 
-consensus approach. A final filtering stage, should 
+uses different variant calling algorithms and applies a
+consensus approach. A final filtering stage, should
 provide a set of annotated somatic variants.
 
-The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool to run tasks across 
-multiple compute infrastructures in a very portable 
-manner. It uses Docker/Singularity containers making 
-installation trivial and results highly reproducible. 
-The [Nextflow DSL2](https://www.nextflow.io/docs/latest/dsl2.html) implementation of this 
-pipeline uses one container per process which makes it 
-much easier to maintain and update software 
-dependencies. Where possible, these processes have been 
+The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool to run tasks across
+multiple compute infrastructures in a very portable
+manner. It uses Docker/Singularity containers making
+installation trivial and results highly reproducible.
+The [Nextflow DSL2](https://www.nextflow.io/docs/latest/dsl2.html) implementation of this
+pipeline uses one container per process which makes it
+much easier to maintain and update software
+dependencies. Where possible, these processes have been
 submitted to and installed from [nf-core/modules](https://github.com/nf-core/modules) in order to make them available to all nf-core pipelines, and to everyone within the Nextflow community!
 
 <!-- TODO nf-core:
@@ -46,20 +46,19 @@ submitted to and installed from [nf-core/modules](https://github.com/nf-core/mod
 1. Read QC ([`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))
 2. Present QC for raw reads ([`MultiQC`](http://multiqc.info/))
 3. Alignment (BWA/STAR)
-3. GATK pre-processing
-4. Variant calling
-5. Normalise calls
-6. Annotation
-7. Consensus
-8. Filtering
-9. Realignment [OPT]
-10. RNA filtering
+4. GATK pre-processing
+5. Variant calling
+6. Normalise calls
+7. Annotation
+8. Consensus
+9. Filtering
+10. Realignment [OPT]
+11. RNA filtering
 
 <p align="center">
     <img title="Sarek Workflow" 
 src="docs/images/rnadnavar_schemav2.png">
 </p>
-
 
 ## Usage
 
@@ -111,12 +110,12 @@ For more details about the output files and reports, please refer to the
 
 ## Credits
 
-The nf-core/rnadnavar was originally written by Raquel 
-Manzano Garcia at Cancer Research UK Cambridge Institute 
-with the initial and continuous support of Maxime U 
-Garcia. The workflow is based on 
-[RNA-MuTect](https://github.com/broadinstitute/RNA_MUTECT_1.0-1) which was 
-originally published by [Yizhak, *et al* 2019 (Science)](https://www.science.org/doi/10.1126/science.aaw0726)
+The nf-core/rnadnavar was originally written by Raquel
+Manzano Garcia at Cancer Research UK Cambridge Institute
+with the initial and continuous support of Maxime U
+Garcia. The workflow is based on
+[RNA-MuTect](https://github.com/broadinstitute/RNA_MUTECT_1.0-1) which was
+originally published by [Yizhak, _et al_ 2019 (Science)](https://www.science.org/doi/10.1126/science.aaw0726)
 
 We thank the following people for their assistance in the development of this pipeline:
 TBC
