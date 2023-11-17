@@ -18,7 +18,6 @@ such as VCF normalization, consensus of called variants
 Originally, this pipeline was developed for human and
 mouse data.
 
-
 ## Quickstart
 
 The typical command for running the pipeline is as follows:
@@ -36,7 +35,6 @@ calling, normalisation, consensus and filtering if specified in
 `--tools`, see the [parameter section](https://nf-co.
 re/rnadnavar/latest/parameters#tools) for details on the
 tools. In the above example the pipeline runs with the docker configuration profile. See below for more information about profiles.
-
 
 ## Samplesheet input
 
@@ -59,7 +57,7 @@ These are the accepted columns for the sample sheet,
 although not all of them are mandatory at the same time:
 
 | Column    | Description                                                                                                                                                                                                                                                                                                 |
-|-----------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `patient` | **Custom patient ID**; designates the patient/subject; must be unique for each patient, but one patient can have multiple samples (e.g. normal and tumor).                                                                                                                                                  |
 | `status`  | **Normal DNA /tumor DNA /tumor RNA status of sample**; can be 0 (normal DNA), 1 (tumor DNA) or 2 (tumor RNA). Optional, Default: 0                                                                                                                                                                          |
 | `sample`  | **Custom sample ID for each tumor and normal sample**; more than one tumor sample for each subject is possible, i.e. a tumor and a relapse; samples can have multiple lanes for which the same ID must be used to merge them later (see also lane). Sample IDs must be unique for unique biological samples |
@@ -75,7 +73,6 @@ although not all of them are mandatory at the same time:
 | `maf`     | Path to maf file.                                                                                                                                                                                                                                                                                           |
 
 An [example samplesheet](../assets/samplesheet.csv) has been provided with the pipeline.
-
 
 ## Running the pipeline
 
