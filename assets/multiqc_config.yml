@@ -53,10 +53,6 @@ module_order:
       name: "Bcftools"
   - vcftools:
       name: "Vcftools"
-#  - snpeff:
-#      name: "SNPeff"
-#  - vep:
-#      name: "VEP"
 
 extra_fn_clean_exts:
   - "_val"
@@ -68,7 +64,3 @@ sample_names_replace_regex: True
 sample_names_replace:
   "\\.[0-9]{4}$": ".md" # should match ".0001" but only at the end of strings for module Markduplicates/EstimateLibraryComplexity
   module: picard
-#sp:
-#  snpeff:
-#    contents: "SnpEff_version"
-#    max_filesize: 5000000
