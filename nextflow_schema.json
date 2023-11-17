@@ -678,7 +678,7 @@
                     "type": "string",
                     "fa_icon": "fas fa-file",
                     "description": "Path to VEP cache.",
-                    "help_text": "To be used with `--annotation_cache`.",
+                    "help_text": "Cache directory for VEP",
                     "hidden": true
                 },
                 "outdir_cache": {
@@ -710,11 +710,6 @@
                     "type": "string",
                     "fa_icon": "fas fa-database",
                     "description": "Path to BED file with positions to blacklist during filtering (e.g. regions difficult to map)"
-                },
-                "annotation_cache": {
-                    "type": "string",
-                    "fa_icon": "fas fa-database",
-                    "description": ""
                 }
             }
         },
