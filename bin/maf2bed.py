@@ -8,11 +8,12 @@ import pandas as pd
 
 
 def argparser():
-    parser = argparse.ArgumentParser(description='')
+    parser = argparse.ArgumentParser(description="")
     parser.add_argument("-maf", "--mafin", help="MAF input file", required=True)
-    parser.add_argument('-bed', "--bedout", help="BED input file", required=True)
-    parser.add_argument("--extra", help="Extra columns to keep (space separated list)",
-                        nargs='+', required=False, default=[])
+    parser.add_argument("-bed", "--bedout", help="BED input file", required=True)
+    parser.add_argument(
+        "--extra", help="Extra columns to keep (space separated list)", nargs="+", required=False, default=[]
+    )
     return parser.parse_args()
 
 
@@ -27,5 +28,5 @@ def main():
     maf2bed(maf_file=args.mafin, bed_file=args.bedout, extra=args.extra)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
