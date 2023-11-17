@@ -37,9 +37,6 @@ def realignment(maf1, maf2):
     """
     Get variants that intersect both mafs without taking into account potential consensus variants
     """
-    pd.set_option('display.max_columns', 500)
-    pd.set_option('display.width', 1000)
-
     # Create the 'DNAchange' column
     for maf in [maf1, maf2]:
         maf["DNAchange"] = maf["Chromosome"] + ":g." + \
@@ -49,7 +46,8 @@ def realignment(maf1, maf2):
     maf1_non_consensus = maf1[~maf1["Caller"].str.contains("consensus", case=False)]
     maf2_non_consensus = maf2[~maf2["Caller"].str.contains("consensus", case=False)]
     # Find intersection of non-consensus 'DNAchange' values
-    intersect_changes = maf1_non_consensus["DNAchange"].isin(maf2_non_consensus["DNAchange"])
+    is_intersect = maf1_non_consensus["DNAchange"].isin(maf2_non_consensus["DNAchange"])
+    intersect_changes = maf1_non_consensus["DNAchange"][is_intersect]
     # Update 'realignment' columns based on the intersection
     maf1["realignment"] = maf1["DNAchange"].isin(intersect_changes)
     maf2["realignment"] = maf2["DNAchange"].isin(intersect_changes)
