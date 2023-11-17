@@ -15,8 +15,8 @@
 ## Introduction
 
 The **nf-core/rnadnavar** is a bioinformatics best-practice
-analysis pipeline for Pipeline for RNA and DNA
-integrated analysis for somatic mutation detection.
+analysis pipeline for RNA somatic mutation detection
+able to perform in parallel.
 
 Initially designed for cancer research, the pipeline  
 uses different variant calling algorithms and applies a
