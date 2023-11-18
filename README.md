@@ -18,7 +18,7 @@ The **nf-core/rnadnavar** is a bioinformatics best-practice
 analysis pipeline for RNA somatic mutation detection
 able to perform in parallel.
 
-Initially designed for cancer research, the pipeline  
+Initially designed for cancer research, the pipeline
 uses different variant calling algorithms and applies a
 consensus approach. A final filtering stage, should
 provide a set of annotated somatic variants.
@@ -34,9 +34,9 @@ dependencies. Where possible, these processes have been
 submitted to and installed from [nf-core/modules](https://github.com/nf-core/modules) in order to make them available to all nf-core pipelines, and to everyone within the Nextflow community!
 
 <!-- TODO nf-core:
-   Complete this sentence with a 2-3 sentence summary of what types of data the pipeline ingests, a brief overview of the
-   major pipeline sections and the types of output it produces. You're giving an overview to someone new
-   to nf-core here, in 15-20 seconds. For an example, see https://github.com/nf-core/rnaseq/blob/master/README.md#introduction
+  Complete this sentence with a 2-3 sentence summary of what types of data the pipeline ingests, a brief overview of the
+  major pipeline sections and the types of output it produces. You're giving an overview to someone new
+  to nf-core here, in 15-20 seconds. For an example, see https://github.com/nf-core/rnaseq/blob/master/README.md#introduction
 -->
 
 ## Pipeline summary
@@ -56,7 +56,7 @@ submitted to and installed from [nf-core/modules](https://github.com/nf-core/mod
 11. RNA filtering
 
 <p align="center">
-    <img title="Sarek Workflow" 
+    <img title="Sarek Workflow"
 src="docs/images/rnadnavar_schemav2.png">
 </p>
 
@@ -68,7 +68,7 @@ src="docs/images/rnadnavar_schemav2.png">
 > with `-profile test` before running the workflow on actual data.
 
 <!-- TODO nf-core: Describe the minimum required steps to execute the pipeline, e.g. how to prepare samplesheets.
-     Explain what rows and columns represent. For instance (please edit as appropriate):
+    Explain what rows and columns represent. For instance (please edit as appropriate):
 
 First, prepare a samplesheet with your input data that looks as follows:
 
@@ -90,9 +90,9 @@ Now, you can run the pipeline using:
 
 ```bash
 nextflow run nf-core/rnadnavar \
-   -profile <docker/singularity/.../institute> \
-   --input samplesheet.csv \
-   --outdir <OUTDIR>
+  -profile <docker/singularity/.../institute> \
+  --input samplesheet.csv \
+  --outdir <OUTDIR>
 ```
 
 > **Warning:**

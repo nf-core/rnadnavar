@@ -22,8 +22,8 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
     panel_of_normals              // channel: [optional]  panel_of_normals
     panel_of_normals_tbi          // channel: [optional]  panel_of_normals_tbi
     joint_mutect2                 // boolean: [mandatory] [default: false] run mutect2 in joint mode
-	second_run
-	no_intervals
+    second_run
+    no_intervals
 
     main:
     versions          = Channel.empty()
@@ -35,7 +35,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
     vcf_sage          = Channel.empty()
     // SAGE
     if (tools && tools.split(',').contains('sage') || second_run) {
-		cram.dump(tag:"sage_cram")
+        cram.dump(tag:"sage_cram")
         BAM_VARIANT_CALLING_SOMATIC_SAGE(
             cram,
             // Remap channel to match module/subworkflow
@@ -113,8 +113,8 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
     } else {
 
         contamination_table_mutect2 = Channel.empty()
-		segmentation_table_mutect2  = Channel.empty()
-		artifact_priors_mutect2     = Channel.empty()
+        segmentation_table_mutect2  = Channel.empty()
+        artifact_priors_mutect2     = Channel.empty()
 
 
     }
@@ -132,7 +132,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
     vcf_strelka
     vcf_sage
     contamination_table_mutect2 = contamination_table_mutect2
-	segmentation_table_mutect2  = segmentation_table_mutect2
-	artifact_priors_mutect2     = artifact_priors_mutect2
+    segmentation_table_mutect2  = segmentation_table_mutect2
+    artifact_priors_mutect2     = artifact_priors_mutect2
     versions
 }

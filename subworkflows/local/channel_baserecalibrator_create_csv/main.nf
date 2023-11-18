@@ -12,7 +12,7 @@ workflow CHANNEL_BASERECALIBRATOR_CREATE_CSV {
 
     main:
         // Creating csv files to restart from this step
-         if (!(skip_tools && (skip_tools.split(',').contains('markduplicates')))) {
+        if (!(skip_tools && (skip_tools.split(',').contains('markduplicates')))) {
             cram_table_bqsr.collectFile(keepHeader: true, skip: 1, sort: true, storeDir: "${outdir}/csv") { meta, cram, crai, table ->
 
                 patient = meta.patient

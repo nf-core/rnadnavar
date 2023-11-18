@@ -27,7 +27,11 @@
     # conda changes md5sums for test
     - path: results/reports/fastqc/TCRBOA7-T-LX
     - path: results/reports/markduplicates/TCRBOA7-T-RNA/TCRBOA7-T-RNA.md.cram.metrics
-      contains: ["TCRBOA7-T-RNA   285     25299   35569   0       42      135     0       0.006132        2362075", "1.0     1       25045   25045"]
+      contains:
+        [
+          "TCRBOA7-T-RNA   285     25299   35569   0       42      135     0       0.006132        2362075",
+          "1.0     1       25045   25045",
+        ]
     - path: results/reports/mosdepth/TCRBOA7-N/TCRBOA7-N.md.mosdepth.global.dist.txt
       md5sum: c3850b2f2be5742f87bab3f446aed477
     - path: results/reports/mosdepth/TCRBOA7-N/TCRBOA7-N.md.mosdepth.summary.txt

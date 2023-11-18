@@ -7,12 +7,12 @@
 
 workflow  SAMPLESHEET_TO_CHANNEL{
 
-	take:
-	ch_from_samplesheet
+    take:
+    ch_from_samplesheet
 
     main:
     ch_from_samplesheet.dump(tag:"ch_from_samplesheet")
-	input_sample = ch_from_samplesheet
+    input_sample = ch_from_samplesheet
         .map{ meta, fastq_1, fastq_2, table, cram, crai, bam, bai, vcf, variantcaller, maf ->
             // generate patient_sample key to group lanes together
             [ meta.patient + meta.sample, [meta, fastq_1, fastq_2, table, cram, crai, bam, bai, vcf, variantcaller, maf] ]
@@ -34,9 +34,9 @@ workflow  SAMPLESHEET_TO_CHANNEL{
                 def flowcell   = flowcellLaneFromFastq(fastq_1)
                 // Don't use a random element for ID, it breaks resuming
                 def read_group = "\"@RG\\tID:${flowcell}.${meta.sample}.${meta.lane}\\t${CN}PU:${meta.lane}\\tSM:${meta.sample}\\tLB:${meta.sample}\\tDS:${params.fasta}\\tPL:${params.seq_platform}\""
-				if (meta.status >= 2) { // STAR does not need '@RG'
+                if (meta.status >= 2) { // STAR does not need '@RG'
                     read_group  = "ID:${flowcell}.${meta.sample}.${meta.lane} ${CN}PU:${meta.lane} SM:${meta.sample} LB:${meta.sample} DS:${params.fasta} PL:${params.seq_platform}"
-				}
+                }
                 meta           = meta + [num_lanes: num_lanes.toInteger(), read_group: read_group.toString(), data_type: 'fastq', size: 1]
 
                 if (params.step == 'mapping') return [ meta, [ fastq_1, fastq_2 ] ]
@@ -44,19 +44,19 @@ workflow  SAMPLESHEET_TO_CHANNEL{
                     error("Samplesheet contains fastq files but step is `$params.step`. Please check your samplesheet or adjust the step parameter.\nhttps://nf-co.re/rnadnavar/usage#input-samplesheet-configurations")
                 }
             // start for second run
-			} else if ((maf || vcf) && params.step=="second_run"){
-				if (meta.lane == null) meta.lane = "LX"
-				meta            = meta + [id: "${meta.sample}-${meta.lane}-realign".toString()]
+            } else if ((maf || vcf) && params.step=="second_run"){
+                if (meta.lane == null) meta.lane = "LX"
+                meta            = meta + [id: "${meta.sample}-${meta.lane}-realign".toString()]
                 def CN          = params.seq_center ? "CN:${params.seq_center}\\t" : ''
                 def read_group  = "\"@RG\\tID:${meta.sample}_${meta.lane}_realign\\t${CN}PU:${meta.lane}\\tSM:${meta.sample}\\tLB:${meta.sample}\\tDS:${params.fasta}\\tPL:${params.seq_platform}\""
-				if (meta.status >= 2) { // STAR does not need '@RG'
-					read_group  = "ID:${meta.sample}_${meta.lane}_realign ${CN}PU:${meta.lane} SM:${meta.sample} LB:${meta.sample} DS:${params.fasta} PL:${params.seq_platform}"
-				}
-				if (meta.status >= 2 || meta.status==0){ // these are the files that will go through realignment
-	                if (cram)  return [ meta + [num_lanes: num_lanes.toInteger(), read_group: read_group.toString(), data_type: 'cram', size: 1], cram, crai, maf ]
-	                else if (bam) return [ meta + [num_lanes: num_lanes.toInteger(), read_group: read_group.toString(), data_type: 'bam', size: 1], bam, bai, maf ]
-	                else {
-	                    error("Combination error")}
+                if (meta.status >= 2) { // STAR does not need '@RG'
+                    read_group  = "ID:${meta.sample}_${meta.lane}_realign ${CN}PU:${meta.lane} SM:${meta.sample} LB:${meta.sample} DS:${params.fasta} PL:${params.seq_platform}"
+                }
+                if (meta.status >= 2 || meta.status==0){ // these are the files that will go through realignment
+                    if (cram)  return [ meta + [num_lanes: num_lanes.toInteger(), read_group: read_group.toString(), data_type: 'cram', size: 1], cram, crai, maf ]
+                    else if (bam) return [ meta + [num_lanes: num_lanes.toInteger(), read_group: read_group.toString(), data_type: 'bam', size: 1], bam, bai, maf ]
+                    else {
+                        error("Combination error")}
                 } else if (meta.status == 1){
 
                     return [meta + [data_type: 'maf', variantcaller: variantcaller ?: ''], maf]
@@ -72,9 +72,9 @@ workflow  SAMPLESHEET_TO_CHANNEL{
                 meta            = meta + [id: "${meta.sample}-${meta.lane}".toString()]
                 def CN          = params.seq_center ? "CN:${params.seq_center}\\t" : ''
                 def read_group  = "\"@RG\\tID:${meta.sample}_${meta.lane}\\t${CN}PU:${meta.lane}\\tSM:${meta.sample}\\tLB:${meta.sample}\\tDS:${params.fasta}\\tPL:${params.seq_platform}\""
-				if (meta.status >= 2) { // STAR does not need '@RG'
-					read_group  = "ID:${meta.sample}_${meta.lane} ${CN}PU:${meta.lane} SM:${meta.sample} LB:${meta.sample} DS:${params.fasta} PL:${params.seq_platform}"
-				}
+                if (meta.status >= 2) { // STAR does not need '@RG'
+                    read_group  = "ID:${meta.sample}_${meta.lane} ${CN}PU:${meta.lane} SM:${meta.sample} LB:${meta.sample} DS:${params.fasta} PL:${params.seq_platform}"
+                }
                 meta            = meta + [num_lanes: num_lanes.toInteger(), read_group: read_group.toString(), data_type: 'bam', size: 1]
 
                 if (params.step != 'annotate') return [ meta - meta.subMap('lane'), bam, bai ]
@@ -132,86 +132,86 @@ workflow  SAMPLESHEET_TO_CHANNEL{
     input_sample.dump(tag:"input_sample")
 
     if (params.step != 'annotate' && params.tools && !params.build_only_index) {
-	    // Two checks for ensuring that the pipeline stops with a meaningful error message if
-	    // 1. the sample-sheet only contains normal-samples, but some of the requested tools require tumor-samples, and
-	    // 2. the sample-sheet only contains tumor-samples, but some of the requested tools require normal-samples.
-	    input_sample.filter{ it[0].status == 1 }.ifEmpty{ // In this case, the sample-sheet contains no tumor-samples
-	        if (!params.build_only_index) {
-	            def tools_tumor = ['mutect2', 'sage', 'strelka']
-	            def tools_tumor_asked = []
-	            tools_tumor.each{ tool ->
-	                if (params.tools.split(',').contains(tool)) tools_tumor_asked.add(tool)
-	            }
-	            if (!tools_tumor_asked.isEmpty()) {
-	                error('The sample-sheet only contains normal-samples, but the following tools, which were requested with "--tools", expect at least one tumor-sample : ' + tools_tumor_asked.join(", "))
-	            }
-	        }
-	    }
-	    input_sample.filter{ it[0].status == 0 }.ifEmpty{ // In this case, the sample-sheet contains no normal/germline-samples
-	        def tools_requiring_normal_samples = ['mutect', 'sage', 'strelka']
-	        def requested_tools_requiring_normal_samples = []
-	        tools_requiring_normal_samples.each{ tool_requiring_normal_samples ->
-	            if (params.tools.split(',').contains(tool_requiring_normal_samples)) requested_tools_requiring_normal_samples.add(tool_requiring_normal_samples)
-	        }
-	        if (!requested_tools_requiring_normal_samples.isEmpty()) {
-	            error('The sample-sheet only contains tumor-samples, but the following tools, which were requested by the option "tools", expect at least one normal-sample at the moment: ' + requested_tools_requiring_normal_samples.join(", "))
-	        }
-		}
-	}
+        // Two checks for ensuring that the pipeline stops with a meaningful error message if
+        // 1. the sample-sheet only contains normal-samples, but some of the requested tools require tumor-samples, and
+        // 2. the sample-sheet only contains tumor-samples, but some of the requested tools require normal-samples.
+        input_sample.filter{ it[0].status == 1 }.ifEmpty{ // In this case, the sample-sheet contains no tumor-samples
+            if (!params.build_only_index) {
+                def tools_tumor = ['mutect2', 'sage', 'strelka']
+                def tools_tumor_asked = []
+                tools_tumor.each{ tool ->
+                    if (params.tools.split(',').contains(tool)) tools_tumor_asked.add(tool)
+                }
+                if (!tools_tumor_asked.isEmpty()) {
+                    error('The sample-sheet only contains normal-samples, but the following tools, which were requested with "--tools", expect at least one tumor-sample : ' + tools_tumor_asked.join(", "))
+                }
+            }
+        }
+        input_sample.filter{ it[0].status == 0 }.ifEmpty{ // In this case, the sample-sheet contains no normal/germline-samples
+            def tools_requiring_normal_samples = ['mutect', 'sage', 'strelka']
+            def requested_tools_requiring_normal_samples = []
+            tools_requiring_normal_samples.each{ tool_requiring_normal_samples ->
+                if (params.tools.split(',').contains(tool_requiring_normal_samples)) requested_tools_requiring_normal_samples.add(tool_requiring_normal_samples)
+            }
+            if (!requested_tools_requiring_normal_samples.isEmpty()) {
+                error('The sample-sheet only contains tumor-samples, but the following tools, which were requested by the option "tools", expect at least one normal-sample at the moment: ' + requested_tools_requiring_normal_samples.join(", "))
+            }
+        }
+    }
 
-	// Fails when wrongfull extension for intervals file
-	if (params.wes && !params.step == 'annotate') {
-	    if (params.intervals && !params.intervals.endsWith("bed"))  error("Target file specified with `--intervals` must be in BED format for targeted data")
-	    else log.warn("Intervals file was provided without parameter `--wes`: Pipeline will assume this is Whole-Genome-Sequencing data.")
-	} else if (params.intervals && !params.intervals.endsWith("bed") && !params.intervals.endsWith("list")) error("Intervals file must end with .bed, .list, or .interval_list")
+    // Fails when wrongfull extension for intervals file
+    if (params.wes && !params.step == 'annotate') {
+        if (params.intervals && !params.intervals.endsWith("bed"))  error("Target file specified with `--intervals` must be in BED format for targeted data")
+        else log.warn("Intervals file was provided without parameter `--wes`: Pipeline will assume this is Whole-Genome-Sequencing data.")
+    } else if (params.intervals && !params.intervals.endsWith("bed") && !params.intervals.endsWith("list")) error("Intervals file must end with .bed, .list, or .interval_list")
 
-	if (params.step == 'mapping' && params.aligner.contains("dragmap") && !(params.skip_tools && params.skip_tools.split(',').contains("baserecalibrator"))) {
-	    log.warn("DragMap was specified as aligner. Base recalibration is not contained in --skip_tools. It is recommended to skip baserecalibration when using DragMap\nhttps://gatk.broadinstitute.org/hc/en-us/articles/4407897446939--How-to-Run-germline-single-sample-short-variant-discovery-in-DRAGEN-mode")
-	}
+    if (params.step == 'mapping' && params.aligner.contains("dragmap") && !(params.skip_tools && params.skip_tools.split(',').contains("baserecalibrator"))) {
+        log.warn("DragMap was specified as aligner. Base recalibration is not contained in --skip_tools. It is recommended to skip baserecalibration when using DragMap\nhttps://gatk.broadinstitute.org/hc/en-us/articles/4407897446939--How-to-Run-germline-single-sample-short-variant-discovery-in-DRAGEN-mode")
+    }
 
 
-	// Warns when missing files or params for mutect2
-	if (params.tools && params.tools.split(',').contains('mutect2')) {
-	    if (!params.pon) {
-	        log.warn("No Panel-of-normal was specified for Mutect2.\nIt is highly recommended to use one: https://gatk.broadinstitute.org/hc/en-us/articles/5358911630107-Mutect2\nFor more information on how to create one: https://gatk.broadinstitute.org/hc/en-us/articles/5358921041947-CreateSomaticPanelOfNormals-BETA-")
-	    }
-	    if (!params.germline_resource) {
-	        log.warn("If Mutect2 is specified without a germline resource, no filtering will be done.\nIt is recommended to use one: https://gatk.broadinstitute.org/hc/en-us/articles/5358911630107-Mutect2")
-	    }
-	    if (params.pon && params.pon.contains("/Homo_sapiens/GATK/GRCh38/Annotation/GATKBundle/1000g_pon.hg38.vcf.gz")) {
-	        log.warn("The default Panel-of-Normals provided by GATK is used for Mutect2.\nIt is highly recommended to generate one from normal samples that are technical similar to the tumor ones.\nFor more information: https://gatk.broadinstitute.org/hc/en-us/articles/360035890631-Panel-of-Normals-PON-")
-	    }
-	}
+    // Warns when missing files or params for mutect2
+    if (params.tools && params.tools.split(',').contains('mutect2')) {
+        if (!params.pon) {
+            log.warn("No Panel-of-normal was specified for Mutect2.\nIt is highly recommended to use one: https://gatk.broadinstitute.org/hc/en-us/articles/5358911630107-Mutect2\nFor more information on how to create one: https://gatk.broadinstitute.org/hc/en-us/articles/5358921041947-CreateSomaticPanelOfNormals-BETA-")
+        }
+        if (!params.germline_resource) {
+            log.warn("If Mutect2 is specified without a germline resource, no filtering will be done.\nIt is recommended to use one: https://gatk.broadinstitute.org/hc/en-us/articles/5358911630107-Mutect2")
+        }
+        if (params.pon && params.pon.contains("/Homo_sapiens/GATK/GRCh38/Annotation/GATKBundle/1000g_pon.hg38.vcf.gz")) {
+            log.warn("The default Panel-of-Normals provided by GATK is used for Mutect2.\nIt is highly recommended to generate one from normal samples that are technical similar to the tumor ones.\nFor more information: https://gatk.broadinstitute.org/hc/en-us/articles/360035890631-Panel-of-Normals-PON-")
+        }
+    }
 
-	// Fails when missing resources for baserecalibrator
-	if (!params.dbsnp && !params.known_indels) {
-	    if (params.step in ['mapping', 'markduplicates', 'prepare_recalibration', 'recalibrate'] && (!params.skip_tools || (params.skip_tools && !params.skip_tools.split(',').contains('baserecalibrator')))) {
-	        error("Base quality score recalibration requires at least one resource file. Please provide at least one of `--dbsnp` or `--known_indels`\nYou can skip this step in the workflow by adding `--skip_tools baserecalibrator` to the command.")
-	    }
-	}
+    // Fails when missing resources for baserecalibrator
+    if (!params.dbsnp && !params.known_indels) {
+        if (params.step in ['mapping', 'markduplicates', 'prepare_recalibration', 'recalibrate'] && (!params.skip_tools || (params.skip_tools && !params.skip_tools.split(',').contains('baserecalibrator')))) {
+            error("Base quality score recalibration requires at least one resource file. Please provide at least one of `--dbsnp` or `--known_indels`\nYou can skip this step in the workflow by adding `--skip_tools baserecalibrator` to the command.")
+        }
+    }
 
-	// Fails when --joint_mutect2 is used without enabling mutect2
-	if (params.joint_mutect2 && (!params.tools || !params.tools.split(',').contains('mutect2'))) {
-	    error("The mutect2 should be specified as one of the tools when doing joint somatic variant calling with Mutect2. (The mutect2 could be specified by adding `--tools mutect2` to the nextflow command.)")
-	}
+    // Fails when --joint_mutect2 is used without enabling mutect2
+    if (params.joint_mutect2 && (!params.tools || !params.tools.split(',').contains('mutect2'))) {
+        error("The mutect2 should be specified as one of the tools when doing joint somatic variant calling with Mutect2. (The mutect2 could be specified by adding `--tools mutect2` to the nextflow command.)")
+    }
 
-	// Fails when missing tools for variant_calling or annotate
-	if ((params.step == 'variant_calling' || params.step == 'annotate') && !params.tools) {
-	    error("Please specify at least one tool when using `--step ${params.step}`.\nhttps://nf-co.re/sarek/parameters#tools")
-	}
+    // Fails when missing tools for variant_calling or annotate
+    if ((params.step == 'variant_calling' || params.step == 'annotate') && !params.tools) {
+        error("Please specify at least one tool when using `--step ${params.step}`.\nhttps://nf-co.re/sarek/parameters#tools")
+    }
 
-	// Fails when missing sex information for CNV tools
-	if (params.tools && (params.tools.split(',').contains('ascat') || params.tools.split(',').contains('controlfreec'))) {
-	    input_sample.map{
-	        if (it[0].sex == 'NA' ) {
-	            error("Please specify sex information for each sample in your samplesheet when using '--tools' with 'ascat' or 'controlfreec'.\nhttps://nf-co.re/sarek/usage#input-samplesheet-configurations")
-	        }
-	    }
-	}
+    // Fails when missing sex information for CNV tools
+    if (params.tools && (params.tools.split(',').contains('ascat') || params.tools.split(',').contains('controlfreec'))) {
+        input_sample.map{
+            if (it[0].sex == 'NA' ) {
+                error("Please specify sex information for each sample in your samplesheet when using '--tools' with 'ascat' or 'controlfreec'.\nhttps://nf-co.re/sarek/usage#input-samplesheet-configurations")
+            }
+        }
+    }
 
-	if ((params.download_cache) && (params.snpeff_cache || params.vep_cache)) {
-	    error("Please specify either `--download_cache` or `--snpeff_cache`, `--vep_cache`.\nhttps://nf-co.re/sarek/usage#how-to-customise-snpeff-and-vep-annotation")
-	}
+    if ((params.download_cache) && (params.snpeff_cache || params.vep_cache)) {
+        error("Please specify either `--download_cache` or `--snpeff_cache`, `--vep_cache`.\nhttps://nf-co.re/sarek/usage#how-to-customise-snpeff-and-vep-annotation")
+    }
 
     emit:
     input_sample
@@ -249,5 +249,3 @@ def flowcellLaneFromFastq(path) {
     }
     return fcid
 }
-
-
