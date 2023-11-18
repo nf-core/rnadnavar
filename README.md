@@ -56,7 +56,7 @@ submitted to and installed from [nf-core/modules](https://github.com/nf-core/mod
 11. RNA filtering
 
 <p align="center">
-    <img title="Sarek Workflow"
+    <img title="RNADNAVAR Workflow"
 src="docs/images/rnadnavar_schemav2.png">
 </p>
 
