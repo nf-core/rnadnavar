@@ -25,9 +25,9 @@ workflow MAF_FILTERING {
         if (params.step == 'filtering') maf_to_filter = input_sample
         // BASIC FILTERING
         FILTERING(maf_to_filter, fasta)
-		maf      = FILTERING.out.maf
+        maf      = FILTERING.out.maf
         versions = versions.mix(FILTERING.out.versions)
-	}
+    }
 
     emit:
     maf        = maf

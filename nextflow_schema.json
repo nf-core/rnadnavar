@@ -10,16 +10,14 @@
             "type": "object",
             "fa_icon": "fas fa-terminal",
             "description": "Define where the pipeline should find input data and save output data.",
-            "required": [
-                "input",
-                "outdir"
-            ],
+            "required": ["input", "outdir"],
             "properties": {
                 "input": {
                     "description": "Path to comma-separated file containing information about the samples in the experiment.",
                     "help_text": "A design file with information about the samples in your experiment. Use this parameter to specify the location of the input files. It has to be a comma-separated file with a header row. See [usage docs](https://nf-co.re/sarek/usage#input).\n\nIf no input file is specified, sarek will attempt to locate one in the `{outdir}` directory. If no input should be supplied, i.e. when --step is supplied or --build_from_index, then set --input false",
                     "fa_icon": "fas fa-file-csv",
                     "schema": "assets/schema_input.json",
+                    "type": "string",
                     "anyOf": [
                         {
                             "type": "string",
@@ -89,6 +87,20 @@
                     "type": "boolean",
                     "description": "Saves output from Markduplicates & Baserecalibration as BAM file instead of CRAM",
                     "fa_icon": "fas fa-download"
+                },
+                "rna": {
+                    "type": "boolean",
+                    "fa_icon": "fas fa-download",
+                    "description": "True if there are RNA samples to be analysed",
+                    "help_text": "Avoids STAR indexing otherwise",
+                    "default": true
+                },
+                "dna": {
+                    "type": "boolean",
+                    "fa_icon": "fas fa-download",
+                    "description": "True if there are DNA samples to be analysed",
+                    "help_text": "Avoids BWA indexing otherwise",
+                    "default": true
                 }
             }
         },
@@ -311,6 +323,7 @@
                     "description": "Do not load the iGenomes reference config.",
                     "fa_icon": "fas fa-ban",
                     "hidden": true,
+                    "default": false,
                     "help_text": "Do not load `igenomes.config` when running the pipeline. You may choose this option if you observe clashes between custom parameters and those supplied in `igenomes.config`."
                 },
                 "hisat2_build_memory": {
@@ -345,7 +358,7 @@
             "default": "",
             "fa_icon": "fas fa-cut",
             "properties": {
-                 "trim_fastq": {
+                "trim_fastq": {
                     "type": "boolean",
                     "fa_icon": "fas fa-cut",
                     "description": "Run FastP for read trimming",
@@ -397,12 +410,12 @@
                     "description": "Save trimmed FastQ file intermediates.",
                     "hidden": true
                 },
-               "save_split_fastqs": {
+                "save_split_fastqs": {
                     "type": "boolean",
                     "fa_icon": "fas fa-vial",
                     "description": "If set, publishes split FASTQ files. Intended for testing purposes.",
                     "hidden": true
-               }
+                }
             }
         },
         "pipeline_stage_options": {
@@ -416,14 +429,14 @@
                     "fa_icon": "fas fa-toolbox",
                     "description": "Tools to use for variant calling and/or for annotation.",
                     "help_text": "Multiple tools separated with commas.\n\n**Variant Calling:**\n\nSomatic variant calling can currently only be performed with the following variant callers:\n- SNPs/Indels: FreeBayes, Mutect2, Strelka2, SAGE\n\n> **NB** Mutect2 for somatic variant calling cannot be combined with `--no_intervals`\n\n**Annotation:**\n \n- VEP (only).\n\n> **NB** As RNADNAVAR will use bgzip and tabix to compress and index VCF files annotated, it expects VCF files to be sorted when starting from `--step annotate`.",
-                    "pattern": "^((freebayes|manta|merge|sage|mutect2|strelka|vep|consensus|filtering|normalise|normalize|rna_filtering|vcf_qc|vcf2maf|preprocessing|second_run)*,?)*$"
+                    "pattern": "^((freebayes|manta|merge|sage|mutect2|strelka|vep|consensus|filtering|normalise|normalize|rna_filtering|vcf_qc|vcf2maf|preprocessing|second_run|rescue)*,?)*$"
                 },
                 "skip_tools": {
                     "type": "string",
                     "fa_icon": "fas fa-forward",
                     "description": "Disable specified tools.",
                     "help_text": "Multiple tools can be specified, separated by commas.\n\n> **NB** `--skip_tools baserecalibrator_report` is actually just not saving the reports.\n> **NB** `--skip_tools markduplicates_report` does not skip `MarkDuplicates` but prevent the collection of duplicate metrics that slows down performance.",
-                    "pattern": "^((contamination|learnreadorientation|baserecalibrator|baserecalibrator_report|bcftools|documentation|fastqc|markduplicates|markduplicates_report|mosdepth|multiqc|samtools|vcftools|versions|splitncigar|second_pass|second_run|consensus|normalise|filtering|variant_calling)*(,)*)*$"
+                    "pattern": "^((contamination|learnreadorientation|baserecalibrator|baserecalibrator_report|bcftools|documentation|fastqc|markduplicates|markduplicates_report|mosdepth|multiqc|samtools|vcftools|versions|splitncigar|second_pass|second_run|filtering|variant_calling|rescue)*(,)*)*$"
                 },
                 "wes": {
                     "type": "boolean",
@@ -664,7 +677,7 @@
                     "type": "string",
                     "fa_icon": "fas fa-file",
                     "description": "Path to VEP cache.",
-                    "help_text": "To be used with `--annotation_cache`.",
+                    "help_text": "Cache directory for VEP",
                     "hidden": true
                 },
                 "outdir_cache": {
@@ -678,11 +691,7 @@
                     "type": "string",
                     "default": "vcf",
                     "description": "VEP output-file format.",
-                    "enum": [
-                        "json",
-                        "tab",
-                        "vcf"
-                    ],
+                    "enum": ["json", "tab", "vcf"],
                     "help_text": "Sets the format of the output-file from VEP. Available formats: json, tab and vcf.",
                     "fa_icon": "fas fa-table",
                     "hidden": true
@@ -696,11 +705,6 @@
                     "type": "string",
                     "fa_icon": "fas fa-database",
                     "description": "Path to BED file with positions to blacklist during filtering (e.g. regions difficult to map)"
-                },
-                "annotation_cache": {
-                    "type": "string",
-                    "fa_icon": "fas fa-database",
-                    "description": ""
                 }
             }
         },
@@ -833,14 +837,7 @@
                     "description": "Method used to save pipeline results to output directory.",
                     "help_text": "The Nextflow `publishDir` option specifies which intermediate files should be saved to the output directory. This option tells the pipeline what method should be used to move these files. See [Nextflow docs](https://www.nextflow.io/docs/latest/process.html#publishdir) for details.",
                     "fa_icon": "fas fa-copy",
-                    "enum": [
-                        "symlink",
-                        "rellink",
-                        "link",
-                        "copy",
-                        "copyNoFollow",
-                        "move"
-                    ],
+                    "enum": ["symlink", "rellink", "link", "copy", "copyNoFollow", "move"],
                     "hidden": true
                 },
                 "email": {

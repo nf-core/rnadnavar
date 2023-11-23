@@ -1,0 +1,47 @@
+{
+    "Should run without failures": {
+        "content": [
+            {
+                "0": [
+                    [
+                        {
+                            "patient": "test",
+                            "sample": "test",
+                            "status": 0,
+                            "lane": "test_L1",
+                            "id": "test-test_L1",
+                            "num_lanes": 1,
+                            "read_group": "\"@RG\\tID:null.test.test_L1\\tPU:test_L1\\tSM:test\\tLB:test\\tDS:null\\tPL:illumina\"",
+                            "data_type": "fastq",
+                            "size": 1
+                        },
+                        [
+                            "/nf-core/test-datasets/modules/data/genomics/homo_sapiens/illumina/fastq/test_1.fastq.gz",
+                            "/nf-core/test-datasets/modules/data/genomics/homo_sapiens/illumina/fastq/test_2.fastq.gz"
+                        ]
+                    ]
+                ],
+                "input_sample": [
+                    [
+                        {
+                            "patient": "test",
+                            "sample": "test",
+                            "status": 0,
+                            "lane": "test_L1",
+                            "id": "test-test_L1",
+                            "num_lanes": 1,
+                            "read_group": "\"@RG\\tID:null.test.test_L1\\tPU:test_L1\\tSM:test\\tLB:test\\tDS:null\\tPL:illumina\"",
+                            "data_type": "fastq",
+                            "size": 1
+                        },
+                        [
+                            "/nf-core/test-datasets/modules/data/genomics/homo_sapiens/illumina/fastq/test_1.fastq.gz",
+                            "/nf-core/test-datasets/modules/data/genomics/homo_sapiens/illumina/fastq/test_2.fastq.gz"
+                        ]
+                    ]
+                ]
+            }
+        ],
+        "timestamp": "2023-10-18T09:44:03.80018"
+    }
+}

@@ -35,21 +35,35 @@ workflow PREPARE_GENOME {
         known_snps              // channel: [optional]  known_snps
         pon                     // channel: [optional]  pon
 
-
     main:
 
     fasta    = fasta.map{ fasta -> [ [ id:fasta.baseName ], fasta ] }
     versions = Channel.empty()
 
     // If aligner is bwa-mem
-    BWAMEM1_INDEX(fasta)     // If aligner is bwa-mem
-    BWAMEM2_INDEX(fasta)     // If aligner is bwa-mem2
-    DRAGMAP_HASHTABLE(fasta) // If aligner is dragmap
+    if (params.dna){
+        BWAMEM1_INDEX(fasta)     // If aligner is bwa-mem
+        BWAMEM2_INDEX(fasta)     // If aligner is bwa-mem2
+        DRAGMAP_HASHTABLE(fasta) // If aligner is dragmap
 
+        bwa         = BWAMEM1_INDEX.out.index.map{ meta, index -> [index] }.collect()       // path: bwa/*
+        bwamem2     = BWAMEM2_INDEX.out.index.map{ meta, index -> [index] }.collect()       // path: bwamem2/*
+        hashtable   = DRAGMAP_HASHTABLE.out.hashmap.map{ meta, index -> [index] }.collect() // path: dragmap/*
+
+
+        versions = versions.mix(BWAMEM1_INDEX.out.versions)
+        versions = versions.mix(BWAMEM2_INDEX.out.versions)
+        versions = versions.mix(DRAGMAP_HASHTABLE.out.versions)
+
+    } else {
+
+        bwa        = Channel.empty()
+        bwamem2    = Channel.empty()
+        hashtable  = Channel.empty()
+    }
 
     GATK4_CREATESEQUENCEDICTIONARY(fasta)
     SAMTOOLS_FAIDX(fasta, [['id':null], []])
-
 
     // the following are flattened and mapped in case the user supplies more than one value for the param
     // written for KNOWN_INDELS, but preemptively applied to the rest
@@ -61,112 +75,116 @@ workflow PREPARE_GENOME {
     TABIX_KNOWN_INDELS(known_indels.flatten().map{ it -> [ [ id:it.baseName ], it ] } )
     TABIX_PON(pon.flatten().map{ it -> [ [ id:it.baseName ], it ] })
 
- //
+    //
     // Uncompress GTF annotation file or create from GFF3 if required
     //
-    ch_gffread_version = Channel.empty()
-    if (params.gtf) {
-        if (params.gtf.endsWith('.gz')) {
-            GUNZIP_GTF (
-                Channel.fromPath(params.gtf).map{ it -> [[id:it[0].baseName], it] }
+    if (params.rna){
+        ch_gffread_version = Channel.empty()
+        if (params.gtf) {
+            if (params.gtf.endsWith('.gz')) {
+                GUNZIP_GTF (
+                    Channel.fromPath(params.gtf).map{ it -> [[id:it[0].baseName], it] }
+                )
+                ch_gtf = GUNZIP_GTF.out.gunzip.map{ meta, gtf -> [gtf] }.collect()
+                versions = versions.mix(GUNZIP_GTF.out.versions)
+            } else {
+                ch_gtf = Channel.fromPath(params.gtf).collect()
+            }
+        } else if (params.gff) {
+            if (params.gff.endsWith('.gz')) {
+                GUNZIP_GFF (
+                    Channel.fromPath(params.gff).map{ it -> [[id:it[0].baseName], it] }
+                )
+                ch_gff = GUNZIP_GFF.out.gunzip.map{ meta, gff -> [gff] }.collect()
+                versions = versions.mix(GUNZIP_GFF.out.versions)
+            } else {
+                ch_gff = Channel.fromPath(params.gff).collect()
+            }
+
+            GFFREAD (
+                ch_gff
             )
-            ch_gtf = GUNZIP_GTF.out.gunzip.map{ meta, gtf -> [gtf] }.collect()
-            versions = versions.mix(GUNZIP_GTF.out.versions)
-        } else {
-            ch_gtf = Channel.fromPath(params.gtf).collect()
+            .gtf
+            .set { ch_gtf }
+
+            versions = versions.mix(GFFREAD.out.versions)
         }
-    } else if (params.gff) {
-        if (params.gff.endsWith('.gz')) {
-            GUNZIP_GFF (
-                Channel.fromPath(params.gff).map{ it -> [[id:it[0].baseName], it] }
-            )
-            ch_gff = GUNZIP_GFF.out.gunzip.map{ meta, gff -> [gff] }.collect()
-            versions = versions.mix(GUNZIP_GFF.out.versions)
+
+        //
+        // Uncompress exon BED annotation file or create from GTF if required
+        //
+        if (params.exon_bed) {
+            if (params.exon_bed.endsWith('.gz')) {
+                GUNZIP_GENE_BED (
+                    Channel.fromPath(params.exon_bed).map{ it -> [[id:it[0].baseName], it] }
+                )
+                ch_gene_bed = GUNZIP_GENE_BED.out.gunzip.map{ meta, bed -> [bed] }.collect()
+                versions = versions.mix(GUNZIP_GENE_BED.out.versions)
+            } else {
+                ch_exon_bed = Channel.fromPath(params.exon_bed).collect()
+            }
         } else {
-            ch_gff = Channel.fromPath(params.gff).collect()
+            ch_exon_bed = GTF2BED ( ch_gtf ).bed.collect()
+            versions = versions.mix(GTF2BED.out.versions)
         }
 
-        GFFREAD (
-            ch_gff
-        )
-        .gtf
-        .set { ch_gtf }
+        //
+        // Uncompress STAR index or generate from scratch if required
+        //
+        if (params.star_index) {
+            if (params.star_index.endsWith('.tar.gz')) {
+                UNTAR_STAR_INDEX (
+                    Channel.fromPath(params.star_index).map{ it -> [[id:it[0].baseName], it] }
+                )
+                ch_star_index = UNTAR_STAR_INDEX.out.untar.map{ meta, star_index -> [star_index] }.collect()
+                versions   = versions.mix(UNTAR_STAR_INDEX.out.versions)
+            } else {
+                ch_star_index = Channel.fromPath(params.star_index).collect()
+            }
+        }
+        else {
+            STAR_GENOMEGENERATE ( fasta.map{meta, fasta -> fasta},ch_gtf )
+            ch_star_index = STAR_GENOMEGENERATE.out.index
+            versions      = versions.mix(STAR_GENOMEGENERATE.out.versions)
+        }
 
-        versions = versions.mix(GFFREAD.out.versions)
-    }
 
-     //
-    // Uncompress exon BED annotation file or create from GTF if required
-    //
-    if (params.exon_bed) {
-        if (params.exon_bed.endsWith('.gz')) {
-            GUNZIP_GENE_BED (
-                Channel.fromPath(params.exon_bed).map{ it -> [[id:it[0].baseName], it] }
-            )
-            ch_gene_bed = GUNZIP_GENE_BED.out.gunzip.map{ meta, bed -> [bed] }.collect()
-            versions = versions.mix(GUNZIP_GENE_BED.out.versions)
+        // HISAT2 not necessary if second pass skipped
+        if ((params.tools && params.tools.split(',').contains("second_run"))){
+            if (params.splicesites) {
+                ch_splicesites  = Channel.fromPath(params.splicesites).collect().map{ it -> [ [ id:'null' ], it ]}
+            } else{
+                HISAT2_EXTRACTSPLICESITES ( ch_gtf.map{ it -> [ [ id:'null' ], it ]} )
+                ch_splicesites  = HISAT2_EXTRACTSPLICESITES.out.txt
+                versions = versions.mix(HISAT2_EXTRACTSPLICESITES.out.versions)
+            }
+
+            if (params.hisat2_index) {
+                ch_hisat2_index  = Channel.fromPath(params.hisat2_index).collect().map{it -> [ [ id:"hisat2_index" ], it ]}
+            } else{
+                HISAT2_BUILD (
+                                fasta,
+                                ch_gtf.map{ it -> [ [ id:'null' ], it ]},
+                                ch_splicesites
+                            )
+                ch_hisat2_index = HISAT2_BUILD.out.index
+                versions = versions.mix(HISAT2_BUILD.out.versions)
+            }
         } else {
-            ch_exon_bed = Channel.fromPath(params.exon_bed).collect()
+            ch_hisat2_index = []
+            ch_splicesites  = []
         }
     } else {
-        ch_exon_bed = GTF2BED ( ch_gtf ).bed.collect()
-        versions = versions.mix(GTF2BED.out.versions)
-    }
-
-    //
-    // Uncompress STAR index or generate from scratch if required
-    //
-    ch_star_index = Channel.empty()
-    if (params.star_index) {
-        if (params.star_index.endsWith('.tar.gz')) {
-            UNTAR_STAR_INDEX (
-                Channel.fromPath(params.star_index).map{ it -> [[id:it[0].baseName], it] }
-            )
-            ch_star_index = UNTAR_STAR_INDEX.out.untar.map{ meta, star_index -> [star_index] }.collect()
-            versions   = versions.mix(UNTAR_STAR_INDEX.out.versions)
-        } else {
-            ch_star_index = Channel.fromPath(params.star_index).collect()
-        }
-    }
-    else {
-        STAR_GENOMEGENERATE ( fasta.map{meta, fasta -> fasta},ch_gtf )
-        ch_star_index = STAR_GENOMEGENERATE.out.index
-        versions      = versions.mix(STAR_GENOMEGENERATE.out.versions)
-    }
-
-
-    // HISAT2 not necessary if second pass skipped
-    if ((params.skip_tools && !params.skip_tools.split(',').contains("second_run"))){
-        if (params.splicesites) {
-            ch_splicesites  = Channel.fromPath(params.splicesites).collect()
-        } else{
-            HISAT2_EXTRACTSPLICESITES ( ch_gtf.map{ it -> [ [ id:'null' ], it ]} )
-            ch_splicesites  = HISAT2_EXTRACTSPLICESITES.out.txt
-            versions = versions.mix(HISAT2_EXTRACTSPLICESITES.out.versions)
-        }
-
-        if (params.hisat2_index) {
-            ch_hisat2_index  = Channel.fromPath(params.hisat2_index).collect()
-        } else{
-			HISAT2_BUILD (
-							fasta,
-                            ch_gtf.map{ it -> [ [ id:'null' ], it ]},
-                            ch_splicesites
-                         )
-            ch_hisat2_index = HISAT2_BUILD.out.index
-            versions = versions.mix(HISAT2_BUILD.out.versions)
-        }
-    } else {
+        ch_star_index   = Channel.empty()
+        ch_gtf          = Channel.empty()
         ch_hisat2_index = Channel.empty()
-        ch_splicesites  = Channel.empty()
+        ch_splicesites  = Channel.value([])
+        ch_exon_bed     = Channel.empty()
     }
 
 
     // Gather versions of all tools used
     versions = versions.mix(SAMTOOLS_FAIDX.out.versions)
-    versions = versions.mix(BWAMEM1_INDEX.out.versions)
-    versions = versions.mix(BWAMEM2_INDEX.out.versions)
-    versions = versions.mix(DRAGMAP_HASHTABLE.out.versions)
     versions = versions.mix(GATK4_CREATESEQUENCEDICTIONARY.out.versions)
     versions = versions.mix(TABIX_DBSNP.out.versions)
     versions = versions.mix(TABIX_GERMLINE_RESOURCE.out.versions)
@@ -175,9 +193,9 @@ workflow PREPARE_GENOME {
     versions = versions.mix(TABIX_PON.out.versions)
 
     emit:
-        bwa                   = BWAMEM1_INDEX.out.index.map{ meta, index -> [index] }.collect()       // path: bwa/*
-        bwamem2               = BWAMEM2_INDEX.out.index.map{ meta, index -> [index] }.collect()       // path: bwamem2/*
-        hashtable             = DRAGMAP_HASHTABLE.out.hashmap.map{ meta, index -> [index] }.collect() // path: dragmap/*
+        bwa                   = bwa       // path: bwa/*
+        bwamem2               = bwamem2       // path: bwamem2/*
+        hashtable             = hashtable // path: dragmap/*
         dbsnp_tbi             = TABIX_DBSNP.out.tbi.map{ meta, tbi -> [tbi] }.collect()               // path: dbsnb.vcf.gz.tbi
         dict                  = GATK4_CREATESEQUENCEDICTIONARY.out.dict                               // path: genome.fasta.dict
         fasta_fai             = SAMTOOLS_FAIDX.out.fai.map{ meta, fai -> [fai] }                      // path: genome.fasta.fai

@@ -142,8 +142,8 @@ workflow BAM_ALIGN {
             // and not stall the workflow until all reads from all channels are mapped
             [ groupKey( meta - meta.subMap('num_lanes', 'read_group', 'size') + [ data_type:'bam', id:meta.sample ], (meta.num_lanes ?: 1) * (meta.size ?: 1)), bam ]
         }.groupTuple()
-		bam_mapped_dna.dump(tag:"bam_mapped_dna")
-		reads_for_alignment_status.rna.dump(tag:"reads_for_alignment_status.rna")
+        bam_mapped_dna.dump(tag:"bam_mapped_dna")
+        reads_for_alignment_status.rna.dump(tag:"reads_for_alignment_status.rna")
 
         // RNA will be aligned with STAR
         // Run STAR
@@ -170,7 +170,7 @@ workflow BAM_ALIGN {
             // and not stall the workflow until all reads from all channels are mapped
             [ groupKey( meta - meta.subMap('num_lanes', 'read_group', 'size') + [ data_type:'bam', id:meta.sample ], (meta.num_lanes ?: 1) * (meta.size ?: 1)), bam ]
         }.groupTuple()
-		bam_mapped_rna.dump(tag:"bam_mapped_rna")
+        bam_mapped_rna.dump(tag:"bam_mapped_rna")
         // Gather QC reports
         reports           = reports.mix(FASTQ_ALIGN_STAR.out.stats.collect{it[1]}.ifEmpty([]))
         reports           = reports.mix(FASTQ_ALIGN_STAR.out.log_final.collect{it[1]}.ifEmpty([]))
@@ -181,7 +181,7 @@ workflow BAM_ALIGN {
 
         // gatk4 markduplicates can handle multiple bams as input, so no need to merge/index here
         // Except if and only if skipping markduplicates or saving mapped bams
-       if (params.save_mapped || (params.skip_tools && params.skip_tools.split(',').contains('markduplicates'))) {
+        if (params.save_mapped || (params.skip_tools && params.skip_tools.split(',').contains('markduplicates'))) {
 
             // bams are merged (when multiple lanes from the same sample), indexed and then converted to cram
             BAM_MERGE_INDEX_SAMTOOLS(bam_mapped)
