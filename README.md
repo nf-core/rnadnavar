@@ -41,23 +41,45 @@ submitted to and installed from [nf-core/modules](https://github.com/nf-core/mod
 
 ## Pipeline summary
 
-<!-- TODO nf-core: Fill in short bullet-pointed list of the default steps in the pipeline -->
+Depending on the options and samples provided, the 
+pipeline will run different tasks. This is controlled 
+mainly through `--step` and `--tools` parameters. This 
+is a summary of the possible tasks to run with the pipeline:
 
-1. Read QC ([`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))
-2. Present QC for raw reads ([`MultiQC`](http://multiqc.info/))
-3. Alignment (BWA/STAR)
-4. GATK pre-processing
-5. Variant calling
-6. Normalise calls
-7. Annotation
-8. Consensus
-9. Filtering
-10. Realignment [OPT]
-11. RNA filtering
+- Quality control and trimming (enabled by 
+  `--trim_fastq` and runs [`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/) and 
+  [`fastp`](https://github.com/OpenGene/fastp))
+- Map Reads to Reference (BWA-mem, BWA-mem2, dragmap 
+  and/or STAR)
+- GATK preprocessing for DNA and RNA bulk sequencing 
+  samples (`GATK MarkDuplicates`, `GATK SplitNCigarReads`,`GATK 
+  BaseRecalibrator` and `GATK ApplyBQSR`)
+- Summarise alignment statistics (`samtools stats`, `mosdepth`)
+- Variant calling (enabled with `--tools`)
+  - `Mutect2`
+  - `Strelka2`
+  - `SAGE`
+- Annotation with `VEP` (enabled with `--tools` adding 
+  `vep`)
+- Normalisation of VCFs with VT (enabled with `--tools` 
+  adding `normalisation`)
+- Transformation of VCF to MAF and consensus of variant 
+  calling results (enabled with `--tools` adding 
+  `consensus`)
+- Filtering of MAF files applying optional gnomad, 
+  whitelisting and blacklisting (enabled with `--tools` 
+  adding `filtering`)
+- Realignment step where reads from regions where a variant 
+  was found will be extracted and re-processed, only for 
+  RNA due to higher levels of background noise (enabled 
+  with `--tools` adding `realignment`).
+- Filtering of MAF files specific for RNA (enabled with 
+  `--tools` adding `rna_filtering`)
+
 
 <p align="center">
     <img title="RNADNAVAR Workflow"
-src="docs/images/rnadnavar_schemav2.png">
+src="docs/images/rnadnavar_schemav3.png">
 </p>
 
 ## Usage
@@ -76,8 +98,9 @@ First, prepare a samplesheet with your input data that looks as follows:
 
 
 ```csv
-sample,fastq_1,fastq_2
-CONTROL_REP1,AEG588A1_S1_L002_R1_001.fastq.gz,AEG588A1_S1_L002_R2_001.fastq.gz
+sample,lane,fastq_1,fastq_2
+CONTROL_REP1,LX,AEG588A1_S1_L002_R1_001.fastq.gz,
+AEG588A1_S1_L002_R2_001.fastq.gz
 ```
 
 Each row represents a fastq file (single-end) or a pair of fastq files (paired end).
@@ -112,8 +135,8 @@ For more details about the output files and reports, please refer to the
 
 The nf-core/rnadnavar was originally written by Raquel
 Manzano Garcia at Cancer Research UK Cambridge Institute
-with the initial and continuous support of Maxime U
-Garcia. The workflow is based on
+with the continuous support of [Maxime U Garcia](https://github.com/maxulysse). The 
+workflow is based on
 [RNA-MuTect](https://github.com/broadinstitute/RNA_MUTECT_1.0-1) which was
 originally published by [Yizhak, _et al_ 2019 (Science)](https://www.science.org/doi/10.1126/science.aaw0726)
 
