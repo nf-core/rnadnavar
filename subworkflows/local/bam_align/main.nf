@@ -168,7 +168,7 @@ workflow BAM_ALIGN {
 
             // Use groupKey to make sure that the correct group can advance as soon as it is complete
             // and not stall the workflow until all reads from all channels are mapped
-            [ groupKey( meta - meta.subMap('num_lanes', 'read_group', 'size') + [ data_type:'bam', id:meta.sample ], (meta.num_lanes ?: 1) * (meta.size ?: 1)), bam ]
+            [ groupKey( meta - meta.subMap('num_lanes', 'read_group', 'size', 'lane') + [ data_type:'bam', id:meta.sample ], (meta.num_lanes ?: 1) * (meta.size ?: 1)), bam ]
         }.groupTuple()
         bam_mapped_rna.dump(tag:"bam_mapped_rna")
         // Gather QC reports
