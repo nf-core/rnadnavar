@@ -116,9 +116,14 @@ def filter_homopolymer(ref_context, alt, hp_length=6):
         alt = alt[1:]  # if insertion the check will be done
     elif alt == "-":  # if deletion no homopolymer
         return False
+    elif ref_context == None:
+        return None
     # we calculatate the actual length of the sequence we need to check
     # context is as follows: flank_before:REF:flank_after (flanks are same length)
-    length_to_consider = int((len(ref_context) - 1) / 2)
+    try:
+        length_to_consider = int((len(ref_context) - 1) / 2)
+    except TypeError:
+        return None
     # we substitute the ref for the alt to check the context of the variant
     ref_context = list(ref_context)
     ref_context[length_to_consider] = alt
@@ -140,9 +145,19 @@ def filter_homopolymer(ref_context, alt, hp_length=6):
 def add_context(chrom, pos, ref, genome, flank=10):
     if pos < 10:
         flank = pos - 1
-    context = genome.fetch(chrom, pos - 1 - flank, pos + flank).upper()
+    try:
+        context = genome.fetch(chrom, pos - 1 - flank, pos + flank).upper()
+    except ValueError:
+        print(f"[WGN] This variant has NaN in their coordinates (did liftover failed?)")
+        return None
+    except KeyError:
+        print(f"[WGN] These coordinates {chrom}:{pos} are not present in the genome (are you using a different version?)")
+        return None
     if ref != "-":  # if it is a deletion we cannot check
-        assert ref[0] == context[flank]  # check that the REF matches the context we just extracted
+        try:
+            assert ref[0] == context[flank]  # check that the REF matches the context we just extracted
+        except AssertionError:
+            print(f"[WGN] This ref base ({chrom}:{int(pos)} {ref[0]} != {context[flank]}) does not correspond to its context {context[flank]}.")
     return context
 
 
@@ -201,14 +216,17 @@ def add_ravex_filters(
     maf["RaVeX_FILTER"] = "PASS"
     maf["Existing_variation"] = maf["Existing_variation"].fillna("")
     maf["SOMATIC"] = maf["SOMATIC"].fillna("")
-    if not "isconsensus" in maf.columns:
-        maf["isconsensus"] = False
+    if "FILTER" not in maf.columns:
+        maf["FILTER"] = "PASS"  # Consider pass when no FILTER column
+    maf["FILTER"] = maf["FILTER"].replace(".", "PASS")  # no filter ('.') will be treated as PASS
+    ignore_consensus = False
+    if "isconsensus" not in maf.columns:
+        maf["isconsensus"] = True  # By default true when not known
+        ignore_consensus = True
     for idx, row in maf.iterrows():
         ravex_filter = []
         if row["t_alt_count"] <= min_alt_reads:
             ravex_filter += ["min_alt_reads"]
-        if row["ingnomAD"]:
-            ravex_filter += ["gnomad"]
         if not blacklist.empty:
             if row["blacklist"]:
                 ravex_filter += ["blacklist"]
@@ -224,9 +242,13 @@ def add_ravex_filters(
         if not row["isconsensus"]:  # of there is consensus we take the FILTER from the consensus
             if not row["FILTER"] in filters:
                 ravex_filter += ["vc_filter"]
-            ravex_filter += ["not_consensus"]
-        else:
+            if not ignore_consensus:
+                ravex_filter += ["not_consensus"]
+        elif not ignore_consensus:
             if not row["FILTER_consensus"] in filters:
+                ravex_filter += ["vc_filter"]
+        else:
+            if not row["FILTER"] in filters:
                 ravex_filter += ["vc_filter"]
         if whitelist:
             if not ravex_filter or row["whitelist"]:
@@ -249,22 +271,25 @@ def deduplicate_maf(variants, vc_priority):
 def write_maf(maf_df, mafin_file, mafout_file, vc_priority=["mutect2", "sage", "strelka"]):
     """Write output"""
     header_lines = subprocess.getoutput(f"zgrep -Eh '#|Hugo_Symbol' {mafin_file} 2>/dev/null")
-    print("Removing duplicated variants from maf (only one entry from a caller will be kept)")
-    # Separate the multiallelic variants
-    multiallelic_variants = maf_df[maf_df["FILTER"].str.contains("multiallelic", case=False, na=False)]
-    other_variants = maf_df[~maf_df["FILTER"].str.contains("multiallelic", case=False, na=False)]
+    if "Caller" in maf_df.columns:
+        print("Removing duplicated variants from maf (only one entry from a caller will be kept)")
+        # Separate the multiallelic variants
+        multiallelic_variants = maf_df[maf_df["FILTER"].str.contains("multiallelic", case=False, na=False)]
+        other_variants = maf_df[~maf_df["FILTER"].str.contains("multiallelic", case=False, na=False)]
 
-    # Combine variants with Caller for multiallelic changed
-    multiallelic_variants["Caller"] = multiallelic_variants["Caller"] + "_multiallelic"
-    maf_to_dedup = pd.concat([other_variants, multiallelic_variants])
+        # Combine variants with Caller for multiallelic changed
+        multiallelic_variants["Caller"] = multiallelic_variants["Caller"] + "_multiallelic"
+        maf_to_dedup = pd.concat([other_variants, multiallelic_variants])
 
-    # Deduplicate variants
-    maf_dedup = deduplicate_maf(maf_to_dedup, vc_priority + list(multiallelic_variants["Caller"].unique()))
+        # Deduplicate variants
+        maf_to_write = deduplicate_maf(maf_to_dedup, vc_priority + list(multiallelic_variants["Caller"].unique()))
+    else:
+        maf_to_write = maf_df
 
     # Write the header and deduplicated MAF to the output file
     with open(mafout_file, "w") as mafout:
         mafout.write(header_lines)
-    maf_dedup.to_csv(mafout_file, mode="a", index=False, header=True, sep="\t")
+    maf_to_write.to_csv(mafout_file, mode="a", index=False, header=True, sep="\t")
     print(f"Done! See '{mafout_file}'.")
 
 
