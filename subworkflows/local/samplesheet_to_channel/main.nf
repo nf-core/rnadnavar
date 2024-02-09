@@ -91,8 +91,11 @@ workflow  SAMPLESHEET_TO_CHANNEL{
                     error("Samplesheet contains cram files but step is `$params.step`. Please check your samplesheet or adjust the step parameter.\nhttps://nf-co.re/rnadnavar/usage#input-samplesheet-configurations")
                 }
 
-            // recalibration when skipping MarkDuplicates
-            } else if (table && bam) {
+            } else if (params.step == "recalibrate" && !table) {
+
+                error("Step is `$params.step` but samplesheet has no recalibration table. Please check your samplesheet or adjust the step parameter.\nhttps://nf-co.re/rnadnavar/usage#input-samplesheet-configurations")
+
+            }else if (table && bam) {
                 meta = meta + [id: meta.sample, data_type: 'bam']
 
                 if (!(params.step == 'mapping' || params.step == 'annotate')) return [ meta - meta.subMap('lane'), bam, bai, table ]
