@@ -74,7 +74,7 @@ def add_rnaediting_sites(maf, rnaeditingsites, realignment):
             ravex_filter = []
         if realignment:
             if not row["realignment"]:
-                ravex_filter += ["rnaediting"]
+                ravex_filter += ["realignment"]
         if row["rnaediting"]:
             ravex_filter += ["rnaediting"]
         for pon_col in pon_cols:
@@ -124,6 +124,11 @@ def add_hg19_coords_with_liftover(M, chain_file):
     Liftover HG38 coordinates from maf to HG19
     """
     converter = ChainFile(chain_file, "hg38", "hg19")
+    na_nr = M[M['Chromosome'].isnull()].shape[0]
+    if na_nr > 0:
+        print(f"[WGN] Removing {na_nr} variants where Chromosome is NA")
+        M = M[~M["Chromosome"].isna()].reindex()  # remove positions where coordinates are not present (maybe liftover went wrong)
+
     starting_size = M.shape[0]
     M["coordinates19"] = M.apply(lambda x: converter[x["Chromosome"]][x["Start_Position"]], axis=1)
     # Replace with tuple of None's when position has been deleted in new reference genome
@@ -180,6 +185,8 @@ def main():
         if calls.empty:
             results[idx] = calls
             continue
+        if "Chromosome19" in calls.columns:
+            calls.drop(["Chromosome19", "Start_Position19"],axis=1,inplace=True)
         # RNA panel of normals
         if args.pon19 and args.chain and args.ref19:
             calls = add_hg19_coords_with_liftover(calls, chain_file=args.chain)
