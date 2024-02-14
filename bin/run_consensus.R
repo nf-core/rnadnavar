@@ -113,7 +113,7 @@ mutsGR <- list()
 muts <-  list()
 for(c in callers[1:length(callers)]){
     v <- vcfs[c]
-
+    message("  - ", v)
     if (!is.vcf){
         tmp <- fread(cmd=paste0("zgrep -v '#' ", v))
         tmp$`#CHROM` <- tmp$Chromosome
@@ -136,7 +136,8 @@ for(c in callers[1:length(callers)]){
                                                                         tmp$POS)
                                         )
         )
-
+        message("   - Removing ",nrow(tmp[is.na(end)]), " spurious calls with no alt")
+        tmp <- tmp[!is.na(end)]
         muts[[c]] <- tmp
         mutsGR[[c]] <- GenomicRanges::makeGRangesFromDataFrame(df = tmp,
                                                                                                                         ignore.strand = TRUE,
