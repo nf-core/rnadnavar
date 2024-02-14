@@ -226,8 +226,6 @@
                     "help_text": "If you use AWS iGenomes, this has already been set for you appropriately.\n\nThis parameter is *mandatory* if `--genome` is not specified.",
                     "fa_icon": "far fa-file-code"
                 },
-<<<<<<< HEAD
-=======
                 "fasta_fai": {
                     "type": "string",
                     "fa_icon": "fas fa-file",
@@ -316,11 +314,10 @@
                     "type": "string",
                     "format": "directory-path",
                     "description": "Directory / URL base for iGenomes references.",
-                    "default": "s3://ngi-igenomes/igenomes",
+                    "default": "s3://ngi-igenomes/igenomes/",
                     "fa_icon": "fas fa-cloud-download-alt",
                     "hidden": true
                 },
->>>>>>> dev
                 "igenomes_ignore": {
                     "type": "boolean",
                     "description": "Do not load the iGenomes reference config.",

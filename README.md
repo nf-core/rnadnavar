@@ -1,19 +1,16 @@
-<<<<<<< HEAD
 <h1>
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/images/nf-core-rnadnavar_logo_dark.png">
     <img alt="nf-core/rnadnavar" src="docs/images/nf-core-rnadnavar_logo_light.png">
   </picture>
 </h1>
-[![GitHub Actions CI Status](https://github.com/nf-core/rnadnavar/workflows/nf-core%20CI/badge.svg)](https://github.com/nf-core/rnadnavar/actions?query=workflow%3A%22nf-core+CI%22)
-[![GitHub Actions Linting Status](https://github.com/nf-core/rnadnavar/workflows/nf-core%20linting/badge.svg)](https://github.com/nf-core/rnadnavar/actions?query=workflow%3A%22nf-core+linting%22)[![AWS CI](https://img.shields.io/badge/CI%20tests-full%20size-FF9900?labelColor=000000&logo=Amazon%20AWS)](https://nf-co.re/rnadnavar/results)[![Cite with Zenodo](http://img.shields.io/badge/DOI-10.5281/zenodo.XXXXXXX-1073c8?labelColor=000000)](https://doi.org/10.5281/zenodo.XXXXXXX)
-=======
+
 # :warning: UNDER ACTIVE DEVELOPMENT :warning:
 
-# ![nf-core/rnadnavar](docs/images/nf-core-rnadnavar_logo_light.png#gh-light-mode-only) ![nf-core/rnadnavar](docs/images/nf-core-rnadnavar_logo_dark.png#gh-dark-mode-only)
-
-[![AWS CI](https://img.shields.io/badge/CI%20tests-full%20size-FF9900?labelColor=000000&logo=Amazon%20AWS)](https://nf-co.re/rnadnavar/results)[![Cite with Zenodo](http://img.shields.io/badge/DOI-10.5281/zenodo.XXXXXXX-1073c8?labelColor=000000)](https://doi.org/10.5281/zenodo.XXXXXXX)
->>>>>>> dev
+[![GitHub Actions CI Status](https://github.com/nf-core/rnadnavar/workflows/nf-core%20CI/badge.svg)](https://github.com/nf-core/rnadnavar/actions?query=workflow%3A%22nf-core+CI%22)
+[![GitHub Actions Linting Status](https://github.com/nf-core/rnadnavar/workflows/nf-core%20linting/badge.svg)](https://github.com/nf-core/rnadnavar/actions?query=workflow%3A%22nf-core+linting%22)
+[![AWS CI](https://img.shields.io/badge/CI%20tests-full%20size-FF9900?labelColor=000000&logo=Amazon%20AWS)](https://nf-co.re/rnadnavar/results)
+[![Cite with Zenodo](http://img.shields.io/badge/DOI-10.5281/zenodo.XXXXXXX-1073c8?labelColor=000000)](https://doi.org/10.5281/zenodo.XXXXXXX)
 
 [![Nextflow](https://img.shields.io/badge/nextflow%20DSL2-%E2%89%A523.04.0-23aa62.svg)](https://www.nextflow.io/)
 [![run with conda](http://img.shields.io/badge/run%20with-conda-3EB049?labelColor=000000&logo=anaconda)](https://docs.conda.io/en/latest/)
@@ -140,16 +137,12 @@ For more details about the output files and reports, please refer to the
 
 ## Credits
 
-<<<<<<< HEAD
-nf-core/rnadnavar was originally written by Raquel Manzano-Garcia, Maxime U Garcia.
-=======
 The nf-core/rnadnavar was originally written by Raquel
 Manzano Garcia at Cancer Research UK Cambridge Institute
 with the continuous support of [Maxime U Garcia](https://github.com/maxulysse). The
 workflow is based on
 [RNA-MuTect](https://github.com/broadinstitute/RNA_MUTECT_1.0-1) which was
 originally published by [Yizhak, _et al_ 2019 (Science)](https://www.science.org/doi/10.1126/science.aaw0726)
->>>>>>> dev
 
 We thank the following people for their assistance in the development of this pipeline:
 TBC

@@ -18,12 +18,6 @@ nextflow.enable.dsl = 2
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-<<<<<<< HEAD
-// TODO nf-core: Remove this line if you don't need a FASTA file
-//   This is an example of how to use getGenomeAttribute() to fetch parameters
-//   from igenomes.config using `--genome`
-params.fasta = WorkflowMain.getGenomeAttribute(params, 'fasta')
-=======
 params.bwa                  = WorkflowMain.getGenomeAttribute(params, 'bwa')
 params.bwamem2              = WorkflowMain.getGenomeAttribute(params, 'bwamem2')
 params.fasta                = WorkflowMain.getGenomeAttribute(params, 'fasta')
@@ -41,7 +35,6 @@ params.vep_cache_version    = WorkflowMain.getGenomeAttribute(params, 'vep_cache
 params.vep_genome           = WorkflowMain.getGenomeAttribute(params, 'vep_genome')
 params.vep_species          = WorkflowMain.getGenomeAttribute(params, 'vep_species')
 
-
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     ALTERNATIVE INPUT FILE ON RESTART
@@ -49,8 +42,6 @@ params.vep_species          = WorkflowMain.getGenomeAttribute(params, 'vep_speci
 */
 
 params.input_restart = WorkflowRnadnavar.retrieveInput(params, log)
-
->>>>>>> dev
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
