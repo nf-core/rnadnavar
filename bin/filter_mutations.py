@@ -151,13 +151,17 @@ def add_context(chrom, pos, ref, genome, flank=10):
         print(f"[WGN] This variant has NaN in their coordinates (did liftover failed?)")
         return None
     except KeyError:
-        print(f"[WGN] These coordinates {chrom}:{pos} are not present in the genome (are you using a different version?)")
+        print(
+            f"[WGN] These coordinates {chrom}:{pos} are not present in the genome (are you using a different version?)"
+        )
         return None
     if ref != "-":  # if it is a deletion we cannot check
         try:
             assert ref[0] == context[flank]  # check that the REF matches the context we just extracted
         except AssertionError:
-            print(f"[WGN] This ref base ({chrom}:{int(pos)} {ref[0]} != {context[flank]}) does not correspond to its context {context[flank]}.")
+            print(
+                f"[WGN] This ref base ({chrom}:{int(pos)} {ref[0]} != {context[flank]}) does not correspond to its context {context[flank]}."
+            )
     return context
 
 
