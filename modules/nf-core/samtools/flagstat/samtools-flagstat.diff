@@ -1,0 +1,14 @@
+Changes in module 'nf-core/samtools/flagstat'
+--- modules/nf-core/samtools/flagstat/meta.yml
++++ modules/nf-core/samtools/flagstat/meta.yml
+@@ -2,7 +2,7 @@
+ description: Counts the number of alignments in a BAM/CRAM/SAM file for each FLAG type
+ keywords:
+   - stats
+-  - mapping
++  - bam_align
+   - counts
+   - bam
+   - sam
+
+************************************************************

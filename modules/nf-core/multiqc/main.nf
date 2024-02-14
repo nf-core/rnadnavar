@@ -1,10 +1,17 @@
 process MULTIQC {
     label 'process_single'
 
+<<<<<<< HEAD
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/multiqc:1.19--pyhdfd78af_0' :
         'biocontainers/multiqc:1.19--pyhdfd78af_0' }"
+=======
+    conda "bioconda::multiqc=1.15"
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/multiqc:1.15--pyhdfd78af_0' :
+        'biocontainers/multiqc:1.15--pyhdfd78af_0' }"
+>>>>>>> dev
 
     input:
     path  multiqc_files, stageAs: "?/*"

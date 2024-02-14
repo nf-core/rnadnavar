@@ -1,0 +1,65 @@
+name: sage
+description: SAGE is a precise and highly sensitive somatic SNV, MNV and small INDEL caller. It has been optimised for 100x tumor / 40x normal coverage, but has a flexible set of filters that can be adapted to lower or higher depth coverage.
+keywords:
+  - variant caller
+  - SNP
+  - indels
+  - somatic variant calling
+  - hmftools
+
+tools:
+  - sage:
+      description: SAGE is a precise and highly sensitive somatic SNV, MNV and small INDEL caller.
+      homepage: https://github.com/hartwigmedical/hmftools/blob/master/sage/README.md
+      documentation: https://github.com/hartwigmedical/hmftools/tree/master/sage
+      tool_dev_url: https://github.com/hartwigmedical/hmftools/tree/master/sage
+      licence: ["GPL-3.0"]
+
+input:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test', single_end:false ]
+  - normal:
+      type: file
+      description: BAM/CRAM/SAM file
+      pattern: "*.{bam,cram,sam}"
+  - normal_index:
+      type: file
+      description: BAM/CRAM/SAM index file
+      pattern: "*.{bai,crai}"
+  - tumor:
+      type: file
+      description: BAM/CRAM/SAM file
+      pattern: "*.{bam,cram,sam}"
+  - tumor_index:
+      type: file
+      description: BAM/CRAM/SAM index file
+      pattern: "*.{bai,crai}"
+  - intervals:
+      type: file
+      description: BED file for intervals
+      pattern: "*.bed"
+  - fasta:
+      type: file
+      description: reference fasta file
+      pattern: ".{fa,fa.gz,fasta,fasta.gz}"
+
+output:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test', single_end:false ]
+  - vcf:
+      type: file
+      description: VCF file
+      pattern: "*.vcf"
+  - version:
+      type: file
+      description: File containing software version
+      pattern: "*.{version.txt}"
+
+authors:
+  - "@RaqManzano"

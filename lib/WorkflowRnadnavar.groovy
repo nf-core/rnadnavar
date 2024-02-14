@@ -11,11 +11,9 @@ class WorkflowRnadnavar {
     // Check and validate parameters
     //
     public static void initialise(params, log) {
-
         genomeExistsError(params, log)
 
-
-        if (!params.fasta) {
+        if (!params.fasta && params.step == 'annotate') {
             Nextflow.error "Genome fasta file not specified with e.g. '--fasta genome.fa' or via a detectable config file."
         }
     }
@@ -46,10 +44,6 @@ class WorkflowRnadnavar {
         yaml_file_text        += "${summary_section}"
         return yaml_file_text
     }
-
-    //
-    // Generate methods description for MultiQC
-    //
 
     public static String toolCitationText(params) {
 
@@ -97,7 +91,6 @@ class WorkflowRnadnavar {
         //meta["tool_citations"] = toolCitationText(params).replaceAll(", \\.", ".").replaceAll("\\. \\.", ".").replaceAll(", \\.", ".")
         //meta["tool_bibliography"] = toolBibliographyText(params)
 
-
         def methods_text = mqc_methods_yaml.text
 
         def engine =  new SimpleTemplateEngine()
@@ -118,5 +111,34 @@ class WorkflowRnadnavar {
                 "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
             Nextflow.error(error_string)
         }
+    }
+    // TODO add consensus and filtering steps here
+    public static String retrieveInput(params, log){
+        def input = ''
+        if (params.input) input = params.input
+        else {
+            switch (params.step) {
+                case 'mapping':                 Nextflow.error("Can't start with step $params.step without samplesheet")
+                                                break
+                case 'markduplicates':          log.warn("Using file ${params.outdir}/csv/mapped.csv");
+                                                input = params.outdir + "/csv/mapped.csv"
+                                                break
+                case 'prepare_recalibration':   log.warn("Using file ${params.outdir}/csv/markduplicates_no_table.csv");
+                                                input = params.outdir + "/csv/markduplicates_no_table.csv"
+                                                break
+                case 'recalibrate':             log.warn("Using file ${params.outdir}/csv/markduplicates.csv");
+                                                input = params.outdir + "/csv/markduplicates.csv"
+                                                break
+                case 'variant_calling':         log.warn("Using file ${params.outdir}/csv/recalibrated.csv");
+                                                input = params.outdir + "/csv/recalibrated.csv"
+                                                break
+                case 'annotate':                log.warn("Using file ${params.outdir}/csv/variantcalled.csv");
+                                                input = params.outdir + "/csv/variantcalled.csv"
+                                                break
+                default:                        log.warn("Please provide an input samplesheet to the pipeline e.g. '--input samplesheet.csv'")
+                                                Nextflow.error("Unknown step $params.step")
+            }
+        }
+        return input
     }
 }
