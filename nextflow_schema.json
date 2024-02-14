@@ -113,7 +113,7 @@
                 "genome": {
                     "type": "string",
                     "description": "Name of iGenomes reference.",
-                    "default": "GATK.GRCh38",
+                    "default": "GRCh38",
                     "fa_icon": "fas fa-book",
                     "help_text": "If using a reference genome configured in the pipeline using iGenomes, use this parameter to give the ID for the reference. This is then used to build the full paths for all required reference genome files e.g. `--genome GRCh38`.\n\nSee the [nf-core website docs](https://nf-co.re/usage/reference_genomes) for more details."
                 },
@@ -184,7 +184,7 @@
                 },
                 "read_length": {
                     "type": "number",
-                    "default": 151.0,
+                    "default": 76.0,
                     "description": "Read length",
                     "help_text": "Specify the read length for the STAR aligner."
                 },
@@ -193,7 +193,7 @@
                     "fa_icon": "fas fa-clock",
                     "description": "Estimate interval size.",
                     "help_text": "Intervals are parts of the chopped up genome used to speed up preprocessing and variant calling. See `--intervals` for more info. \n\nChanging this parameter, changes the number of intervals that are grouped and processed together. Bed files from target sequencing can contain thousands or small intervals. Spinning up a new process for each can be quite resource intensive. Instead it can be desired to process small intervals together on larger nodes. \nIn order to make use of this parameter, no runtime estimate can be present in the bed file (column 5). ",
-                    "default": 1000.0
+                    "default": 200000.0
                 },
                 "dbsnp": {
                     "type": "string",
@@ -667,7 +667,7 @@
                 },
                 "vep_custom_args": {
                     "type": "string",
-                    "default": "--everything --filter_common --per_gene --total_length --offline --format vcf",
+                    "default": "--no_progress --offline --shift_hgvs 1 --check_existing --tsl --domains --total_length --allele_number --no_escape --xref_refseq --failed 1 --flag_pick_allele --pick_order canonical,tsl,biotype,rank,ccds,length --format vcf --biotype --force_overwrite --sift p --polyphen p --variant_class --regulatory --allele_number --af_gnomad --af_gnomadg --gene_phenotype --hgvs --hgvsg --max_af",
                     "fa_icon": "fas fa-toolbox",
                     "description": "Add an extra custom argument to VEP.",
                     "hidden": true,
@@ -756,7 +756,7 @@
                 },
                 "test_data_base": {
                     "type": "string",
-                    "default": "https://raw.githubusercontent.com/nf-core/test-datasets/sarek3",
+                    "default": "https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar",
                     "description": "Base path / URL for data used in the test profiles",
                     "help_text": "Warning: The `-profile test` samplesheet file itself contains remote paths. Setting this parameter does not alter the contents of that file.",
                     "hidden": true
