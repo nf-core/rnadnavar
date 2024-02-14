@@ -52,7 +52,7 @@ is a summary of the possible tasks to run with the pipeline:
 - Map Reads to Reference (BWA-mem, BWA-mem2, dragmap
   and/or STAR)
 - GATK preprocessing for DNA and RNA bulk sequencing
-  samples (`GATK MarkDuplicates`, `GATK SplitNCigarReads`,`GATK 
+  samples (`GATK MarkDuplicates`, `GATK SplitNCigarReads`,`GATK
 BaseRecalibrator` and `GATK ApplyBQSR`)
 - Summarise alignment statistics (`samtools stats`, `mosdepth`)
 - Variant calling (enabled with `--tools`)

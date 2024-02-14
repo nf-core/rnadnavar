@@ -364,5 +364,3 @@ workflow BAM_GATK_PREPROCESSING {
     versions                = versions
     reports                 = reports
 }
-
-
