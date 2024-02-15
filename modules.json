@@ -23,7 +23,7 @@
                     "bwa/mem": {
                         "branch": "master",
                         "git_sha": "3dc300ddcaa563c1e3503477557c0e0def6df2ce",
-                        "installed_by": ["modules", "fastq_align_bwa"]
+                        "installed_by": ["modules"]
                     },
                     "bwamem2/index": {
                         "branch": "master",
@@ -67,8 +67,8 @@
                     },
                     "ensemblvep/vep": {
                         "branch": "master",
-                        "git_sha": "9f9e1fc31cb35876922070c0e601ae05abae5cae",
-                        "installed_by": ["vcf_annotate_ensemblvep", "modules"]
+                        "git_sha": "76a0696a60c41c57fc5f6040ac31b11ce5d4d8dd",
+                        "installed_by": ["modules", "vcf_annotate_ensemblvep"]
                     },
                     "fastp": {
                         "branch": "master",
@@ -118,7 +118,7 @@
                     "gatk4/calculatecontamination": {
                         "branch": "master",
                         "git_sha": "911696ea0b62df80e900ef244d7867d177971f73",
-                        "installed_by": ["bam_tumor_normal_somatic_variant_calling_gatk", "modules"]
+                        "installed_by": ["modules"]
                     },
                     "gatk4/createsequencedictionary": {
                         "branch": "master",
@@ -133,7 +133,7 @@
                     "gatk4/filtermutectcalls": {
                         "branch": "master",
                         "git_sha": "2df2a11d5b12f2a73bca74f103691bc35d83c5fd",
-                        "installed_by": ["bam_tumor_normal_somatic_variant_calling_gatk", "modules"]
+                        "installed_by": ["modules"]
                     },
                     "gatk4/filtervarianttranches": {
                         "branch": "master",
@@ -163,7 +163,7 @@
                     "gatk4/getpileupsummaries": {
                         "branch": "master",
                         "git_sha": "2df2a11d5b12f2a73bca74f103691bc35d83c5fd",
-                        "installed_by": ["bam_tumor_normal_somatic_variant_calling_gatk", "modules"]
+                        "installed_by": ["modules"]
                     },
                     "gatk4/indexfeaturefile": {
                         "branch": "master",
@@ -183,7 +183,7 @@
                     "gatk4/learnreadorientationmodel": {
                         "branch": "master",
                         "git_sha": "911696ea0b62df80e900ef244d7867d177971f73",
-                        "installed_by": ["bam_tumor_normal_somatic_variant_calling_gatk", "modules"]
+                        "installed_by": ["modules"]
                     },
                     "gatk4/markduplicates": {
                         "branch": "master",
@@ -208,7 +208,7 @@
                     "gatk4/mutect2": {
                         "branch": "master",
                         "git_sha": "2df2a11d5b12f2a73bca74f103691bc35d83c5fd",
-                        "installed_by": ["bam_tumor_normal_somatic_variant_calling_gatk", "modules"]
+                        "installed_by": ["modules"]
                     },
                     "gatk4/splitncigarreads": {
                         "branch": "master",
@@ -275,11 +275,6 @@
                         "installed_by": ["modules"],
                         "patch": "modules/nf-core/picard/filtersamreads/picard-filtersamreads.diff"
                     },
-                    "picard/markduplicates": {
-                        "branch": "master",
-                        "git_sha": "735e1e04e7e01751d2d6e97055bbdb6f70683cc1",
-                        "installed_by": ["bam_markduplicates_picard"]
-                    },
                     "samblaster": {
                         "branch": "master",
                         "git_sha": "603ecbd9f45300c9788f197d2a15a005685b4220",
@@ -320,7 +315,7 @@
                     "samtools/index": {
                         "branch": "master",
                         "git_sha": "911696ea0b62df80e900ef244d7867d177971f73",
-                        "installed_by": ["bam_markduplicates_picard", "modules", "bam_sort_stats_samtools"]
+                        "installed_by": ["modules", "bam_sort_stats_samtools"]
                     },
                     "samtools/merge": {
                         "branch": "master",
@@ -371,8 +366,8 @@
                     },
                     "tabix/tabix": {
                         "branch": "master",
-                        "git_sha": "911696ea0b62df80e900ef244d7867d177971f73",
-                        "installed_by": ["vcf_annotate_ensemblvep", "modules"]
+                        "git_sha": "3f5420aa22e00bd030a2556dfdffc9e164ec0ec5",
+                        "installed_by": ["modules", "vcf_annotate_ensemblvep"]
                     },
                     "untar": {
                         "branch": "master",
@@ -394,44 +389,29 @@
             },
             "subworkflows": {
                 "nf-core": {
-                    "bam_markduplicates_picard": {
-                        "branch": "master",
-                        "git_sha": "dedc0e31087f3306101c38835d051bf49789445a",
-                        "installed_by": ["subworkflows"]
-                    },
                     "bam_sort_stats_samtools": {
                         "branch": "master",
-                        "git_sha": "dedc0e31087f3306101c38835d051bf49789445a",
-                        "installed_by": ["fastq_align_bwa", "fastq_align_star", "fastq_align_hisat2"]
+                        "git_sha": "f4596fe0bdc096cf53ec4497e83defdb3a94ff62",
+                        "installed_by": ["fastq_align_hisat2", "fastq_align_star"]
                     },
                     "bam_stats_samtools": {
                         "branch": "master",
-                        "git_sha": "dedc0e31087f3306101c38835d051bf49789445a",
-                        "installed_by": ["bam_markduplicates_picard", "bam_sort_stats_samtools"]
-                    },
-                    "bam_tumor_normal_somatic_variant_calling_gatk": {
-                        "branch": "master",
-                        "git_sha": "dedc0e31087f3306101c38835d051bf49789445a",
-                        "installed_by": ["subworkflows"]
-                    },
-                    "fastq_align_bwa": {
-                        "branch": "master",
-                        "git_sha": "dedc0e31087f3306101c38835d051bf49789445a",
-                        "installed_by": ["subworkflows"]
+                        "git_sha": "f4596fe0bdc096cf53ec4497e83defdb3a94ff62",
+                        "installed_by": ["bam_sort_stats_samtools"]
                     },
                     "fastq_align_hisat2": {
                         "branch": "master",
-                        "git_sha": "dedc0e31087f3306101c38835d051bf49789445a",
+                        "git_sha": "cfd937a668919d948f6fcbf4218e79de50c2f36f",
                         "installed_by": ["subworkflows"]
                     },
                     "fastq_align_star": {
                         "branch": "master",
-                        "git_sha": "dedc0e31087f3306101c38835d051bf49789445a",
+                        "git_sha": "cfd937a668919d948f6fcbf4218e79de50c2f36f",
                         "installed_by": ["subworkflows"]
                     },
                     "vcf_annotate_ensemblvep": {
                         "branch": "master",
-                        "git_sha": "dedc0e31087f3306101c38835d051bf49789445a",
+                        "git_sha": "cfd937a668919d948f6fcbf4218e79de50c2f36f",
                         "installed_by": ["subworkflows"]
                     }
                 }
