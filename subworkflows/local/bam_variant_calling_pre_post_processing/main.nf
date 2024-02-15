@@ -11,9 +11,9 @@ include { VCF_NORMALISE                                   } from '../vcf_normali
 // Annotation
 include { VCF_ANNOTATE                                    } from '../vcf_annotate/main'
 // Consensus
- include { VCF_CONSENSUS                                  } from '../vcf_consensus/main'
+include { VCF_CONSENSUS                                   } from '../vcf_consensus/main'
 // Filtering
- include { MAF_FILTERING                                  } from '../maf_filtering/main'
+include { MAF_FILTERING                                   } from '../maf_filtering/main'
 
 
 workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {

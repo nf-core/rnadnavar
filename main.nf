@@ -35,7 +35,6 @@ params.vep_cache_version    = WorkflowMain.getGenomeAttribute(params, 'vep_cache
 params.vep_genome           = WorkflowMain.getGenomeAttribute(params, 'vep_genome')
 params.vep_species          = WorkflowMain.getGenomeAttribute(params, 'vep_species')
 
-
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     ALTERNATIVE INPUT FILE ON RESTART
@@ -43,7 +42,6 @@ params.vep_species          = WorkflowMain.getGenomeAttribute(params, 'vep_speci
 */
 
 params.input_restart = WorkflowRnadnavar.retrieveInput(params, log)
-
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -67,7 +65,7 @@ if (params.validate_params) {
     validateParameters()
 }
 
-WorkflowMain.initialise(workflow, params, log)
+WorkflowMain.initialise(workflow, params, log, args)
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
