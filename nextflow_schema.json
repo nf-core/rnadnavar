@@ -429,7 +429,7 @@
                     "fa_icon": "fas fa-toolbox",
                     "description": "Tools to use for variant calling and/or for annotation.",
                     "help_text": "Multiple tools separated with commas.\n\n**Variant Calling:**\n\nSomatic variant calling can currently only be performed with the following variant callers:\n- SNPs/Indels: FreeBayes, Mutect2, Strelka2, SAGE\n\n> **NB** Mutect2 for somatic variant calling cannot be combined with `--no_intervals`\n\n**Annotation:**\n \n- VEP (only).\n\n> **NB** As RNADNAVAR will use bgzip and tabix to compress and index VCF files annotated, it expects VCF files to be sorted when starting from `--step annotate`.",
-                    "pattern": "^((freebayes|manta|merge|sage|mutect2|strelka|vep|consensus|filtering|normalise|normalize|rna_filtering|vcf_qc|vcf2maf|preprocessing|second_run|rescue)*,?)*$"
+                    "pattern": "^((freebayes|manta|merge|sage|mutect2|strelka|vep|consensus|filtering|normalise|normalize|rna_filtering|vcf_qc|vcf2maf|preprocessing|realignment|rescue)*,?)*$"
                 },
                 "skip_tools": {
                     "type": "string",
