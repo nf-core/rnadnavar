@@ -138,7 +138,7 @@ workflow  SAMPLESHEET_TO_CHANNEL{
         // Two checks for ensuring that the pipeline stops with a meaningful error message if
         // 1. the sample-sheet only contains normal-samples, but some of the requested tools require tumor-samples, and
         // 2. the sample-sheet only contains tumor-samples, but some of the requested tools require normal-samples.
-        input_sample.filter{ it[0].status == 1 }.ifEmpty{ // In this case, the sample-sheet contains no tumor-samples
+        input_sample.filter{ it[0].status == 1 | it[0].status == 2 }.ifEmpty{ // In this case, the sample-sheet contains no tumor-samples
             if (!params.build_only_index) {
                 def tools_tumor = ['mutect2', 'sage', 'strelka']
                 def tools_tumor_asked = []
