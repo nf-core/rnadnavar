@@ -1,0 +1,8 @@
+- name: Run VEP
+  command: nextflow run main.nf -profile test,docker --tools vep --skip_tools 'multiqc'
+  tags:
+    - annotation
+    - vep
+  files:
+    - path: results/variant_annotation/GM12878/GM12878_VEP.ann.vcf.gz
+    - path: results/variant_annotation/GM12878/GM12878_VEP.ann.vcf.gz.tbi

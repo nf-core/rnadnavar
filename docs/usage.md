@@ -6,49 +6,71 @@
 
 ## Introduction
 
-<!-- TODO nf-core: Add documentation about anything specific to running your pipeline. For general topics, please point to (and add to) the main nf-core website. -->
+RaVEX is an end-to-end workflow designed for detecting somatic mutations in bulk RNA sequencing data, with the option to apply it to whole genome or whole exome sequencing data. It follows
+[GATK best practices](https://gatk.broadinstitute.org/hc/en-us/articles/360035531192-RNAseq-short-variant-discovery-SNPs-Indels-) for data cleanup, utilises
+[Mutect2](https://gatk.broadinstitute.org/hc/en-us/articles/360037593851-Mutect2), [Strelka2](https://gatk.broadinstitute.org/hc/en-us/articles/360037593851-Mutect2)
+and
+[SAGE](https://github.com/hartwigmedical/hmftools/blob/master/sage/README.md)
+for variant calling, and includes post-processing steps
+such as VCF normalization, consensus of called variants
+(resulting in a MAF file), and filtering. Additionally, an optional realignment with HISAT2 is performed only in the coordinates where mutations were detected during the variant calling subworkflow.
+
+Originally, this pipeline was developed for human and
+mouse data.
+
+## Quickstart
+
+The typical command for running the pipeline is as follows:
+
+```
+nextflow run nf-core/rnadnavar -r <VERSION> -profile <PROFILE> --input ./samplesheet.csv --outdir ./results --tools <TOOLS>
+```
+
+`-r <VERSION>` is optional but strongly recommended for reproducibility and should match the latest version.
+
+`-profile <PROFILE>` is mandatory and should reflect either your own institutional profile or any pipeline profile specified in the profile section.
+
+This will launch the pipeline and perform variant
+calling, normalisation, consensus and filtering if specified in
+`--tools`, see the [parameter section](https://nf-co.
+re/rnadnavar/latest/parameters#tools) for details on the
+tools. In the above example the pipeline runs with the docker configuration profile. See below for more information about profiles.
 
 ## Samplesheet input
 
-You will need to create a samplesheet with information about the samples you would like to analyse before running the pipeline. Use this parameter to specify its location. It has to be a comma-separated file with 3 columns, and a header row as shown in the examples below.
+You will need to create a samplesheet with information about the samples you would like to analyse before running the pipeline. It has to be a comma-separated file with columns, and a header row as shown in the examples below. It is recommended to use the absolute path of the files, but a relative path should also work.
 
-```bash
---input '[path to samplesheet file]'
-```
+An RNA tumor sample must be associated to a DNA normal
+sample at the moment, specified with the
+same `patient` ID. The sample
+type can be specified with the `status`: 0 (normal DNA),
+1 (tumour DNA) and 2 (tumour RNA). An
+additional tumor sample (such as a
+relapse for example), can be added if specified with the
+same patient ID but different sample name, and the status
+value 1 or 2.
 
-### Multiple runs of the same sample
+The pipeline will output results in a different
+directory for _each sample_.
 
-The `sample` identifiers have to be the same when you have re-sequenced the same sample more than once e.g. to increase sequencing depth. The pipeline will concatenate the raw reads before performing any downstream analysis. Below is an example for the same sample sequenced across 3 lanes:
+These are the accepted columns for the sample sheet,
+although not all of them are mandatory at the same time:
 
-```csv title="samplesheet.csv"
-sample,fastq_1,fastq_2
-CONTROL_REP1,AEG588A1_S1_L002_R1_001.fastq.gz,AEG588A1_S1_L002_R2_001.fastq.gz
-CONTROL_REP1,AEG588A1_S1_L003_R1_001.fastq.gz,AEG588A1_S1_L003_R2_001.fastq.gz
-CONTROL_REP1,AEG588A1_S1_L004_R1_001.fastq.gz,AEG588A1_S1_L004_R2_001.fastq.gz
-```
-
-### Full samplesheet
-
-The pipeline will auto-detect whether a sample is single- or paired-end using the information provided in the samplesheet. The samplesheet can have as many columns as you desire, however, there is a strict requirement for the first 3 columns to match those defined in the table below.
-
-A final samplesheet file consisting of both single- and paired-end data may look something like the one below. This is for 6 samples, where `TREATMENT_REP3` has been sequenced twice.
-
-```csv title="samplesheet.csv"
-sample,fastq_1,fastq_2
-CONTROL_REP1,AEG588A1_S1_L002_R1_001.fastq.gz,AEG588A1_S1_L002_R2_001.fastq.gz
-CONTROL_REP2,AEG588A2_S2_L002_R1_001.fastq.gz,AEG588A2_S2_L002_R2_001.fastq.gz
-CONTROL_REP3,AEG588A3_S3_L002_R1_001.fastq.gz,AEG588A3_S3_L002_R2_001.fastq.gz
-TREATMENT_REP1,AEG588A4_S4_L003_R1_001.fastq.gz,
-TREATMENT_REP2,AEG588A5_S5_L003_R1_001.fastq.gz,
-TREATMENT_REP3,AEG588A6_S6_L003_R1_001.fastq.gz,
-TREATMENT_REP3,AEG588A6_S6_L004_R1_001.fastq.gz,
-```
-
-| Column    | Description                                                                                                                                                                            |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `sample`  | Custom sample name. This entry will be identical for multiple sequencing libraries/runs from the same sample. Spaces in sample names are automatically converted to underscores (`_`). |
-| `fastq_1` | Full path to FastQ file for Illumina short reads 1. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz".                                                             |
-| `fastq_2` | Full path to FastQ file for Illumina short reads 2. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz".                                                             |
+| Column    | Description                                                                                                                                                                                                                                                                                                 |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `patient` | **Custom patient ID**; designates the patient/subject; must be unique for each patient, but one patient can have multiple samples (e.g. normal and tumor).                                                                                                                                                  |
+| `status`  | **Normal DNA /tumor DNA /tumor RNA status of sample**; can be 0 (normal DNA), 1 (tumor DNA) or 2 (tumor RNA). Optional, Default: 0                                                                                                                                                                          |
+| `sample`  | **Custom sample ID for each tumor and normal sample**; more than one tumor sample for each subject is possible, i.e. a tumor and a relapse; samples can have multiple lanes for which the same ID must be used to merge them later (see also lane). Sample IDs must be unique for unique biological samples |
+| `lane`    | Lane ID, used when the sample is multiplexed on several lanes. Must be unique for each lane in the same sample (but does not need to be the original lane name), and must contain at least one character. _Required for --step_mapping_                                                                     |
+| `fastq_1` | Path to FastQ file for Illumina short reads 1. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz".                                                                                                                                                                                       |
+| `fastq_2` | Path to FastQ file for Illumina short reads 2. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz".                                                                                                                                                                                       |
+| `bam`     | Path to (u)BAM file.                                                                                                                                                                                                                                                                                        |
+| `bai`     | Path to BAM index file.                                                                                                                                                                                                                                                                                     |
+| `cram`    | Path to CRAM file.                                                                                                                                                                                                                                                                                          |
+| `crai`    | Path to CRAM index file.                                                                                                                                                                                                                                                                                    |
+| `table`   | Path to recalibration table file.                                                                                                                                                                                                                                                                           |
+| `vcf`     | Path to vcf file.                                                                                                                                                                                                                                                                                           |
+| `maf`     | Path to maf file.                                                                                                                                                                                                                                                                                           |
 
 An [example samplesheet](../assets/samplesheet.csv) has been provided with the pipeline.
 

@@ -7,18 +7,48 @@
     "items": {
         "type": "object",
         "properties": {
+            "patient": {
+                "type": "string",
+                "pattern": "^\\S+$",
+                "errorMessage": "Patient ID must be provided and cannot contain spaces",
+                "meta": ["patient"]
+            },
             "sample": {
                 "type": "string",
                 "pattern": "^\\S+$",
                 "errorMessage": "Sample name must be provided and cannot contain spaces",
-                "meta": ["id"]
+                "meta": ["sample"]
+            },
+            "status": {
+                "type": "integer",
+                "errorMessage": "Status can only be 0 (normal), 1 (tumor) or 2 (rna tumour). Defaults to 1, if none is supplied.",
+                "meta": ["status"],
+                "default": "1",
+                "minimum": 0,
+                "maximum": 2
+            },
+            "lane": {
+                "type": "string",
+                "pattern": "^\\S+$",
+                "unique": ["patient", "sample"],
+                "meta": ["lane"]
             },
             "fastq_1": {
-                "type": "string",
-                "format": "file-path",
+                "errorMessage": "FastQ file for reads 1 cannot contain spaces and must have extension '.fq.gz' or '.fastq.gz'",
+                "anyOf": [
+                    {
+                        "type": "string",
+                        "pattern": "^\\S+\\.f(ast)?q\\.gz$"
+                    },
+                    {
+                        "type": "string",
+                        "format": "file-path",
                 "exists": true,
-                "pattern": "^\\S+\\.f(ast)?q\\.gz$",
-                "errorMessage": "FastQ file for reads 1 must be provided, cannot contain spaces and must have extension '.fq.gz' or '.fastq.gz'"
+                "maxLength": 0
+                    }
+                ],
+                "format": "file-path",
+                "exists": true
             },
             "fastq_2": {
                 "type": "string",

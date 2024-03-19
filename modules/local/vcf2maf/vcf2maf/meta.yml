@@ -1,0 +1,47 @@
+name: vcf2maf
+description: Converts vcf to maf
+keywords:
+  - vcf2maf
+  - VCF
+  - MAF
+  - variant calling
+tools:
+  - vcf2maf:
+      description: To convert a VCF into a MAF, each variant must be mapped to only one of all possible gene transcripts/isoforms that it might affect.
+      homepage: https://github.com/mskcc/vcf2maf
+      documentation: https://github.com/mskcc/vcf2maf
+      tool_dev_url: https://github.com/mskcc/vcf2maf
+      doi: "10.5281/zenodo.593251"
+      licence: ["Apache-2.0"]
+
+input:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test', single_end:false ]
+  - vcf:
+      type: file
+      description: The VCF/BCF file to be decomposed
+      pattern: "*.{vcf.gz,vcf,bcf}"
+  - fasta:
+      type: file
+      description: Input genome fasta file
+
+output:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test', single_end:false ]
+  - version:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+  - maf:
+      type: file
+      description: MAF file
+      pattern: "*.{maf.gz}"
+
+authors:
+  - "@RaqManzano"

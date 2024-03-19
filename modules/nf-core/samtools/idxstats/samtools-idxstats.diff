@@ -1,0 +1,14 @@
+Changes in module 'nf-core/samtools/idxstats'
+--- modules/nf-core/samtools/idxstats/meta.yml
++++ modules/nf-core/samtools/idxstats/meta.yml
+@@ -2,7 +2,7 @@
+ description: Reports alignment summary statistics for a BAM/CRAM/SAM file
+ keywords:
+   - stats
+-  - mapping
++  - bam_align
+   - counts
+   - chromosome
+   - bam
+
+************************************************************

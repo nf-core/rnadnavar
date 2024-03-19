@@ -1,4 +1,5 @@
 #!/usr/bin/env nextflow
+
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     nf-core/rnadnavar
@@ -29,14 +30,58 @@ include { getGenomeAttribute      } from './subworkflows/local/utils_nfcore_rnad
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-// TODO nf-core: Remove this line if you don't need a FASTA file
-//   This is an example of how to use getGenomeAttribute() to fetch parameters
-//   from igenomes.config using `--genome`
-params.fasta = getGenomeAttribute('fasta')
+params.bwa                  = WorkflowMain.getGenomeAttribute(params, 'bwa')
+params.bwamem2              = WorkflowMain.getGenomeAttribute(params, 'bwamem2')
+params.fasta                = WorkflowMain.getGenomeAttribute(params, 'fasta')
+params.fasta_fai            = WorkflowMain.getGenomeAttribute(params, 'fasta_fai')
+params.dict                 = WorkflowMain.getGenomeAttribute(params, 'dict')
+params.gtf                  = WorkflowMain.getGenomeAttribute(params, 'gtf')
+params.gff                  = WorkflowMain.getGenomeAttribute(params, 'gff')
+params.exon_bed             = WorkflowMain.getGenomeAttribute(params, 'exon_bed')
+params.star_index           = WorkflowMain.getGenomeAttribute(params, 'star')
+params.dbsnp                = WorkflowMain.getGenomeAttribute(params, 'dbsnp')
+params.dbsnp_tbi            = WorkflowMain.getGenomeAttribute(params, 'dbsnp_tbi')
+params.known_indels         = WorkflowMain.getGenomeAttribute(params, 'known_indels')
+params.known_indels_tbi     = WorkflowMain.getGenomeAttribute(params, 'known_indels_tbi')
+params.vep_cache_version    = WorkflowMain.getGenomeAttribute(params, 'vep_cache_version')
+params.vep_genome           = WorkflowMain.getGenomeAttribute(params, 'vep_genome')
+params.vep_species          = WorkflowMain.getGenomeAttribute(params, 'vep_species')
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    NAMED WORKFLOWS FOR PIPELINE
+    ALTERNATIVE INPUT FILE ON RESTART
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+
+params.input_restart = WorkflowRnadnavar.retrieveInput(params, log)
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    VALIDATE & PRINT PARAMETER SUMMARY
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+
+include { validateParameters; paramsHelp } from 'plugin/nf-validation'
+
+// Print help message if needed
+if (params.help) {
+    def logo = NfcoreTemplate.logo(workflow, params.monochrome_logs)
+    def citation = '\n' + WorkflowMain.citation(workflow) + '\n'
+    def String command = "nextflow run ${workflow.manifest.name} --input samplesheet.csv --genome GATK.GRCh38 -profile docker --outdir results"
+    log.info logo + paramsHelp(command) + citation + NfcoreTemplate.dashedLine(params.monochrome_logs)
+    System.exit(0)
+}
+
+// Validate input parameters
+if (params.validate_params) {
+    validateParameters()
+}
+
+WorkflowMain.initialise(workflow, params, log, args)
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    NAMED WORKFLOW FOR PIPELINE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 

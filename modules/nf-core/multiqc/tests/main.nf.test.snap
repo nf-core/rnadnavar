@@ -1,5 +1,6 @@
 {
     "multiqc_versions_single": {
+    "multiqc_versions_single": {
         "content": [
             [
                 "versions.yml:md5,21f35ee29416b9b3073c28733efe4b7d"
@@ -11,6 +12,7 @@
         },
         "timestamp": "2024-02-29T08:48:55.657331"
     },
+    "multiqc_stub": {
     "multiqc_stub": {
         "content": [
             [
