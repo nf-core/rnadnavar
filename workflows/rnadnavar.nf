@@ -4,11 +4,14 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-include { MULTIQC                } from '../modules/nf-core/multiqc/main'
-include { paramsSummaryMap       } from 'plugin/nf-validation'
-include { paramsSummaryMultiqc   } from '../subworkflows/nf-core/utils_nfcore_pipeline'
-include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
-include { methodsDescriptionText } from '../subworkflows/local/utils_nfcore_rnadnavar_pipeline'
+include { MULTIQC                     } from '../modules/nf-core/multiqc/main'
+include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
+include { paramsSummaryMap            } from 'plugin/nf-validation'
+include { paramsSummaryLog            } from 'plugin/nf-validation'
+include { fromSamplesheet             } from 'plugin/nf-validation'
+include { paramsSummaryMultiqc        } from '../subworkflows/nf-core/utils_nfcore_pipeline'
+include { softwareVersionsToYAML      } from '../subworkflows/nf-core/utils_nfcore_pipeline'
+include { methodsDescriptionText      } from '../subworkflows/local/utils_nfcore_rnadnavar_pipeline'
 
 
 def logo = NfcoreTemplate.logo(workflow, params.monochrome_logs)
@@ -18,7 +21,72 @@ def summary_params = paramsSummaryMap(workflow)
 // Print parameter summary log to screen
 log.info logo + paramsSummaryLog(workflow) + citation
 
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Check mandatory parameters
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    VALIDATE INPUTS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+
+// Check input path parameters to see if they exist
+def checkPathParamList = [
+    params.input,
+    params.fasta,
+    params.fasta_fai,
+    params.dict,
+    params.bwa,
+    params.bwamem2,
+    params.dragmap,
+    params.gtf,
+    params.gff,
+    params.dbsnp,
+    params.dbsnp_tbi,
+    params.known_indels,
+    params.known_indels_tbi,
+    params.multiqc_config,
+    params.vep_cache,
+    params.star_index,
+    params.hisat2_index,
+    params.whitelist
+    ]
+
+for (param in checkPathParamList) if (param) file(param, checkIfExists: true)
+
+
 WorkflowRnadnavar.initialise(params, log)
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    IMPORT LOCAL/NF-CORE MODULES/SUBWORKFLOWS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+//
+// SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
+//
+// Build the genome index and other reference files
+include { SAMPLESHEET_TO_CHANNEL                                  } from '../subworkflows/local/samplesheet_to_channel/main'
+include { PREPARE_REFERENCE_AND_INTERVALS                         } from '../subworkflows/local/prepare_reference_and_intervals/main'
+include { PREPARE_INTERVALS as PREPARE_INTERVALS_FOR_REALIGNMENT  } from '../subworkflows/local/prepare_intervals/main'
+// Download annotation cache if needed
+include { ENSEMBLVEP_DOWNLOAD               } from '../modules/nf-core/ensemblvep/download/main'
+
+// Alignment
+include { BAM_ALIGN                         } from '../subworkflows/local/bam_align/main'
+
+// Core subworkflows of the pipeline
+include { BAM_VARIANT_CALLING_PRE_POST_PROCESSING as BAM_PROCESSING } from '../subworkflows/local/bam_variant_calling_pre_post_processing/main'
+
+// Second run
+include { BAM_EXTRACT_READS_HISAT2_ALIGN as PREPARE_REALIGNMENT  } from '../subworkflows/local/prepare_second_run/main'
+include { BAM_VARIANT_CALLING_PRE_POST_PROCESSING as REALIGNMENT } from '../subworkflows/local/bam_variant_calling_pre_post_processing/main'
+
+// Filter RNA
+include { MAF_FILTERING_RNA } from '../subworkflows/local/maf_rna_filtering/main'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -26,34 +94,11 @@ WorkflowRnadnavar.initialise(params, log)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-ch_multiqc_config          = Channel.fromPath("$projectDir/assets/multiqc_config.yml", checkIfExists: true)
-ch_multiqc_custom_config   = params.multiqc_config ? Channel.fromPath( params.multiqc_config, checkIfExists: true ) : Channel.empty()
-ch_multiqc_logo            = params.multiqc_logo   ? Channel.fromPath( params.multiqc_logo, checkIfExists: true ) : Channel.empty()
+multiqc_config          = Channel.fromPath("$projectDir/assets/multiqc_config.yml", checkIfExists: true)
+multiqc_custom_config   = params.multiqc_config ? Channel.fromPath( params.multiqc_config, checkIfExists: true ) : Channel.empty()
+multiqc_logo            = params.multiqc_logo   ? Channel.fromPath( params.multiqc_logo, checkIfExists: true ) : Channel.empty()
 ch_multiqc_custom_methods_description = params.multiqc_methods_description ? file(params.multiqc_methods_description, checkIfExists: true) : file("$projectDir/assets/methods_description_template.yml", checkIfExists: true)
 
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    IMPORT LOCAL MODULES/SUBWORKFLOWS
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
-
-//
-// SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
-//
-include { INPUT_CHECK } from '../subworkflows/local/input_check'
-
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    IMPORT NF-CORE MODULES/SUBWORKFLOWS
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
-
-//
-// MODULE: Installed directly from nf-core/modules
-//
-include { FASTQC                      } from '../modules/nf-core/fastqc/main'
-include { MULTIQC                     } from '../modules/nf-core/multiqc/main'
-include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -72,7 +117,7 @@ workflow RNADNAVAR {
     // To gather used softwares versions for MultiQC
     versions = Channel.empty()
 
-    // Set input, can either be from --input or from automatic retrieval in WorkflowSarek.groovy
+    // Set input, can either be from --input or from automatic retrieval in WorkflowRnadnavar.groovy
     if (params.input) {
         ch_from_samplesheet = params.build_only_index ? Channel.empty() : Channel.fromSamplesheet("input")
     } else {
@@ -85,9 +130,9 @@ workflow RNADNAVAR {
 
 
     // Initialise MULTIQC
-    ch_multiqc_config                     = Channel.fromPath("$projectDir/assets/multiqc_config.yml", checkIfExists: true)
-    ch_multiqc_custom_config              = params.multiqc_config ? Channel.fromPath( params.multiqc_config, checkIfExists: true ) : Channel.empty()
-    ch_multiqc_logo                       = params.multiqc_logo   ? Channel.fromPath( params.multiqc_logo, checkIfExists: true ) : Channel.empty()
+    multiqc_config                     = Channel.fromPath("$projectDir/assets/multiqc_config.yml", checkIfExists: true)
+    multiqc_custom_config              = params.multiqc_config ? Channel.fromPath( params.multiqc_config, checkIfExists: true ) : Channel.empty()
+    multiqc_logo                       = params.multiqc_logo   ? Channel.fromPath( params.multiqc_logo, checkIfExists: true ) : Channel.empty()
     ch_multiqc_custom_methods_description = params.multiqc_methods_description ? file(params.multiqc_methods_description, checkIfExists: true) : file("$projectDir/assets/methods_description_template.yml", checkIfExists: true)
 
     // Download cache if needed
@@ -252,27 +297,28 @@ workflow RNADNAVAR {
 
     if (!(params.skip_tools && params.skip_tools.split(',').contains('multiqc'))) {
         workflow_summary    = WorkflowRnadnavar.paramsSummaryMultiqc(workflow, summary_params)
-        ch_workflow_summary = Channel.value(workflow_summary)
+        workflow_summary = Channel.value(workflow_summary)
 
         methods_description    = WorkflowRnadnavar.methodsDescriptionText(workflow, ch_multiqc_custom_methods_description, params)
-        ch_methods_description = Channel.value(methods_description)
+        methods_description = Channel.value(methods_description)
 
         multiqc_files = Channel.empty()
         multiqc_files = multiqc_files.mix(version_yaml)
-        multiqc_files = multiqc_files.mix(ch_workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml'))
-        multiqc_files = multiqc_files.mix(ch_methods_description.collectFile(name: 'methods_description_mqc.yaml'))
+        multiqc_files = multiqc_files.mix(workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml'))
+        multiqc_files = multiqc_files.mix(methods_description.collectFile(name: 'methods_description_mqc.yaml'))
         multiqc_files = multiqc_files.mix(multiqc_files.collect().ifEmpty([]))
 
     MULTIQC (
-        ch_multiqc_files.collect(),
-        ch_multiqc_config.toList(),
-        ch_multiqc_custom_config.toList(),
-        ch_multiqc_logo.toList()
+        multiqc_files.collect(),
+        multiqc_config.toList(),
+        multiqc_custom_config.toList(),
+        multiqc_logo.toList()
     )
+    }
 
     emit:
     multiqc_report = MULTIQC.out.report.toList() // channel: /path/to/multiqc_report.html
-    versions       = ch_versions                 // channel: [ path(versions.yml) ]
+    versions       = versions                 // channel: [ path(versions.yml) ]
 }
 
 /*

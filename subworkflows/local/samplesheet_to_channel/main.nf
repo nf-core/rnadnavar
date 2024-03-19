@@ -1,9 +1,6 @@
-// TODO nf-core: If in doubt look at other nf-core/subworkflows to see how we are doing things! :)
-//               https://github.com/nf-core/modules/tree/master/subworkflows
-//               You can also ask for help via your pull request or on the #subworkflows channel on the nf-core Slack workspace:
-//               https://nf-co.re/join
-// TODO nf-core: A subworkflow SHOULD import at least two modules
-
+//
+// Function to parse samplesheet to appropriate channel structure
+//
 
 workflow  SAMPLESHEET_TO_CHANNEL{
 
@@ -24,6 +21,7 @@ workflow  SAMPLESHEET_TO_CHANNEL{
             [ patient_sample, ch_items.size() ]
         }
         .combine(ch_with_patient_sample, by: 0) // for each entry add numLanes
+        .dump(tag:"after combine")
         .map { patient_sample, num_lanes, ch_items ->
 
             (meta, fastq_1, fastq_2, table, cram, crai, bam, bai, vcf, variantcaller, maf) = ch_items
@@ -44,7 +42,7 @@ workflow  SAMPLESHEET_TO_CHANNEL{
                     error("Samplesheet contains fastq files but step is `$params.step`. Please check your samplesheet or adjust the step parameter.\nhttps://nf-co.re/rnadnavar/usage#input-samplesheet-configurations")
                 }
             // start for second run
-            } else if ((maf || vcf) && params.step=="second_run"){
+            } else if ((maf || vcf) && params.step=="realignment"){
                 if (meta.lane == null) meta.lane = "LX"
                 meta            = meta + [id: "${meta.sample}-${meta.lane}-realign".toString()]
                 def CN          = params.seq_center ? "CN:${params.seq_center}\\t" : ''
@@ -62,8 +60,6 @@ workflow  SAMPLESHEET_TO_CHANNEL{
                     return [meta + [data_type: 'maf', variantcaller: variantcaller ?: ''], maf]
 
                 }
-
-
             // start from BAM
             } else if (meta.lane && bam) {
                 if (params.step != 'mapping' && !bai) {
@@ -193,27 +189,14 @@ workflow  SAMPLESHEET_TO_CHANNEL{
         }
     }
 
-    // Fails when --joint_mutect2 is used without enabling mutect2
-    if (params.joint_mutect2 && (!params.tools || !params.tools.split(',').contains('mutect2'))) {
-        error("The mutect2 should be specified as one of the tools when doing joint somatic variant calling with Mutect2. (The mutect2 could be specified by adding `--tools mutect2` to the nextflow command.)")
-    }
-
     // Fails when missing tools for variant_calling or annotate
     if ((params.step == 'variant_calling' || params.step == 'annotate') && !params.tools) {
-        error("Please specify at least one tool when using `--step ${params.step}`.\nhttps://nf-co.re/sarek/parameters#tools")
+        error("Please specify at least one tool when using `--step ${params.step}`.\nhttps://nf-co.re/rnadnavar/parameters#tools")
     }
 
-    // Fails when missing sex information for CNV tools
-    if (params.tools && (params.tools.split(',').contains('ascat') || params.tools.split(',').contains('controlfreec'))) {
-        input_sample.map{
-            if (it[0].sex == 'NA' ) {
-                error("Please specify sex information for each sample in your samplesheet when using '--tools' with 'ascat' or 'controlfreec'.\nhttps://nf-co.re/sarek/usage#input-samplesheet-configurations")
-            }
-        }
-    }
 
-    if ((params.download_cache) && (params.snpeff_cache || params.vep_cache)) {
-        error("Please specify either `--download_cache` or `--snpeff_cache`, `--vep_cache`.\nhttps://nf-co.re/sarek/usage#how-to-customise-snpeff-and-vep-annotation")
+    if ((params.download_cache) && (params.vep_cache)) {
+        error("Please specify either `--download_cache` or `--vep_cache`.\nhttps://nf-co.re/rnadnavar/usage#how-to-customise-snpeff-and-vep-annotation")
     }
 
     emit:
