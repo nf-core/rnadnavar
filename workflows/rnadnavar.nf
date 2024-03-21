@@ -1,57 +1,16 @@
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    PRINT PARAMS SUMMARY
+    IMPORT MODULES / SUBWORKFLOWS / FUNCTIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-include { paramsSummaryLog; paramsSummaryMap; fromSamplesheet } from 'plugin/nf-validation'
-
-def logo = NfcoreTemplate.logo(workflow, params.monochrome_logs)
-def citation = '\n' + WorkflowMain.citation(workflow) + '\n'
-def summary_params = paramsSummaryMap(workflow)
-
-// Print parameter summary log to screen
-log.info logo + paramsSummaryLog(workflow) + citation
-
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    VALIDATE INPUTS
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
-
-// Check input path parameters to see if they exist
-def checkPathParamList = [
-    params.input,
-    params.fasta,
-    params.fasta_fai,
-    params.dict,
-    params.bwa,
-    params.bwamem2,
-    params.dragmap,
-    params.gtf,
-    params.gff,
-    params.dbsnp,
-    params.dbsnp_tbi,
-    params.known_indels,
-    params.known_indels_tbi,
-    params.multiqc_config,
-    params.vep_cache,
-    params.star_index,
-    params.hisat2_index,
-    params.whitelist
-    ]
-
-// Validate input parameters
-WorkflowRnadnavar.initialise(params, log)
-
-
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    Check mandatory parameters
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
-
-for (param in checkPathParamList) if (param) file(param, checkIfExists: true)
+include { MULTIQC                     } from '../modules/nf-core/multiqc/main'
+include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
+include { fromSamplesheet             } from 'plugin/nf-validation'
+include { paramsSummaryMap            } from 'plugin/nf-validation'
+include { paramsSummaryMultiqc        } from '../subworkflows/nf-core/utils_nfcore_pipeline'
+include { softwareVersionsToYAML      } from '../subworkflows/nf-core/utils_nfcore_pipeline'
+include { methodsDescriptionText      } from '../subworkflows/local/utils_nfcore_rnadnavar_pipeline'
 
 
 /*
@@ -81,18 +40,6 @@ include { BAM_VARIANT_CALLING_PRE_POST_PROCESSING as REALIGNMENT } from '../subw
 
 // Filter RNA
 include { MAF_FILTERING_RNA } from '../subworkflows/local/maf_rna_filtering/main'
-//
-//
-// MODULE: Installed directly from nf-core/modules
-//
-//FASTQC
-include { FASTQC                                      } from '../modules/nf-core/fastqc/main'
-// MULTIQC
-include { MULTIQC                                     } from '../modules/nf-core/multiqc/main'
-// REPORTING VERSIONS OF SOFTWARE USED
-include { CUSTOM_DUMPSOFTWAREVERSIONS                 } from '../modules/nf-core/custom/dumpsoftwareversions/main'
-
-
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -100,20 +47,11 @@ include { CUSTOM_DUMPSOFTWAREVERSIONS                 } from '../modules/nf-core
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-ch_multiqc_config          = Channel.fromPath("$projectDir/assets/multiqc_config.yml", checkIfExists: true)
-ch_multiqc_custom_config   = params.multiqc_config ? Channel.fromPath( params.multiqc_config, checkIfExists: true ) : Channel.empty()
-ch_multiqc_logo            = params.multiqc_logo   ? Channel.fromPath( params.multiqc_logo, checkIfExists: true ) : Channel.empty()
+multiqc_config          = Channel.fromPath("$projectDir/assets/multiqc_config.yml", checkIfExists: true)
+multiqc_custom_config   = params.multiqc_config ? Channel.fromPath( params.multiqc_config, checkIfExists: true ) : Channel.empty()
+multiqc_logo            = params.multiqc_logo   ? Channel.fromPath( params.multiqc_logo, checkIfExists: true ) : Channel.empty()
 ch_multiqc_custom_methods_description = params.multiqc_methods_description ? file(params.multiqc_methods_description, checkIfExists: true) : file("$projectDir/assets/methods_description_template.yml", checkIfExists: true)
 
-
-/*
-========================================================================================
-    VARIABLES
-========================================================================================
-*/
-
-// Info required for completion email and summary
-def multiqc_report = []
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -123,7 +61,16 @@ def multiqc_report = []
 
 workflow RNADNAVAR {
 
-    // Set input, can either be from --input or from automatic retrieval in WorkflowSarek.groovy
+    take:
+    ch_samplesheet // channel: samplesheet read in from --input
+
+    main:
+    // To gather all QC reports for MultiQC
+    multiqc_files = Channel.empty()
+    // To gather used softwares versions for MultiQC
+    versions = Channel.empty()
+
+    // Set input, can either be from --input or from automatic retrieval in utils_nfcore_rnadnavar_pipeline/main
     if (params.input) {
         ch_from_samplesheet = params.build_only_index ? Channel.empty() : Channel.fromSamplesheet("input")
     } else {
@@ -136,15 +83,10 @@ workflow RNADNAVAR {
 
 
     // Initialise MULTIQC
-    ch_multiqc_config                     = Channel.fromPath("$projectDir/assets/multiqc_config.yml", checkIfExists: true)
-    ch_multiqc_custom_config              = params.multiqc_config ? Channel.fromPath( params.multiqc_config, checkIfExists: true ) : Channel.empty()
-    ch_multiqc_logo                       = params.multiqc_logo   ? Channel.fromPath( params.multiqc_logo, checkIfExists: true ) : Channel.empty()
+    multiqc_config                        = Channel.fromPath("$projectDir/assets/multiqc_config.yml", checkIfExists: true)
+    multiqc_custom_config                 = params.multiqc_config ? Channel.fromPath( params.multiqc_config, checkIfExists: true ) : Channel.empty()
+    multiqc_logo                          = params.multiqc_logo   ? Channel.fromPath( params.multiqc_logo, checkIfExists: true ) : Channel.empty()
     ch_multiqc_custom_methods_description = params.multiqc_methods_description ? file(params.multiqc_methods_description, checkIfExists: true) : file("$projectDir/assets/methods_description_template.yml", checkIfExists: true)
-
-    // To gather all QC reports for MultiQC
-    reports  = Channel.empty()
-    // To gather used softwares versions for MultiQC
-    versions = Channel.empty()
 
     // Download cache if needed
     // Assuming that if the cache is provided, the user has already downloaded it
@@ -196,7 +138,7 @@ workflow RNADNAVAR {
         input_sample
         )
 
-    reports = reports.mix(BAM_ALIGN.out.reports)
+    multiqc_files = multiqc_files.mix(BAM_ALIGN.out.reports)
     versions = versions.mix(BAM_ALIGN.out.versions)
 
     // 5 MAIN STEPS: GATK PREPROCESING - VARIANT CALLING - NORMALIZATION - CONSENSUS - ANNOTATION
@@ -227,7 +169,7 @@ workflow RNADNAVAR {
         params.no_intervals
     )
     filtered_maf = BAM_PROCESSING.out.maf
-    reports      = reports.mix(BAM_PROCESSING.out.reports)
+    multiqc_files      = multiqc_files.mix(BAM_PROCESSING.out.reports)
     versions     = versions.mix(BAM_PROCESSING.out.versions)
     if (params.tools && params.tools.split(',').contains('second_run')) {
         // fastq will not be split when realignment
@@ -277,7 +219,7 @@ workflow RNADNAVAR {
             true // no_intervals
             )
 
-        reports                = reports.mix(REALIGNMENT.out.reports)
+        multiqc_files                = multiqc_files.mix(REALIGNMENT.out.reports)
         versions               = versions.mix(REALIGNMENT.out.versions)
         realigned_filtered_maf = REALIGNMENT.out.maf
     } else{
@@ -307,45 +249,29 @@ workflow RNADNAVAR {
     }
 
     if (!(params.skip_tools && params.skip_tools.split(',').contains('multiqc'))) {
-        workflow_summary    = WorkflowRnadnavar.paramsSummaryMultiqc(workflow, summary_params)
-        ch_workflow_summary = Channel.value(workflow_summary)
+        workflow_summary = paramsSummaryMultiqc(paramsSummaryMap(workflow))
+        workflow_summary = Channel.value(workflow_summary)
 
-        methods_description    = WorkflowRnadnavar.methodsDescriptionText(workflow, ch_multiqc_custom_methods_description, params)
-        ch_methods_description = Channel.value(methods_description)
+        methods_description = methodsDescriptionText(ch_multiqc_custom_methods_description)
+        methods_description = Channel.value(methods_description)
 
         multiqc_files = Channel.empty()
         multiqc_files = multiqc_files.mix(version_yaml)
-        multiqc_files = multiqc_files.mix(ch_workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml'))
-        multiqc_files = multiqc_files.mix(ch_methods_description.collectFile(name: 'methods_description_mqc.yaml'))
-        multiqc_files = multiqc_files.mix(reports.collect().ifEmpty([]))
+        multiqc_files = multiqc_files.mix(workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml'))
+        multiqc_files = multiqc_files.mix(methods_description.collectFile(name: 'methods_description_mqc.yaml'))
+        multiqc_files = multiqc_files.mix(multiqc_files.collect().ifEmpty([]))
 
-        MULTIQC(multiqc_files.collect(), ch_multiqc_config.collect().ifEmpty([]), ch_multiqc_custom_config.collect().ifEmpty([]), ch_multiqc_logo.collect().ifEmpty([]))
-
-        multiqc_report = MULTIQC.out.report.toList()
-        versions = versions.mix(MULTIQC.out.versions)
+    MULTIQC (
+        multiqc_files.collect(),
+        multiqc_config.toList(),
+        multiqc_custom_config.toList(),
+        multiqc_logo.toList()
+    )
     }
-}
 
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    COMPLETION EMAIL AND SUMMARY
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
-
-workflow.onComplete {
-    if (params.email || params.email_on_fail) {
-        NfcoreTemplate.email(workflow, params, summary_params, projectDir, log, multiqc_report)
-    }
-    NfcoreTemplate.dump_parameters(workflow, params)
-    NfcoreTemplate.summary(workflow, params, log)
-    if (params.hook_url) NfcoreTemplate.IM_notification(workflow, params, summary_params, projectDir, log)
-}
-
-workflow.onError {
-    if (workflow.errorReport.contains("Process requirement exceeds available memory")) {
-        println("🛑 Default resources exceed availability 🛑 ")
-        println("💡 See here on how to configure pipeline: https://nf-co.re/docs/usage/configuration#tuning-workflow-resources 💡")
-    }
+    emit:
+    multiqc_report = MULTIQC.out.report.toList() // channel: /path/to/multiqc_report.html
+    versions       = versions                 // channel: [ path(versions.yml) ]
 }
 
 /*
