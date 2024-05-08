@@ -94,9 +94,18 @@ workflow RNADNAVAR {
 
     if (params.download_cache) {
         ENSEMBLVEP_DOWNLOAD(ensemblvep_info)
-        vep_cache    = ENSEMBLVEP_DOWNLOAD.out.cache.collect().map{ meta, cache -> [ cache ] }
-
-        versions = versions.mix(ENSEMBLVEP_DOWNLOAD.out.versions)
+        vep_cache = ENSEMBLVEP_DOWNLOAD.out.cache.collect().map{ meta, cache -> [ cache ] }
+        versions  = versions.mix(ENSEMBLVEP_DOWNLOAD.out.versions)
+    } else if (!params.vep_cache) {
+        vep_cache = Channel.of([])
+    } else if (params.use_annotation_cache_keys){
+        vep_cache = Channel.fromPath("${params.vep_cache}/${params.vep_cache_version}_${params.vep_genome}").collect()
+    } else if (params.vep_cache.endsWith(".zip")) {
+        UNZIP_VEP_CACHE(Channel.fromPath(params.vep_cache).collect().map{ it -> [ [ id:it[0].baseName ], it ] })
+        vep_cache = UNZIP_VEP_CACHE.out.unzipped_archive.map{ it[1] }
+        versions = versions.mix(UNZIP_VEP_CACHE.out.versions)
+    } else {
+        vep_cache = params.use_annotation_cache_keys ? Channel.fromPath("${params.vep_cache}/${params.vep_cache_version}_${params.vep_genome}").collect() : Channel.fromPath(params.vep_cache).collect()
     }
 
     // STEP 0: Build reference and indices if needed
@@ -165,6 +174,7 @@ workflow RNADNAVAR {
         intervals_bed_combined,
         intervals_and_num_intervals,
         intervals_bed_gz_tbi_combined,
+        vep_cache,
         null,  // to repeat rescue consensus
         null,  // to repeat rescue consensus
         false,  // is second run
@@ -269,10 +279,13 @@ workflow RNADNAVAR {
         multiqc_custom_config.toList(),
         multiqc_logo.toList()
     )
+    multiqc_report = MULTIQC.out.report.toList()
+    } else {
+        multiqc_report = Channel.empty()
     }
 
     emit:
-    multiqc_report = MULTIQC.out.report.toList() // channel: /path/to/multiqc_report.html
+    multiqc_report = multiqc_report // channel: /path/to/multiqc_report.html
     versions       = versions                 // channel: [ path(versions.yml) ]
 }
 
