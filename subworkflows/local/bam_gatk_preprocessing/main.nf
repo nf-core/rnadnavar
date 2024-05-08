@@ -27,6 +27,7 @@ workflow BAM_GATK_PREPROCESSING {
     cram_mapped                   // channel: [mandatory] cram_mapped
     fasta                         // channel: [mandatory] fasta
     fasta_fai                     // channel: [mandatory] fasta_fai
+    fasta_gzi                     // channel: [mandatory] fasta_gzi
     dict                          // channel: [mandatory] dict
     known_sites_indels            // channel: [optional]  known_sites
     known_sites_indels_tbi        // channel: [optional]  known_sites
@@ -35,7 +36,7 @@ workflow BAM_GATK_PREPROCESSING {
     intervals                     // channel: [mandatory] intervals/target regions
     intervals_for_preprocessing   // channel: [mandatory] intervals/wes
     intervals_and_num_intervals   // channel: [mandatory] [ intervals, num_intervals ] (or [ [], 0 ] if no intervals)
-    second_run                    // boolean
+    realignment                    // boolean
 
 
     main:
@@ -43,7 +44,7 @@ workflow BAM_GATK_PREPROCESSING {
     versions  = Channel.empty()
     cram_variant_calling = Channel.empty()
     // Markduplicates
-    if (params.step in ['mapping', 'markduplicates'] || second_run) {
+    if (params.step in ['mapping', 'markduplicates'] || realignment) {
 
         cram_markduplicates_no_spark = Channel.empty()
         // make sure data_type is present
@@ -55,7 +56,7 @@ workflow BAM_GATK_PREPROCESSING {
                                     infoMap }
         // cram_for_markduplicates will contain bam mapped with FASTQ_ALIGN_BWAMEM_MEM2_DRAGMAP when step is mapping
         // Or bams that are specified in the samplesheet.csv when step is prepare_recalibration
-        cram_for_markduplicates = params.step == 'mapping' || second_run ? bam_mapped : input_sample.map{ meta, input, index -> [ meta, input ] }
+        cram_for_markduplicates = params.step == 'mapping' || realignment ? bam_mapped : input_sample.map{ meta, input, index -> [ meta, input ] }
 
         // if no MD is done, then run QC on mapped & converted CRAM files
         // or the input BAM (+converted) or CRAM files
@@ -63,7 +64,7 @@ workflow BAM_GATK_PREPROCESSING {
 
         // Should it be possible to restart from converted crams?
         // For now, conversion from bam to cram is only done when skipping markduplicates
-        if ((params.skip_tools && params.skip_tools.split(',').contains('markduplicates')) && !second_run) {
+        if ((params.skip_tools && params.skip_tools.split(',').contains('markduplicates')) && !realignment) {
             if (params.step == 'mapping') {
                 cram_skip_markduplicates = cram_for_markduplicates
             } else {
@@ -92,6 +93,7 @@ workflow BAM_GATK_PREPROCESSING {
                 cram_for_markduplicates,
                 fasta,
                 fasta_fai,
+                fasta_gzi,
                 intervals_for_preprocessing)
 
             cram_markduplicates_no_spark = BAM_MARKDUPLICATES.out.cram
@@ -123,7 +125,7 @@ workflow BAM_GATK_PREPROCESSING {
 
     // SplitNCigarReads for RNA
     cram_skip_splitncigar = ch_md_cram_for_restart?: cram_skip_markduplicates
-    if (params.step in ['mapping', 'markduplicates', 'splitncigar'] || second_run) {
+    if (params.step in ['mapping', 'markduplicates', 'splitncigar'] || realignment) {
         if (params.step == "splitncigarreads"){
                 // Support if starting from BAM or CRAM files
                 input_sncr_convert = input_sample.branch{
@@ -151,7 +153,7 @@ workflow BAM_GATK_PREPROCESSING {
             // Make sure correct data types are carried through
             .map{ meta, cram, crai -> [ meta + [data_type: "cram"], cram, crai ] }
         cram_splitncigar_no_spark = Channel.empty()
-        if (!(params.skip_tools && params.skip_tools.split(',').contains('splitncigar')) || second_run) {
+        if (!(params.skip_tools && params.skip_tools.split(',').contains('splitncigar')) || realignment) {
             cram_skip_splitncigar.dump(tag:"cram_skip_splitncigar")
             cram_for_splitncigar_status = cram_skip_splitncigar.branch{
                                                 dna:  it[0].status < 2
@@ -162,6 +164,7 @@ workflow BAM_GATK_PREPROCESSING {
                 dict,
                 fasta,
                 fasta_fai,
+                fasta_gzi,
                 intervals_and_num_intervals
             )
 
@@ -183,10 +186,10 @@ workflow BAM_GATK_PREPROCESSING {
 
     // BQSR
     ch_cram_for_bam_baserecalibrator = ch_sncr_cram_for_restart?: cram_skip_splitncigar
-    if (params.step in ['mapping', 'markduplicates', 'splitncigar', 'prepare_recalibration'] & !second_run) {
+    if (params.step in ['mapping', 'markduplicates', 'splitncigar', 'prepare_recalibration'] & !realignment) {
 
         // Run if starting from step "prepare_recalibration". This will not run for second pass
-        if (params.step == 'prepare_recalibration' && !second_run) {
+        if (params.step == 'prepare_recalibration' && !realignment) {
 
             // Support if starting from BAM or CRAM files
             input_prepare_recal_convert = input_sample.branch{
@@ -219,7 +222,7 @@ workflow BAM_GATK_PREPROCESSING {
         }
 
         // Create recalibration tables
-        if (!(params.skip_tools && params.skip_tools.split(',').contains('baserecalibrator')) && !second_run) {
+        if (!(params.skip_tools && params.skip_tools.split(',').contains('baserecalibrator')) && !realignment) {
 
             ch_table_bqsr_no_spark = Channel.empty()
             ch_cram_for_bam_baserecalibrator.dump(tag:"ch_cram_for_bam_baserecalibrator")
@@ -228,6 +231,7 @@ workflow BAM_GATK_PREPROCESSING {
                     dict,
                     fasta,
                     fasta_fai,
+                    fasta_gzi,
                     intervals_and_num_intervals,
                     known_sites_indels,
                     known_sites_indels_tbi)
@@ -255,10 +259,10 @@ workflow BAM_GATK_PREPROCESSING {
 
     }
 
-    if (params.step in ['mapping', 'markduplicates', 'splitncigar','prepare_recalibration', 'recalibrate'] && !second_run) {
+    if (params.step in ['mapping', 'markduplicates', 'splitncigar','prepare_recalibration', 'recalibrate'] && !realignment) {
 
         // Run if starting from step "prepare_recalibration"
-        if (params.step == 'recalibrate' && !second_run) {
+        if (params.step == 'recalibrate' && !realignment) {
 
             // Support if starting from BAM or CRAM files
             input_recal_convert = input_sample.branch{
@@ -280,7 +284,7 @@ workflow BAM_GATK_PREPROCESSING {
                 // Join together converted cram with input tables
                 .map{ meta, cram, crai, table -> [ meta + [data_type: "cram"], cram, crai, table ]}
         }
-        if (!(params.skip_tools && params.skip_tools.split(',').contains('baserecalibrator')) && !second_run) {
+        if (!(params.skip_tools && params.skip_tools.split(',').contains('baserecalibrator')) && !realignment) {
 
             cram_variant_calling_no_spark = Channel.empty()
             cram_applybqsr.dump(tag:"cram_applybqsr")
@@ -289,6 +293,7 @@ workflow BAM_GATK_PREPROCESSING {
                 dict,
                 fasta,
                 fasta_fai,
+                fasta_gzi,
                 intervals_and_num_intervals)
 
             cram_variant_calling_no_spark = BAM_APPLYBQSR.out.cram

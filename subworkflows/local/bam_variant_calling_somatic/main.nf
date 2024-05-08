@@ -12,6 +12,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
     cram                          // channel: [mandatory] cram
     fasta                         // channel: [mandatory] fasta
     fasta_fai                     // channel: [mandatory] fasta_fai
+    fasta_gzi                     // channel: [mandatory] fasta_gzi
     dict                          // channel: [mandatory] dict
     germline_resource             // channel: [optional]  germline_resource
     germline_resource_tbi         // channel: [optional]  germline_resource_tbi
@@ -22,19 +23,18 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
     panel_of_normals              // channel: [optional]  panel_of_normals
     panel_of_normals_tbi          // channel: [optional]  panel_of_normals_tbi
     joint_mutect2                 // boolean: [mandatory] [default: false] run mutect2 in joint mode
-    second_run
+    realignment
     no_intervals
 
     main:
     versions          = Channel.empty()
 
-    //TODO: Temporary until the if's can be removed and printing to terminal is prevented with "when" in the modules.config    vcf_manta         = Channel.empty()
     vcf_manta         = Channel.empty()
     vcf_strelka       = Channel.empty()
     vcf_mutect2       = Channel.empty()
     vcf_sage          = Channel.empty()
     // SAGE
-    if (tools && tools.split(',').contains('sage') || second_run) {
+    if (tools && tools.split(',').contains('sage') || realignment) {
         cram.dump(tag:"sage_cram")
         BAM_VARIANT_CALLING_SOMATIC_SAGE(
             cram,
@@ -65,7 +65,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
     }
 
     // STRELKA
-    if (tools && tools.split(',').contains('strelka') || second_run) {
+    if (tools && tools.split(',').contains('strelka') || realignment) {
         // Remap channel to match module/subworkflow
         cram_strelka = (tools && tools.split(',').contains('manta')) ?
             cram.join(BAM_VARIANT_CALLING_SOMATIC_MANTA.out.candidate_small_indels_vcf, failOnDuplicate: true, failOnMismatch: true).join(BAM_VARIANT_CALLING_SOMATIC_MANTA.out.candidate_small_indels_vcf_tbi, failOnDuplicate: true, failOnMismatch: true) :
@@ -86,7 +86,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
     }
 
     // MUTECT2
-    if (tools && tools.split(',').contains('mutect2') || second_run) {
+    if (tools && tools.split(',').contains('mutect2') || realignment) {
         mutect_cram = cram.map { meta, normal_cram, normal_crai, tumor_cram, tumor_crai -> [ meta, [ normal_cram, tumor_cram ], [ normal_crai, tumor_crai ] ] }
         BAM_VARIANT_CALLING_SOMATIC_MUTECT2(
             // Remap channel to match module/subworkflow
@@ -95,6 +95,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
             fasta.map{ it -> [ [ id:'fasta' ], it ] },
             // Remap channel to match module/subworkflow
             fasta_fai.map{ it -> [ [ id:'fasta_fai' ], it ] },
+            fasta_gzi.map{ it -> [ [ id:'fasta_gzi' ], it ] },
             dict,
             germline_resource,
             germline_resource_tbi,
@@ -102,7 +103,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
             panel_of_normals_tbi,
             intervals,
             joint_mutect2,
-            second_run
+            realignment
         )
 
         vcf_mutect2                 = BAM_VARIANT_CALLING_SOMATIC_MUTECT2.out.vcf_filtered

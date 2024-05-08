@@ -13,6 +13,7 @@ workflow BAM_SPLITNCIGARREADS {
     dict            // channel: [mandatory] [ dict ]
     fasta           // channel: [mandatory] [ fasta ]
     fasta_fai       // channel: [mandatory] [ fasta_fai ]
+    fasta_gzi       // channel: [mandatory] [ fasta_gzi ]
     intervals       // channel: [mandatory] [ intervals, num_intervals ] (or [ [], 0 ] if no intervals)
 
     main:
@@ -27,6 +28,7 @@ workflow BAM_SPLITNCIGARREADS {
         cram_intervals,
         fasta,
         fasta_fai,
+        fasta_gzi,
         dict.map{ meta, it ->  it  }
     )
 

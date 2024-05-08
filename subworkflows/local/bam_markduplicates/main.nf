@@ -12,6 +12,7 @@ workflow BAM_MARKDUPLICATES {
     bam                    // channel: [mandatory] [ meta, bam ]
     fasta                  // channel: [mandatory] [ fasta ]
     fasta_fai              // channel: [mandatory] [ fasta_fai ]
+    fasta_gzi              // channel: [mandatory] [ fasta_gzi ]
     intervals_bed_combined // channel: [optional]  [ intervals_bed ]
 
     main:
@@ -19,7 +20,7 @@ workflow BAM_MARKDUPLICATES {
     reports  = Channel.empty()
 
     // RUN MARKUPDUPLICATES
-    GATK4_MARKDUPLICATES(bam, fasta, fasta_fai)
+    GATK4_MARKDUPLICATES(bam, fasta, fasta_fai, fasta_gzi)
 
     // Join with the crai file
     cram = GATK4_MARKDUPLICATES.out.cram.join(GATK4_MARKDUPLICATES.out.crai, failOnDuplicate: true, failOnMismatch: true)

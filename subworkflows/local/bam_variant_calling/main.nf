@@ -19,6 +19,7 @@ workflow BAM_VARIANT_CALLING {
     cram_variant_calling
     fasta
     fasta_fai
+    fasta_gzi
     dict
     germline_resource
     germline_resource_tbi
@@ -29,13 +30,13 @@ workflow BAM_VARIANT_CALLING {
     pon
     pon_tbi
     input_sample
-    second_run
+    realignment
     no_intervals
 
     main:
     reports   = Channel.empty()
     versions  = Channel.empty()
-    if (tools || second_run) {
+    if (tools || realignment) {
         if (params.step == 'annotate') {
 
             cram_variant_calling_pair   = Channel.empty()
@@ -115,6 +116,7 @@ workflow BAM_VARIANT_CALLING {
                 cram_variant_calling_pair,
                 fasta,
                 fasta_fai,
+                fasta_gzi,
                 dict,
                 germline_resource,
                 germline_resource_tbi,
@@ -125,7 +127,7 @@ workflow BAM_VARIANT_CALLING {
                 pon,
                 pon_tbi,
                 params.joint_mutect2,
-                second_run,
+                realignment,
                 no_intervals
                 )
 

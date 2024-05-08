@@ -18,7 +18,8 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
     take:
     input                     // channel: [ meta, [ input ], [ input_index ] ]
     fasta                     // channel: /path/to/reference/fasta
-    fai                       // channel: /path/to/reference/fasta/index
+    fai                       // channel: /path/to/reference/fasta/index/fai
+    gzi                       // channel: /path/to/reference/fasta/index/gzi
     dict                      // channel: /path/to/reference/fasta/dictionary
     germline_resource         // channel: /path/to/germline/resource
     germline_resource_tbi     // channel: /path/to/germline/index
@@ -55,7 +56,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
     }
     else {
         // Perform variant calling using mutect2 module pair mode
-        MUTECT2_PAIRED( input_intervals, fasta, fai, dict, germline_resource, germline_resource_tbi, panel_of_normals, panel_of_normals_tbi)
+        MUTECT2_PAIRED( input_intervals, fasta, fai, gzi, dict, germline_resource, germline_resource_tbi, panel_of_normals, panel_of_normals_tbi)
     }
 
     // Figuring out if there is one or more vcf(s) from the same sample
@@ -118,8 +119,8 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
         pileup_tumor = pileup.tumor.map{ meta, cram, crai, intervals -> [ meta + [ id:meta.tumor_id ], cram, crai, intervals ] }
 
         // Generate pileup summary tables using getepileupsummaries. tumor sample should always be passed in as the first input and input list entries of vcf_to_filter,
-        GETPILEUPSUMMARIES_NORMAL(pileup_normal, fasta, fai, dict, germline_resource_pileup, germline_resource_pileup_tbi)
-        GETPILEUPSUMMARIES_TUMOR(pileup_tumor, fasta, fai, dict, germline_resource_pileup, germline_resource_pileup_tbi)
+        GETPILEUPSUMMARIES_NORMAL(pileup_normal, fasta, fai, gzi, dict, germline_resource_pileup, germline_resource_pileup_tbi)
+        GETPILEUPSUMMARIES_TUMOR(pileup_tumor, fasta, fai, gzi, dict, germline_resource_pileup, germline_resource_pileup_tbi)
 
         // Figuring out if there is one or more table(s) from the same sample
         pileup_table_normal_branch = GETPILEUPSUMMARIES_NORMAL.out.table.branch{

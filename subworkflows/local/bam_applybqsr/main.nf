@@ -13,6 +13,7 @@ workflow BAM_APPLYBQSR {
     dict          // channel: [mandatory] [ dict ]
     fasta         // channel: [mandatory] [ fasta ]
     fasta_fai     // channel: [mandatory] [ fasta_fai ]
+    fasta_gzi     // channel: [mandatory] [ fasta_gzi ]
     intervals     // channel: [mandatory] [ intervals, num_intervals ] or [ [], 0 ] if no intervals
 
     main:
@@ -24,7 +25,7 @@ workflow BAM_APPLYBQSR {
         .map{ meta, cram, crai, recal, intervals, num_intervals -> [ meta + [ num_intervals:num_intervals ], cram, crai, recal, intervals ] }
 
     // RUN APPLYBQSR
-    GATK4_APPLYBQSR(cram_intervals, fasta, fasta_fai, dict.map{ meta, it -> [ it ] })
+    GATK4_APPLYBQSR(cram_intervals, fasta, fasta_fai, fasta_gzi, dict.map{ meta, it -> [ it ] })
 
     // Gather the recalibrated cram files
     cram_to_merge = GATK4_APPLYBQSR.out.cram.map{ meta, cram -> [ groupKey(meta, meta.num_intervals), cram ] }.groupTuple()
