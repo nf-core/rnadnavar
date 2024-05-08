@@ -8,6 +8,8 @@ include { BCFTOOLS_SORT                         } from '../../../modules/nf-core
 include { SAGE                                  } from '../../../modules/local/sage/main'
 include { GATK4_MERGEVCFS as MERGE_SAGE         } from '../../../modules/nf-core/gatk4/mergevcfs/main'
 include { TABIX_TABIX     as TABIX_VC_SAGE      } from '../../../modules/nf-core/tabix/tabix/main'
+include { UNZIP as UNZIP_SAGE_ENSEMBL           } from '../../../modules/nf-core/unzip/main'
+include { UNTAR as UNTAR_SAGE_ENSEMBL           } from '../../../modules/nf-core/untar/main'
 
 workflow BAM_VARIANT_CALLING_SOMATIC_SAGE {
     take:
@@ -20,11 +22,37 @@ workflow BAM_VARIANT_CALLING_SOMATIC_SAGE {
     main:
     versions = Channel.empty()
 
+    // Unzip/untar resource files if needed
+    // prepare vep and sage resource files
+    if (!params.sage_ensembl_dir) sage_ensembl = Channel.value([])
+    else if (params.sage_ensembl_dir.endsWith(".tar.gz")) {
+        UNTAR_SAGE_ENSEMBL(Channel.fromPath(params.sage_ensembl_dir).collect().map{ it -> [ [ id:it[0].baseName ], it ] })
+        sage_ensembl = UNTAR_SAGE_ENSEMBL.out.untar
+        versions = versions.mix(UNTAR_SAGE_ENSEMBL.out.versions)
+    } else if (params.sage_ensembl_dir.endsWith(".zip")) {
+        UNZIP_SAGE_ENSEMBL(Channel.fromPath(params.sage_ensembl_dir).collect().map{ it -> [ [ id:it[0].baseName ], it ] })
+        sage_ensembl = UNZIP_SAGE_ENSEMBL.out.unzipped_archive
+        versions = versions.mix(UNZIP_SAGE_ENSEMBL.out.versions)
+    } else {
+        sage_ensembl = Channel.fromPath(params.sage_ensembl_dir).collect().map{ it -> [ [ id:it[0].baseName ], it ] }
+    }
+
+    sage_ensembl.dump(tag:"sage_ensembl")
+    // sage_resources.dump(tag:"sage_resources")
     // Combine cram and intervals for spread and gather strategy
+    // sage_resources = Channel.value([])
     cram_intervals = cram.combine(intervals)
         // Move num_intervals to meta map and reorganize channel for SAGE module
         .map{ meta, cram1, crai1, cram2, crai2, intervals, num_intervals -> [ meta + [ num_intervals:num_intervals ], cram1, crai1, cram2, crai2, intervals ]}
-    SAGE(cram_intervals, fasta, fasta_fai, dict)
+    SAGE(
+        cram_intervals,
+        sage_ensembl,
+        Channel.fromPath(params.sage_highconfidence).collect().map{ it -> [ [ id:it[0].baseName ], it ] },
+        Channel.fromPath(params.sage_actionablepanel).collect().map{ it -> [ [ id:it[0].baseName ], it ] },
+        Channel.fromPath(params.sage_knownhotspots).collect().map{ it -> [ [ id:it[0].baseName ], it ] },
+        fasta,
+        fasta_fai,
+        dict)
 
     BCFTOOLS_SORT(SAGE.out.vcf)
 
