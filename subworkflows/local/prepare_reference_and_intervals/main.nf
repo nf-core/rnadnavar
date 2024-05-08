@@ -5,7 +5,6 @@ include { PREPARE_GENOME                                       } from './../prep
 include { PREPARE_INTERVALS                                    } from './../prepare_intervals/main'
 include { GATK4_BEDTOINTERVALLIST                              } from '../../../modules/nf-core/gatk4/bedtointervallist/main'
 
-
 workflow PREPARE_REFERENCE_AND_INTERVALS {
 
     main:
@@ -16,12 +15,13 @@ workflow PREPARE_REFERENCE_AND_INTERVALS {
     known_snps         = params.known_snps         ? Channel.fromPath(params.known_snps).collect()               : Channel.value([])
     fasta              = params.fasta              ? Channel.fromPath(params.fasta).collect()                    : Channel.empty()
     fasta_fai          = params.fasta_fai          ? Channel.fromPath(params.fasta_fai).collect()                : Channel.empty()
+    fasta_gzi          = params.fasta_gzi          ? Channel.fromPath(params.fasta_gzi).collect()                : Channel.empty()
     germline_resource  = params.germline_resource  ? Channel.fromPath(params.germline_resource).collect()        : Channel.value([]) //Mutec2 does not require a germline resource, so set to optional input
     known_indels       = params.known_indels       ? Channel.fromPath(params.known_indels).collect()             : Channel.value([])
     pon                = params.pon                ? Channel.fromPath(params.pon).collect()                      : Channel.value([]) //PON is optional for Mutect2 (but highly recommended)
     whitelist          = params.whitelist          ? Channel.fromPath(params.whitelist).collect()                : Channel.value([]) // whitelist optional for filtering
 
-    // STEP 0.A: Build indices if needed
+    // Build indexes if needed
     PREPARE_GENOME(
         dbsnp,
         fasta,
@@ -40,12 +40,12 @@ workflow PREPARE_REFERENCE_AND_INTERVALS {
     splicesites            = params.fasta                   ? params.splicesites                ? Channel.fromPath(params.splicesites).collect()                   : PREPARE_GENOME.out.splicesites           : []
     dict                   = params.dict                    ? Channel.fromPath(params.dict).map{ it -> [ [id:'dict'], it ] }.collect()                             : PREPARE_GENOME.out.dict
     fasta_fai              = params.fasta                   ? params.fasta_fai                  ? Channel.fromPath(params.fasta_fai).collect()                     : PREPARE_GENOME.out.fasta_fai             : []
+    fasta_gzi              = params.fasta                   ? params.fasta_gzi                  ? Channel.fromPath(params.fasta_gzi).collect()                     : PREPARE_GENOME.out.fasta_gzi             : []
     dbsnp_tbi              = params.dbsnp                   ? params.dbsnp_tbi                  ? Channel.fromPath(params.dbsnp_tbi).collect()                     : PREPARE_GENOME.out.dbsnp_tbi             : Channel.value([])
     germline_resource_tbi  = params.germline_resource       ? params.germline_resource_tbi      ? Channel.fromPath(params.germline_resource_tbi).collect()         : PREPARE_GENOME.out.germline_resource_tbi : []
     known_indels_tbi       = params.known_indels            ? params.known_indels_tbi           ? Channel.fromPath(params.known_indels_tbi).collect()              : PREPARE_GENOME.out.known_indels_tbi      : Channel.value([])
     known_snps_tbi         = params.known_snps              ? params.known_snps_tbi             ? Channel.fromPath(params.known_snps_tbi).collect()                : PREPARE_GENOME.out.known_snps_tbi        : Channel.value([])
     pon_tbi                = params.pon                     ? params.pon_tbi                    ? Channel.fromPath(params.pon_tbi).collect()                       : PREPARE_GENOME.out.pon_tbi               : []
-
     // known_sites is made by grouping both the dbsnp and the known snps/indels resources
     // Which can either or both be optional
     known_sites_indels     = dbsnp.concat(known_indels).collect()
@@ -54,7 +54,7 @@ workflow PREPARE_REFERENCE_AND_INTERVALS {
     known_sites_snps       = dbsnp.concat(known_snps).collect()
     known_sites_snps_tbi   = dbsnp_tbi.concat(known_snps_tbi).collect()
 
-// STEP 0.B: Build intervals if needed
+    // Build intervals if needed
     PREPARE_INTERVALS(fasta_fai, params.intervals, params.no_intervals)
     versions = versions.mix(PREPARE_INTERVALS.out.versions)
 
@@ -64,6 +64,7 @@ workflow PREPARE_REFERENCE_AND_INTERVALS {
     emit:
     fasta                         = fasta
     fasta_fai                     = fasta_fai
+    fasta_gzi                     = fasta_gzi
     dict                          = dict
     bwa                           = bwa
     germline_resource             = germline_resource
