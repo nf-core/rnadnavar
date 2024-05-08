@@ -2,15 +2,17 @@
 // ANNOTATION
 //
 
-include { VCF_ANNOTATE_ENSEMBLVEP                       } from '../../nf-core/vcf_annotate_ensemblvep/main'
+include { VCF_ANNOTATE_ENSEMBLVEP                                            } from '../../nf-core/vcf_annotate_ensemblvep/main'
 include { CHANNEL_VARIANT_CALLING_CREATE_CSV as CHANNEL_ANNOTATE_CREATE_CSV  } from '../channel_variant_calling_create_csv/main'
+include { UNZIP as UNZIP_VEP_CACHE                                           } from '../../../modules/nf-core/unzip/main'
 
 workflow VCF_ANNOTATE {
     take:
     vcf          // channel: [ val(meta), vcf ]
     fasta
     input_sample
-    second_run
+    realignment
+    vep_cache
 
     main:
     reports  = Channel.empty()
@@ -21,14 +23,14 @@ workflow VCF_ANNOTATE {
 
     if (params.step == 'annotate') vcf = input_sample
 
-    if (params.tools && params.tools.split(',').contains('vep') || second_run) {
+    if (params.tools && params.tools.split(',').contains('vep') || realignment) {
 
-        if (params.tools && params.tools.split(',').contains('vep') || second_run) {
+        if (params.tools && params.tools.split(',').contains('vep') || realignment) {
             fasta = (params.vep_include_fasta) ? fasta.map{ fasta -> [ [ id:fasta.baseName ], fasta ] } : [[id: 'null'], []]
             vep_cache_version  = params.vep_cache_version  ?: Channel.empty()
             vep_genome         = params.vep_genome         ?: Channel.empty()
             vep_species        = params.vep_species        ?: Channel.empty()
-            vep_cache          = params.vep_cache    ? params.use_annotation_cache_keys ? Channel.fromPath("${params.vep_cache}/${params.vep_cache_version}_${params.vep_genome}").collect() : Channel.fromPath(params.vep_cache).collect()    : []
+            // vep_cache          = params.vep_cache    ? params.use_annotation_cache_keys ? Channel.fromPath("${params.vep_cache}/${params.vep_cache_version}_${params.vep_genome}").collect() : Channel.fromPath(params.vep_cache).collect()    : []
 
             vep_extra_files = []
             if (params.dbnsfp && params.dbnsfp_tbi) {

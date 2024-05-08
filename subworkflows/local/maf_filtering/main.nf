@@ -11,7 +11,7 @@ workflow MAF_FILTERING {
     maf_to_filter
     fasta
     input_sample
-    second_run
+    realignment
 
     main:
     versions  = Channel.empty()
@@ -20,7 +20,7 @@ workflow MAF_FILTERING {
                 'prepare_recalibration', 'recalibrate', 'variant_calling', 'annotate',
                 'normalise', 'consensus', 'filtering'] &&
                 ((params.tools && params.tools.split(",").contains("filtering")))) ||
-                second_run) {
+                realignment) {
 
         if (params.step == 'filtering') maf_to_filter = input_sample
         // BASIC FILTERING

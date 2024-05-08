@@ -27,7 +27,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
     panel_of_normals_tbi      // channel: /path/to/panel/of/normals/index
     intervals                 // channel: [mandatory] [ intervals, num_intervals ] or [ [], 0 ] if no intervals
     joint_mutect2             // boolean: [mandatory] [default: false] run mutect2 in joint mode
-    second_run                // boolean: [mandatory] if realignment
+    realignment                // boolean: [mandatory] if realignment
 
     main:
     versions = Channel.empty()
@@ -100,7 +100,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
     tbi = Channel.empty().mix(MERGE_MUTECT2.out.tbi, tbi_branch.no_intervals).map{ meta, tbi -> [ meta - meta.subMap('normal_id', 'tumor_id', 'num_intervals'), tbi ]}
     stats = Channel.empty().mix(MERGEMUTECTSTATS.out.stats, stats_branch.no_intervals).map{ meta, stats -> [ meta - meta.subMap('normal_id', 'tumor_id', 'num_intervals'), stats ]}
     f1r2 = Channel.empty().mix(f1r2_to_merge, f1r2_branch.no_intervals).map{ meta, f1r2 -> [ meta - meta.subMap('normal_id', 'tumor_id', 'num_intervals'), f1r2 ]}
-    if (!second_run){
+    if (!realignment){
         // Generate artifactpriors using learnreadorientationmodel on the f1r2 output of mutect2
         LEARNREADORIENTATIONMODEL(f1r2)
 
@@ -189,7 +189,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
         vcf_to_filter = vcf.join(tbi, failOnDuplicate: true, failOnMismatch: true)
                             .join(stats, failOnDuplicate: true, failOnMismatch: true)
                             .map{ meta, vcf, tbi, stats -> [ meta, vcf, tbi, stats, [], [], [], [] ] }
-        // TODO: when second_run, can we reuse artifact_priors, calculate contamination and learnorientation?
+        // TODO: when realignment, can we reuse artifact_priors, calculate contamination and learnorientation?
         artifact_priors              = Channel.empty()
         ch_cont_to_filtermutectcalls = Channel.empty()
         ch_seg_to_filtermutectcalls  = Channel.empty()

@@ -18,7 +18,7 @@ workflow VCF_CONSENSUS {
     previous_maf_consensus_dna  // results already done to avoid a second run when rna filterig
     previous_mafs_status_dna    // results already done to avoid a second run when rna filterig
     input_sample
-    second_run
+    realignment
 
     main:
     versions                = Channel.empty()
@@ -34,7 +34,7 @@ workflow VCF_CONSENSUS {
                         'prepare_recalibration', 'recalibrate', 'variant_calling', 'annotate',
                         'normalise', 'consensus'] &&
                         ((params.tools && params.tools.split(",").contains("consensus")))) ||
-                        second_run) {
+                        realignment) {
 
         vcf_to_consensus_type = vcf_to_consensus.branch{
                                 vcf: it[0].data_type == "vcf"
@@ -48,7 +48,7 @@ workflow VCF_CONSENSUS {
 
 //        maf_to_consensus.dump(tag:"maf_to_consensus")
         // count number of callers to generate groupKey
-        if (second_run) tools = "sage,strelka,mutect2"
+        if (realignment) tools = "sage,strelka,mutect2"
         maf_to_consensus.dump(tag:"maf_to_consensus0")
         maf_to_consensus = maf_to_consensus.map{ meta, maf ->
                                     def toolsllist = tools.split(',')
@@ -80,7 +80,7 @@ workflow VCF_CONSENSUS {
         mafs_from_varcal_rna   = mafs_from_varcal.rna
 
         // Only RNA mafs are processed again if second run
-        if (previous_maf_consensus_dna && ((params.tools && params.tools.split(',').contains('second_run')))){
+        if (previous_maf_consensus_dna && ((params.tools && params.tools.split(',').contains('realignment')))){
             maf_from_consensus_dna = previous_maf_consensus_dna   // VCF with consensus calling
             mafs_from_varcal_dna   = previous_mafs_status_dna     // VCFs with consensus calling
         } else {

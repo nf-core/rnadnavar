@@ -15,7 +15,7 @@ workflow VCF_NORMALISE {
     vcf_to_normalise
     fasta
     input_sample
-    second_run
+    realignment
 
     main:
     version          = Channel.empty()
@@ -26,7 +26,7 @@ workflow VCF_NORMALISE {
                         'prepare_recalibration', 'recalibrate',
                         'variant_calling', 'normalise'] &&
                         ((params.tools && params.tools.split(",").contains("consensus")))) ||
-                        second_run) {
+                        realignment) {
 
         vcf_decomposed  = Channel.empty()
         // Separate variants

@@ -31,8 +31,8 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
 
         if (params.step in ['mapping', 'markduplicates', 'splitncigar',
         'prepare_recalibration', 'recalibrate', 'variant_calling', 'normalise', 'consensus',
-        'second_run'] && !(params.skip_tools && params.skip_tools.split(",").contains("second_run"))) {
-            if (params.step == 'second_run') {
+        'realignment'] && !(params.skip_tools && params.skip_tools.split(",").contains("realignment"))) {
+            if (params.step == 'realignment') {
                 input_elements_status = input_sample.branch{
                                         norealign: it[0].status == 1
                                         realign:   it[0].status == 2 || it[0].status == 0

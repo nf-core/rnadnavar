@@ -17,11 +17,11 @@ workflow MAF_FILTERING_RNA {
     maf_to_filter_realigned.dump(tag:"maf_to_filter_realigned")
     if (params.step in ['mapping', 'markduplicates', 'splitncigar',
     'prepare_recalibration', 'recalibrate', 'variant_calling', 'normalize', 'consensus',
-    'second_run', 'rna_filtering'] && (params.tools && params.tools.split(",").contains("rna_filtering"))) {
+    'realignment', 'rna_filtering'] && (params.tools && params.tools.split(",").contains("rna_filtering"))) {
 
         if (params.step == 'rna_filtering') { maf_to_filter = input_sample} // TODO: not implemented yet
         else {
-            if (params.step =="second_run"){
+            if (params.step =="realignment"){
                 maf_to_filter = maf_to_filter_realigned // there is no first maf
                 maf_to_filter_realigned = null
             }
@@ -33,13 +33,13 @@ workflow MAF_FILTERING_RNA {
 
                 maf_to_cross_first_pass.dump(tag:"[STEP9: FILTERING] maf_to_cross_first_pass")
 
-                maf_to_cross_second_pass = maf_to_filter_realigned
+                maf_to_cross_realignment = maf_to_filter_realigned
                                             .map{meta, maf -> [meta.patient, meta, maf]}
-                maf_to_cross_second_pass.dump(tag:"[STEP9: FILTERING] maf_to_cross_second_pass")
+                maf_to_cross_realignment.dump(tag:"[STEP9: FILTERING] maf_to_cross_realignment")
                 maf_to_cross_first_pass
-                                .cross(maf_to_cross_second_pass).dump(tag:"[STEP9: FILTERING] maf_to_cross_crossed_pass")
+                                .cross(maf_to_cross_realignment).dump(tag:"[STEP9: FILTERING] maf_to_cross_crossed_pass")
                 maf_crossed = maf_to_cross_first_pass
-                                .cross(maf_to_cross_second_pass)
+                                .cross(maf_to_cross_realignment)
                                 .map{first, second ->
                                         def meta = [:]
                                         meta.patient    = first[0]
