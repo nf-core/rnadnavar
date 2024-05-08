@@ -35,7 +35,7 @@ include { BAM_ALIGN                         } from '../subworkflows/local/bam_al
 include { BAM_VARIANT_CALLING_PRE_POST_PROCESSING as BAM_PROCESSING } from '../subworkflows/local/bam_variant_calling_pre_post_processing/main'
 
 // Second run
-include { BAM_EXTRACT_READS_HISAT2_ALIGN as PREPARE_REALIGNMENT  } from '../subworkflows/local/prepare_second_run/main'
+include { BAM_EXTRACT_READS_HISAT2_ALIGN as PREPARE_REALIGNMENT  } from '../subworkflows/local/prepare_realignment/main'
 include { BAM_VARIANT_CALLING_PRE_POST_PROCESSING as REALIGNMENT } from '../subworkflows/local/bam_variant_calling_pre_post_processing/main'
 
 // Filter RNA
@@ -173,7 +173,7 @@ workflow RNADNAVAR {
     filtered_maf = BAM_PROCESSING.out.maf
     multiqc_files      = multiqc_files.mix(BAM_PROCESSING.out.reports)
     versions     = versions.mix(BAM_PROCESSING.out.versions)
-    if (params.tools && params.tools.split(',').contains('second_run')) {
+    if (params.tools && params.tools.split(',').contains('realignment')) {
         // fastq will not be split when realignment
         params.split_fastq = 0
         // reset intervals to none (realignment files are small)
