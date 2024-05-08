@@ -14,14 +14,16 @@ pd.options.mode.chained_assignment = None  # default='warn'
 def argparser():
     parser = argparse.ArgumentParser(description="")
     parser.add_argument("--maf", help="Input MAF file")
-    parser.add_argument("--maf_2pass", help="Input MAF file after a second pass")
-    parser.add_argument("--pon19", help="Path to binary pon")
+    parser.add_argument("--maf_realign", help="Input MAF file after a second pass")
+    parser.add_argument("--pon2", help="Path to optional second binary pon")
     parser.add_argument("--pon", help="Path to binary pon")
     parser.add_argument("--whitelist", help="Input MAF file after a second pass")
     parser.add_argument("--output", help="output file name")
-    parser.add_argument("--out_suffix", help="Suffix for intermidiate output", default="withRNAfilters")
-    parser.add_argument("--ref", help="FASTA - HG38")
-    parser.add_argument("--ref19", help="FASTA - HG19 (hs37d5)")
+    parser.add_argument("--out_suffix", help="Suffix for intermediate output", default="withRNAfilters")
+    parser.add_argument("--ref", help="FASTA - e.g. HG38")
+    parser.add_argument("--refname", help="e.g. hg38", default="hg38")
+    parser.add_argument("--ref2", help="FASTA - e.g. hg19 (hs37d5)")
+    parser.add_argument("--refname2", help="e.g. HG19", default="hg19")
     parser.add_argument("--rnaedits", help="BED file(s) with known RNA editing events separated by space", nargs="+")
     parser.add_argument("--thr", default=-2.8)
     parser.add_argument("--chain", help="Chain file")
@@ -95,16 +97,16 @@ def extract_coords(df):
     return coords
 
 
-def run_capy(M, pon, ref, thr, chroms, suffix="_hg38"):
+def run_capy(M, pon, ref, thr, chroms, suffix="_hg38", refname2="hg19"):
     """
     Runs CApy with RNA PoN generated with tokenizer (https://github.com/getzlab/aggregate_tokens_files_TOOL)
     """
     print("- Running CApy" + suffix)
     chrom = "Chromosome"
     start = "Start_Position"
-    if "hg19" in suffix:
-        chrom += "19"
-        start += "19"
+    if refname2:
+        chrom += refname2
+        start += refname2
     M = M[M[chrom].isin(chroms)]  # remove alt contigs
     M["chr"] = M[chrom].str.replace("chr", "").replace("X", "23").replace("Y", "24")
     M["pos"] = M[start]
@@ -119,11 +121,11 @@ def run_capy(M, pon, ref, thr, chroms, suffix="_hg38"):
     return M
 
 
-def add_hg19_coords_with_liftover(M, chain_file):
+def add_coords2_with_liftover(M, chain_file,ref1="hg38",ref2="hg19"):
     """
-    Liftover HG38 coordinates from maf to HG19
+    Liftover ref1 coordinates from maf to ref2
     """
-    converter = ChainFile(chain_file, "hg38", "hg19")
+    converter = ChainFile(chain_file, ref1, ref2)
     na_nr = M[M["Chromosome"].isnull()].shape[0]
     if na_nr > 0:
         print(f"[WGN] Removing {na_nr} variants where Chromosome is NA")
@@ -132,12 +134,12 @@ def add_hg19_coords_with_liftover(M, chain_file):
         ].reindex()  # remove positions where coordinates are not present (maybe liftover went wrong)
 
     starting_size = M.shape[0]
-    M["coordinates19"] = M.apply(lambda x: converter[x["Chromosome"]][x["Start_Position"]], axis=1)
+    M["coordinates_"+ref2] = M.apply(lambda x: converter[x["Chromosome"]][x["Start_Position"]], axis=1)
     # Replace with tuple of None's when position has been deleted in new reference genome
     tmp = pd.DataFrame(M["coordinates19"].tolist(), index=M.index).apply(
         lambda ds: ds.map(lambda x: x if x != None else (None, None, None))
     )
-    tmp[["Chromosome19", "Start_Position19", "STRAND19"]] = pd.DataFrame(tmp[0].tolist(), index=M.index)
+    tmp[["Chromosome_"+ref2, "Start_Position_"+ref2, "STRAND_"+ref2]] = pd.DataFrame(tmp[0].tolist(), index=M.index)
     liftover_size = tmp.shape[0]
     assert starting_size == liftover_size, "Liftovered positions are not the same number as in original MAF"
     M = pd.concat([M, tmp], axis=1).drop(0, axis=1)
@@ -147,7 +149,7 @@ def add_hg19_coords_with_liftover(M, chain_file):
 def write_output(args, results, output, out_suffix):
     if len(results.keys()) > 1:
         maf_out = args.maf.replace(".maf", f".{out_suffix}.maf").replace(".gz", "").split("/")[-1]
-        maf2_out = args.maf_2pass.replace(".maf", f".{out_suffix}.maf").replace(".gz", "").split("/")[-1]
+        maf2_out = args.maf_realign.replace(".maf", f".{out_suffix}.maf").replace(".gz", "").split("/")[-1]
         maf12_out = output[:]
         pd.concat([results[0], results[2]]).sort_values(["Chromosome", "Start_Position"]).to_csv(
             maf_out, sep="\t", index=False, header=True
@@ -173,9 +175,9 @@ def main():
     # realignment
     calls_1pass = pd.read_csv(args.maf, sep="\t", comment="#")
     # If REALIGNMENT provide intersect
-    if args.maf_2pass and args.maf != args.maf_2pass:
+    if args.maf_realign and args.maf != args.maf_realign:
         didrealignment = True
-        calls_2pass = pd.read_csv(args.maf_2pass, sep="\t", comment="#")
+        calls_2pass = pd.read_csv(args.maf_realign, sep="\t", comment="#")
         calls1, calls2, calls12 = realignment(calls_1pass, calls_2pass)
         calls = [calls1, calls2, calls12]
     else:
@@ -187,14 +189,14 @@ def main():
         if calls.empty:
             results[idx] = calls
             continue
-        if "Chromosome19" in calls.columns:
-            calls.drop(["Chromosome19", "Start_Position19"], axis=1, inplace=True)
+        if "Chromosome"+args.refname2 in calls.columns:
+            calls.drop(["Chromosome"+args.refname2, "Start_Position"+args.refname2], axis=1, inplace=True)
         # RNA panel of normals
-        if args.pon19 and args.chain and args.ref19:
-            calls = add_hg19_coords_with_liftover(calls, chain_file=args.chain)
-            calls = run_capy(M=calls, pon=args.pon19, ref=args.ref19, thr=args.thr, suffix="_hg19", chroms=chroms)
+        if args.pon2 and args.chain and args.ref2:
+            calls = add_coords2_with_liftover(calls, chain_file=args.chain,ref1=args.refname,ref2=args.refname2)
+            calls = run_capy(M=calls, pon=args.pon2, ref=args.ref2, thr=args.thr, suffix='_'+args.refname2, chroms=chroms)
         if args.pon:
-            calls = run_capy(M=calls, pon=args.pon, ref=args.ref, thr=args.thr, suffix="_hg38", chroms=chroms)
+            calls = run_capy(M=calls, pon=args.pon, ref=args.ref, thr=args.thr, suffix='_'+args.refname, chroms=chroms)
         # Annotate known RNA editing
         if args.rnaedits:
             rnadbs = []
