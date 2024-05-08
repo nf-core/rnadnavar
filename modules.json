@@ -62,12 +62,12 @@
                     },
                     "ensemblvep/download": {
                         "branch": "master",
-                        "git_sha": "9f9e1fc31cb35876922070c0e601ae05abae5cae",
+                        "git_sha": "3db4f8488315cd7d7cf3fcb64251f6603210e831",
                         "installed_by": ["modules"]
                     },
                     "ensemblvep/vep": {
                         "branch": "master",
-                        "git_sha": "76a0696a60c41c57fc5f6040ac31b11ce5d4d8dd",
+                        "git_sha": "3db4f8488315cd7d7cf3fcb64251f6603210e831",
                         "installed_by": ["modules", "vcf_annotate_ensemblvep"]
                     },
                     "fastp": {
@@ -357,6 +357,11 @@
                     "strelka/somatic": {
                         "branch": "master",
                         "git_sha": "80dbd95c558a0ebb2123d95f50c093a7f714a0d7",
+                        "installed_by": ["modules"]
+                    },
+                    "tabix/bgzip": {
+                        "branch": "master",
+                        "git_sha": "09d3c8c29b31a2dfd610305b10550f0e1dbcd4a9",
                         "installed_by": ["modules"]
                     },
                     "tabix/bgziptabix": {
