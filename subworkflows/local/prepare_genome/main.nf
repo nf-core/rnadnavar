@@ -14,6 +14,8 @@ include { DRAGMAP_HASHTABLE                      } from '../../../modules/nf-cor
 include { GTF2BED                                } from '../../../modules/local/gtf2bed'                                       //addParams(options: params.genome_options)
 include { GUNZIP as GUNZIP_GENE_BED              } from '../../../modules/nf-core/gunzip/main'                         //addParams(options: params.genome_options)
 include { GUNZIP as GUNZIP_GTF                   } from '../../../modules/nf-core/gunzip/main'                         //addParams(options: params.genome_options)
+include { UNTAR as UNTAR_STAR_INDEX              } from '../../../modules/nf-core/untar/main'
+include { TABIX_BGZIP as UNBGZIP_STAR_INDEX      } from '../../../modules/nf-core/tabix/bgzip/main'
 include { STAR_GENOMEGENERATE                    } from '../../../modules/nf-core/star/genomegenerate/main'            //addParams(options: params.star_index_options)
 include { GATK4_CREATESEQUENCEDICTIONARY         } from '../../../modules/nf-core/gatk4/createsequencedictionary/main'
 include { SAMTOOLS_FAIDX                         } from '../../../modules/nf-core/samtools/faidx/main'
@@ -143,14 +145,23 @@ workflow PREPARE_GENOME {
             }
         }
         else {
-            STAR_GENOMEGENERATE ( fasta.map{meta, fasta -> fasta},ch_gtf )
+            if (params.fasta.endsWith('.gz')){  // bgzip
+                Channel.fromPath(params.fasta).collect().map{ fasta -> [ [ id:fasta.simpleName[0] ], fasta ]}.dump(tag:"MYFASTA")
+                UNBGZIP_STAR_INDEX ( Channel.fromPath(params.fasta).collect().map{ fasta -> [ [ id:fasta.baseName[0] ], fasta ] } )
+                star_fasta = UNBGZIP_STAR_INDEX.out.output.map{ meta, fasta -> fasta }
+                versions   = versions.mix(UNBGZIP_STAR_INDEX.out.versions)
+
+            } else {
+                star_fasta = fasta.map{meta, fasta -> fasta}
+            }
+            STAR_GENOMEGENERATE ( star_fasta, ch_gtf )
             ch_star_index = STAR_GENOMEGENERATE.out.index
             versions      = versions.mix(STAR_GENOMEGENERATE.out.versions)
         }
 
 
         // HISAT2 not necessary if second pass skipped
-        if ((params.tools && params.tools.split(',').contains("second_run"))){
+        if ((params.tools && params.tools.split(',').contains("realignment"))){
             if (params.splicesites) {
                 ch_splicesites  = Channel.fromPath(params.splicesites).collect().map{ it -> [ [ id:'null' ], it ]}
             } else{
@@ -199,6 +210,7 @@ workflow PREPARE_GENOME {
         dbsnp_tbi             = TABIX_DBSNP.out.tbi.map{ meta, tbi -> [tbi] }.collect()               // path: dbsnb.vcf.gz.tbi
         dict                  = GATK4_CREATESEQUENCEDICTIONARY.out.dict                               // path: genome.fasta.dict
         fasta_fai             = SAMTOOLS_FAIDX.out.fai.map{ meta, fai -> [fai] }                      // path: genome.fasta.fai
+        fasta_gzi             = SAMTOOLS_FAIDX.out.gzi.map{ meta, gzi -> [gzi] }                      // path: genome.fasta.gzi
         germline_resource_tbi = TABIX_GERMLINE_RESOURCE.out.tbi.map{ meta, tbi -> [tbi] }.collect()   // path: germline_resource.vcf.gz.tbi
         known_snps_tbi        = TABIX_KNOWN_SNPS.out.tbi.map{ meta, tbi -> [tbi] }.collect()          // path: {known_indels*}.vcf.gz.tbi
         known_indels_tbi      = TABIX_KNOWN_INDELS.out.tbi.map{ meta, tbi -> [tbi] }.collect()        // path: {known_indels*}.vcf.gz.tbi
