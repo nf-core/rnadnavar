@@ -280,15 +280,19 @@ for ( c in callers){
                         col.names = T)
     } else{
         colnames(all.muts)[colnames(all.muts)=="FILTER_consensus"] <- "FILTER_consensus"
-        fwrite(x = all.muts[all.muts$Caller==c,][,callers_meta[[c]]$header],
-                        file = vcf.out.caller,
-                        append = T,
-                        sep = "\t",
-                        col.names = T)
+        if (all(all.muts[all.muts$Caller==c,][,callers_meta[[c]]$header] == callers_meta[[c]]$header)){
+            to_write <- setNames(data.table(matrix(nrow = 0, ncol = length(callers_meta[[c]]$header))), callers_meta[[c]]$header)
+        } else{
+            to_write <- all.muts[all.muts$Caller==c,][,callers_meta[[c]]$header]
+        }
+        fwrite(x = to_write,
+                    file = vcf.out.caller,
+                    append = T,
+                    sep = "\t",
+                    col.names = T)
     }
     message(" - Output in: ", vcf.out.caller)
 }
-
 
 # Final VCF consensus
 if (is.vcf){
@@ -313,15 +317,13 @@ if (is.vcf){
     col.out <- callers_meta[[c]]$header
 }
 
-to.vcf <- to.vcf[,col.out][!duplicated(to.vcf),]
+if (nrow(to.vcf)>2){to.vcf <- to.vcf[,col.out][!duplicated(to.vcf),]}
 message("- Total variants ", prettyNum(nrow(to.vcf), big.mark = ","))
 message("- Variants in consensus ", prettyNum(nrow(all.muts[(!duplicated(all.muts$DNAchange) & all.muts$isconsensus==T),]), big.mark = ","))
-
 
 write(x = meta, file = vcf.out, ncolumns = 1)
 fwrite(x = to.vcf, file = vcf.out, append = T, sep = "\t", col.names = T)
 message(" - Output in: ", vcf.out)
-
 
 
 ## PLOTTING
