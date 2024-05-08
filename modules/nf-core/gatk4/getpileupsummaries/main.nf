@@ -11,7 +11,8 @@ process GATK4_GETPILEUPSUMMARIES {
     tuple val(meta), path(input), path(index), path(intervals)
     tuple val(meta2), path(fasta)
     tuple val(meta3), path(fai)
-    tuple val(meta4), path(dict)
+    tuple val(meta4), path(gzi)
+    tuple val(meta5), path(dict)
     path  variants
     path  variants_tbi
 

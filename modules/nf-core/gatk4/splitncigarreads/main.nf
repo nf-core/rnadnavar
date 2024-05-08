@@ -11,6 +11,7 @@ process GATK4_SPLITNCIGARREADS {
     tuple val(meta), path(input), path(input_index), path(intervals)
     path  fasta
     path  fai
+    path  gzi
     path  dict
 
     output:

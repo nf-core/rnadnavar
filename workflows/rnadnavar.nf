@@ -106,6 +106,7 @@ workflow RNADNAVAR {
     // Reference and intervals variables
     fasta                         =    PREPARE_REFERENCE_AND_INTERVALS.out.fasta
     fasta_fai                     =    PREPARE_REFERENCE_AND_INTERVALS.out.fasta_fai
+    fasta_gzi                     =    PREPARE_REFERENCE_AND_INTERVALS.out.fasta_gzi
     dict                          =    PREPARE_REFERENCE_AND_INTERVALS.out.dict
     germline_resource             =    PREPARE_REFERENCE_AND_INTERVALS.out.germline_resource
     germline_resource_tbi         =    PREPARE_REFERENCE_AND_INTERVALS.out.germline_resource_tbi
@@ -148,7 +149,8 @@ workflow RNADNAVAR {
         BAM_ALIGN.out.cram_mapped,  // input from mapping
         fasta,                     // fasta reference file
         fasta_fai,                 // fai for fasta file
-        dict,                      //
+        fasta_gzi,                 // gzi for fasta file
+        dict,                      // dict for fasta file
         dbsnp,
         dbsnp_tbi,
         pon,

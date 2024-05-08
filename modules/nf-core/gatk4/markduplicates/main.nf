@@ -11,6 +11,7 @@ process GATK4_MARKDUPLICATES {
     tuple val(meta), path(bam)
     path  fasta
     path  fasta_fai
+    path  fasta_gzi
 
     output:
     tuple val(meta), path("*cram"),     emit: cram,  optional: true
