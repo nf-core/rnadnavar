@@ -6,7 +6,7 @@ process RNA_FILTERING {
         'ghcr.io/raqmanzano/rnafilt:latest' : null }"
 
     input:
-        tuple val(meta), path(maf_first_pass), path(maf_second_pass)
+        tuple val(meta), path(maf), path(maf_realignment)
         path fasta
         path fasta_fai
 
@@ -20,13 +20,13 @@ process RNA_FILTERING {
     script: // This script is bundled with the pipeline, in nf-core/rnadnavar/bin/
         def args = task.ext.args ?: ''
         def prefix = task.ext.prefix ?: "${meta.id}"
-        def maf_second_opt = maf_second_pass? "--maf_2pass $maf_second_pass" : ""
+        def maf_realign_opt = maf_realignment? "--maf_realign $maf_realignment" : ""
         """
         filter_rna_mutations.py \\
-            --maf $maf_first_pass \\
+            --maf $maf \\
             --ref $fasta \\
             --output ${prefix}.maf \\
-            $maf_second_opt \\
+            $maf_realign_opt \\
             $args
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
