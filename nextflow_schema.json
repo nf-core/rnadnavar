@@ -542,7 +542,13 @@
                 "sage_ensembl_dir": {
                     "type": "string",
                     "fa_icon": "fas fa-file",
-                    "description": "Directory to ensembl cache for SAGE",
+                    "description": "Directory or tar.gz to ensembl cache for SAGE",
+                    "hidden": true
+                },
+                "sage_resource_dir": {
+                    "type": "string",
+                    "fa_icon": "fas fa-file",
+                    "description": "Directory or tar.gz file to SAGE resources",
                     "hidden": true
                 },
                 "sage_custom_args": {

@@ -8,10 +8,14 @@ process SAGE {
         'quay.io/biocontainers/hmftools-sage:hmftools-sage:3.2.3--hdfd78af_0' }"
 
     input:
-    tuple val(meta), path(input_normal), path(input_index_normal), path(input_tumor), path(input_index_tumor), path(intervals)
-    tuple val(meta2), path(fasta)
-    tuple val(meta3), path(fai)
-    tuple val(meta4), path(dict)
+    tuple val(meta),  path(input_normal), path(input_index_normal), path(input_tumor), path(input_index_tumor), path(intervals)
+    tuple val(meta1), path(ensembl_dir)
+    tuple val(meta2), path(sage_highconfidence)
+    tuple val(meta3), path(sage_actionablepanel)
+    tuple val(meta4), path(sage_knownhotspots)
+    tuple val(meta5), path(fasta)
+    tuple val(meta6), path(fai)
+    tuple val(meta7), path(dict)
 
     output:
     tuple val(meta), path("*.vcf"), emit: vcf
@@ -21,12 +25,13 @@ process SAGE {
     task.ext.when == null || task.ext.when
 
     script:
-    def args      = task.ext.args   ?: ''
-    def prefix    = task.ext.prefix ?: "${meta.id}"
-    def reference = input_normal    ? "-reference ${meta.normal_id} -reference_bam ${input_normal}" : ""
-    def interval_cmd = intervals    ? "INTER=\$(sed -E 's/\\s+0\\s+/\\t1\\t/g' $intervals | sed 's/\t/:/g' | paste -s -d ';')": ""
-    def interval     = intervals    ? "-specific_regions \$INTER": ""
-    def avail_mem = 3072
+    def args             = task.ext.args   ?: ''
+    def prefix           = task.ext.prefix ?: "${meta.id}"
+    def reference        = input_normal    ? "-reference ${meta.normal_id} -reference_bam ${input_normal}" : ""
+    def interval_cmd     = intervals       ? "INTER=\$(sed -E 's/\\s+0\\s+/\\t1\\t/g' $intervals | sed 's/\t/:/g' | paste -s -d ';')": ""
+    def interval         = intervals       ? "-specific_regions \$INTER": ""
+    def ensembl_data_dir = ensembl_dir     ? "-ensembl_data_dir ${ensembl_dir}": ""
+    def avail_mem        = 3072
     if (!task.memory) {
         log.info '[SAGE] Available memory not known - defaulting to 3GB. Specify process memory requirements to change this.'
     } else {
@@ -43,8 +48,12 @@ process SAGE {
         -ref_genome $fasta \\
         -threads $task.cpus \\
         -tumor ${meta.tumor_id} -tumor_bam ${input_tumor} \\
+        -high_confidence_bed ${sage_highconfidence} \\
+        -panel_bed ${sage_actionablepanel} \\
+        -hotspots ${sage_knownhotspots} \\
         $reference \\
         $interval \\
+        $ensembl_data_dir \\
         $args
 
     cat <<-END_VERSIONS > versions.yml
@@ -62,6 +71,10 @@ process SAGE {
         -threads $task.cpus \\
         -tumor ${meta.tumor_id} \\
         -tumor_bam ${input_tumor} \\
+        -high_confidence_bed ${sage_highconfidence} \\
+        -panel_bed ${sage_actionablepanel} \\
+        -hotspots ${sage_knownhotspots} \\
+        $ensembl_data_dir/*/ \\
         $reference \\
         $args
 
