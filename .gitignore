@@ -10,3 +10,7 @@ testing*
 null/
 test/
 res-test
+node_modules/
+.nf-test*
+.vscode*
+
