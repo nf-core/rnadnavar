@@ -12,7 +12,6 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
     cram                          // channel: [mandatory] cram
     fasta                         // channel: [mandatory] fasta
     fasta_fai                     // channel: [mandatory] fasta_fai
-    fasta_gzi                     // channel: [mandatory] fasta_gzi
     dict                          // channel: [mandatory] dict
     germline_resource             // channel: [optional]  germline_resource
     germline_resource_tbi         // channel: [optional]  germline_resource_tbi
@@ -95,7 +94,6 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
             fasta.map{ it -> [ [ id:'fasta' ], it ] },
             // Remap channel to match module/subworkflow
             fasta_fai.map{ it -> [ [ id:'fasta_fai' ], it ] },
-            fasta_gzi.map{ it -> [ [ id:'fasta_gzi' ], it ] },
             dict,
             germline_resource,
             germline_resource_tbi,

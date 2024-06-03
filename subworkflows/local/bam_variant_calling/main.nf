@@ -19,7 +19,6 @@ workflow BAM_VARIANT_CALLING {
     cram_variant_calling
     fasta
     fasta_fai
-    fasta_gzi
     dict
     germline_resource
     germline_resource_tbi
@@ -116,7 +115,6 @@ workflow BAM_VARIANT_CALLING {
                 cram_variant_calling_pair,
                 fasta,
                 fasta_fai,
-                fasta_gzi,
                 dict,
                 germline_resource,
                 germline_resource_tbi,

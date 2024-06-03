@@ -23,7 +23,6 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     cram_mapped                     // channel: [mandatory] cram_mapped
     fasta                           // fasta reference file
     fasta_fai                       // fai for fasta file
-    fasta_gzi                       // gzi for fasta file
     dict                            // dict for fasta file
     dbsnp                           // channel: [optional]  germline_resource
     dbsnp_tbi                       // channel: [optional]  germline_resource_tbi
@@ -55,8 +54,7 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
         bam_mapped,                               // channel: [mandatory] [meta, [bam]]
         cram_mapped,                              // channel: [mandatory] [meta, [cram]]
         fasta,                                    // channel: [mandatory] fasta
-        fasta_fai ,                               // channel: [mandatory] fasta_fai
-        fasta_gzi ,                               // channel: [mandatory] fasta_gzi
+        fasta_fai,                                // channel: [mandatory] fasta_fai
         dict,                                     // channel: [mandatory] dict
         known_sites_indels,                       // channel: [optional]  known_sites
         known_sites_indels_tbi,                   // channel: [optional]  known_sites
@@ -78,7 +76,6 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
         cram_variant_calling,
         fasta,
         fasta_fai,
-        fasta_gzi,
         dict,
         germline_resource,
         germline_resource_tbi,

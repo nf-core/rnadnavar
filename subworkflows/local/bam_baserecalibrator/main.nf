@@ -13,7 +13,6 @@ workflow BAM_BASERECALIBRATOR {
     dict            // channel: [mandatory] [ dict ]
     fasta           // channel: [mandatory] [ fasta ]
     fasta_fai       // channel: [mandatory] [ fasta_fai ]
-    fasta_gzi       // channel: [mandatory] [ fasta_gzi ]
     intervals       // channel: [mandatory] [ intervals, num_intervals ] (or [ [], 0 ] if no intervals)
     known_sites     // channel: [optional]  [ known_sites ]
     known_sites_tbi // channel: [optional]  [ known_sites_tbi ]
@@ -27,7 +26,7 @@ workflow BAM_BASERECALIBRATOR {
         .map{ meta, cram, crai, intervals, num_intervals -> [ meta + [ num_intervals:num_intervals ], cram, crai, intervals ] }
 
     // RUN BASERECALIBRATOR
-    GATK4_BASERECALIBRATOR(cram_intervals, fasta, fasta_fai, fasta_gzi,dict.map{ meta, it -> [ it ] }, known_sites, known_sites_tbi)
+    GATK4_BASERECALIBRATOR(cram_intervals, fasta, fasta_fai, dict.map{ meta, it -> [ it ] }, known_sites, known_sites_tbi)
 
     // Figuring out if there is one or more table(s) from the same sample
     table_to_merge = GATK4_BASERECALIBRATOR.out.table.map{ meta, table -> [ groupKey(meta, meta.num_intervals), table ] }.groupTuple().branch{

@@ -27,7 +27,6 @@ workflow BAM_GATK_PREPROCESSING {
     cram_mapped                   // channel: [mandatory] cram_mapped
     fasta                         // channel: [mandatory] fasta
     fasta_fai                     // channel: [mandatory] fasta_fai
-    fasta_gzi                     // channel: [mandatory] fasta_gzi
     dict                          // channel: [mandatory] dict
     known_sites_indels            // channel: [optional]  known_sites
     known_sites_indels_tbi        // channel: [optional]  known_sites
@@ -36,7 +35,7 @@ workflow BAM_GATK_PREPROCESSING {
     intervals                     // channel: [mandatory] intervals/target regions
     intervals_for_preprocessing   // channel: [mandatory] intervals/wes
     intervals_and_num_intervals   // channel: [mandatory] [ intervals, num_intervals ] (or [ [], 0 ] if no intervals)
-    realignment                    // boolean
+    realignment                   // boolean
 
 
     main:
@@ -93,7 +92,6 @@ workflow BAM_GATK_PREPROCESSING {
                 cram_for_markduplicates,
                 fasta,
                 fasta_fai,
-                fasta_gzi,
                 intervals_for_preprocessing)
 
             cram_markduplicates_no_spark = BAM_MARKDUPLICATES.out.cram
@@ -164,7 +162,6 @@ workflow BAM_GATK_PREPROCESSING {
                 dict,
                 fasta,
                 fasta_fai,
-                fasta_gzi,
                 intervals_and_num_intervals
             )
 
@@ -231,7 +228,6 @@ workflow BAM_GATK_PREPROCESSING {
                     dict,
                     fasta,
                     fasta_fai,
-                    fasta_gzi,
                     intervals_and_num_intervals,
                     known_sites_indels,
                     known_sites_indels_tbi)
@@ -293,7 +289,6 @@ workflow BAM_GATK_PREPROCESSING {
                 dict,
                 fasta,
                 fasta_fai,
-                fasta_gzi,
                 intervals_and_num_intervals)
 
             cram_variant_calling_no_spark = BAM_APPLYBQSR.out.cram
