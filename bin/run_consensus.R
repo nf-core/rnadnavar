@@ -140,31 +140,36 @@ for(c in callers[1:length(callers)]){
         tmp <- tmp[!is.na(end)]
         muts[[c]] <- tmp
         mutsGR[[c]] <- GenomicRanges::makeGRangesFromDataFrame(df = tmp,
-                                                                                                                        ignore.strand = TRUE,
-                                                                                                                        start.field = "start",
-                                                                                                                        end.field = "end",
-                                                                                                                        seqnames.field = "#CHROM",
-                                                                                                                        keep.extra.columns = T) }
+                                                            ignore.strand = TRUE,
+                                                            start.field = "start",
+                                                            end.field = "end",
+                                                            seqnames.field = "#CHROM",
+                                                            keep.extra.columns = T)
+        } else {
+            mutsGR[[c]] <- tmp  # empty
+        }
 }
 
-callers <- names(mutsGR) # All callers might not be present
+# callers <- names(mutsGR) # All callers might not be present
 message("- Finding overlaps")
 # Third, we find overlaps
 overlapping.vars <- data.frame(DNAchange=character(), caller=character(), FILTER=character())
 for (c1 in names(mutsGR)){
+    if (nrow(data.frame(mutsGR[[c1]]))==0) next
     for (c2 in names(mutsGR)){
+        if (nrow(data.frame(mutsGR[[c2]]))==0) next
         if (c1!=c2){
-        group_name <- paste0(c1, "vs", c2)
-        # The gap between 2 adjacent ranges is 0.
-        hits <- GenomicRanges::findOverlaps(query = mutsGR[[c1]], subject = mutsGR[[c2]], maxgap = 0)
-        dnachange.hits <- muts[[c1]][queryHits(hits)]$DNAchange
-        filt.hits <- muts[[c1]][queryHits(hits)]$FILTER
-        if (length(dnachange.hits) > 0) {
+            group_name <- paste0(c1, "vs", c2)
+            # The gap between 2 adjacent ranges is 0.
+            hits <- GenomicRanges::findOverlaps(query = mutsGR[[c1]], subject = mutsGR[[c2]], maxgap = 0)
+            dnachange.hits <- muts[[c1]][queryHits(hits)]$DNAchange
+            filt.hits <- muts[[c1]][queryHits(hits)]$FILTER
+            if (length(dnachange.hits) > 0) {
                 # due to normalization we might find the same variant with different filters - these come from homopolymer regions
                 overlapping.vars <- rbind(overlapping.vars, unique(data.frame(DNAchange = dnachange.hits, caller = c1, FILTER = filt.hits)))
+            }
         }
-        }
-    }
+}
 }
 
 # Finally, extract the set of variants that will be the consensus set
@@ -215,12 +220,13 @@ cl <- makeCluster(cpu)
 
 for (c in callers){
     message("- Annotating calls from ", c)
-    values <-  parApply(cl=cl, X = muts[[c]], MARGIN = 1, FUN = what.caller.called, consensus=con.vars.ths, variants=overlapping.vars)
-    muts[[c]] <- cbind( muts[[c]], as.data.frame(do.call(rbind, values)))
-    muts[[c]]$callers <- unlist(muts[[c]]$callers )
-    muts[[c]]$filters <- unlist(muts[[c]]$filters )
+    if (!is.null(muts[[c]])){
+        values <-  parApply(cl=cl, X = muts[[c]], MARGIN = 1, FUN = what.caller.called, consensus=con.vars.ths, variants=overlapping.vars)
+        muts[[c]] <- cbind( muts[[c]], as.data.frame(do.call(rbind, values)))
+        muts[[c]]$callers <- unlist(muts[[c]]$callers )
+        muts[[c]]$filters <- unlist(muts[[c]]$filters )
+    }
 }
-
 
 all.muts <- do.call(rbind.fill, muts)
 
@@ -269,6 +275,16 @@ for ( c in callers){
         vcf.out.caller <- paste0(argsL$out_prefix, "_", c, ".maf")
     }
     write(x = updated_meta, file = vcf.out.caller, ncolumns = 1, append = F)
+    # if empty maf/vcf just write empty file with columns
+    if(nrow(all.muts[all.muts$Caller==c,][,callers_meta[[c]]$header])==0){
+        empty.df <- data.frame(matrix(ncol = length(callers_meta[[c]]$header), nrow = 0))
+        fwrite(x = empty.df,
+                        file = vcf.out.caller,
+                        append = T,
+                        sep = "\t",
+                        col.names = T)
+        next
+    }
     extra_cols <- c()
     if (is.vcf){
         fields_to_write <- all.muts[all.muts$Caller==c,][,callers_meta[[c]]$header]
@@ -307,6 +323,7 @@ if (is.vcf){
 
 to.vcf <- all.muts[all.muts$isconsensus==T,]
 if (is.vcf){
+
     col.out <- c("#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT")
     to.vcf$ID <- to.vcf$DNAchange
     to.vcf$QUAL <- "."
@@ -314,16 +331,16 @@ if (is.vcf){
     to.vcf$FORMAT <- "."
     to.vcf$FILTER <- to.vcf$FILTER_consensus
 } else{
-    col.out <- callers_meta[[c]]$header
+    col.out <- callers_meta[[c]]$header  # any caller header is fine
 }
 
-if (nrow(to.vcf)>2){to.vcf <- to.vcf[,col.out][!duplicated(to.vcf),]}
+to.vcf <- to.vcf[,col.out][!duplicated(to.vcf),]
 message("- Total variants ", prettyNum(nrow(to.vcf), big.mark = ","))
 message("- Variants in consensus ", prettyNum(nrow(all.muts[(!duplicated(all.muts$DNAchange) & all.muts$isconsensus==T),]), big.mark = ","))
 
 write(x = meta, file = vcf.out, ncolumns = 1)
 fwrite(x = to.vcf, file = vcf.out, append = T, sep = "\t", col.names = T)
-message(" - Output in: ", vcf.out)
+message("- Output in: ", vcf.out)
 
 
 ## PLOTTING
