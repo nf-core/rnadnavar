@@ -8,6 +8,8 @@ include { SAMTOOLS_EXTRACT_READ_IDS                    } from '../../../modules/
 include { PICARD_FILTERSAMREADS                        } from '../../../modules/nf-core/picard/filtersamreads/main'
 // Convert BAM files to FASTQ files
 include { BAM_CONVERT_SAMTOOLS as CONVERT_FASTQ_INPUT  } from '../bam_convert_samtools/main'
+// Conver CRAM to BAM (picard/filtersamreads can't work with cram)
+include { SAMTOOLS_CONVERT as CONVERT_CRAM2BAM         } from '../../../modules/nf-core/samtools/convert/main'
 // Realignment with HISAT2
 include { FASTQ_ALIGN_HISAT2                            } from '../../nf-core/fastq_align_hisat2/main'
 
@@ -105,8 +107,12 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
             cram_to_extract = MAF2BED.out.bed.map{meta, bed -> [meta, meta.cram_file, meta.crai_file, bed]}
             SAMTOOLS_EXTRACT_READ_IDS(cram_to_extract)
             // Extract reads
-            cram_to_filter = SAMTOOLS_EXTRACT_READ_IDS.out.read_ids.map{meta, readsid -> [meta, meta.cram_file, readsid]}
-            PICARD_FILTERSAMREADS(cram_to_filter, 'includeReadList') // bam -> filtered_bam
+            cram_to_convert = SAMTOOLS_EXTRACT_READ_IDS.out.read_ids.map{meta, readsid -> [meta + [readsid_file:readsid], meta.cram_file, meta.crai_file]}
+            // 1) Convert cram 2 bam
+            CONVERT_CRAM2BAM(cram_to_convert, fasta, fasta_fai)
+            bam_to_filter = CONVERT_CRAM2BAM.out.alignment_index.map{meta, bam, bai -> [meta, bam, meta.readsid_file]}
+            // 2) Apply picard filtersamreads
+            PICARD_FILTERSAMREADS(bam_to_filter, fasta,'includeReadList') // bam -> filtered_bam
             // Conver to FQ
             bam_to_fq = PICARD_FILTERSAMREADS.out.bam.join(PICARD_FILTERSAMREADS.out.bai)
             interleave_input = false // Currently don't allow interleaved input
@@ -118,6 +124,10 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
                                 )
             // Align with HISAT2
             reads_for_realignment = CONVERT_FASTQ_INPUT.out.reads
+            reads_for_realignment.map{meta, reads -> [meta + [single_end:se], reads]}.dump(tag:"reads_for_realignmentHISAT2")
+            hisat2_index.dump(tag:"HISAT2index")
+            splicesites.dump(tag:"HISAT2splicesites")
+            fasta.map{it -> [ [ id:"fasta" ], it ]}.dump(tag:"HISAT2fasta")
             // TODO: add single_end to input check
             se = false
             FASTQ_ALIGN_HISAT2(

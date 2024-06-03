@@ -115,7 +115,6 @@ workflow RNADNAVAR {
     // Reference and intervals variables
     fasta                         =    PREPARE_REFERENCE_AND_INTERVALS.out.fasta
     fasta_fai                     =    PREPARE_REFERENCE_AND_INTERVALS.out.fasta_fai
-    fasta_gzi                     =    PREPARE_REFERENCE_AND_INTERVALS.out.fasta_gzi
     dict                          =    PREPARE_REFERENCE_AND_INTERVALS.out.dict
     germline_resource             =    PREPARE_REFERENCE_AND_INTERVALS.out.germline_resource
     germline_resource_tbi         =    PREPARE_REFERENCE_AND_INTERVALS.out.germline_resource_tbi
@@ -138,7 +137,7 @@ workflow RNADNAVAR {
         if ( num_intervals < 1 ) [ [], num_intervals ]
         else [ interval, num_intervals ]
     }
-// STEP 1: ALIGNMENT PREPROCESSING
+    // STEP 1: ALIGNMENT PREPROCESSING
     BAM_ALIGN(
         PREPARE_REFERENCE_AND_INTERVALS.out.bwa,
         PREPARE_REFERENCE_AND_INTERVALS.out.bwamem2,
@@ -150,7 +149,6 @@ workflow RNADNAVAR {
 
     multiqc_files = multiqc_files.mix(BAM_ALIGN.out.reports)
     versions = versions.mix(BAM_ALIGN.out.versions)
-
     // 5 MAIN STEPS: GATK PREPROCESING - VARIANT CALLING - NORMALIZATION - CONSENSUS - ANNOTATION
     BAM_PROCESSING(
         input_sample,              // input from CSV if applicable
@@ -158,7 +156,6 @@ workflow RNADNAVAR {
         BAM_ALIGN.out.cram_mapped,  // input from mapping
         fasta,                     // fasta reference file
         fasta_fai,                 // fai for fasta file
-        fasta_gzi,                 // gzi for fasta file
         dict,                      // dict for fasta file
         dbsnp,
         dbsnp_tbi,
@@ -225,6 +222,7 @@ workflow RNADNAVAR {
             PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_bed_combined,  // []
             PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_and_num_intervals,  // [[], 0]
             PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_bed_gz_tbi_combined,  //[[],[]]
+            vep_cache,
             PREPARE_REALIGNMENT.out.dna_consensus_maf,  // to repeat rescue consensus
             PREPARE_REALIGNMENT.out.dna_varcall_mafs,   // to repeat rescue consensus
             true,  // is realignment

@@ -9,6 +9,7 @@ process PICARD_FILTERSAMREADS {
 
     input:
     tuple val(meta), path(bam), path(readlist)
+    path fasta
     val filter
 
     output:
@@ -32,6 +33,7 @@ process PICARD_FILTERSAMREADS {
         """
         picard \\
             FilterSamReads \\
+            -R $fasta \\
             -Xmx${avail_mem}M \\
             --INPUT $bam \\
             --OUTPUT ${prefix}.bam \\
@@ -47,6 +49,7 @@ process PICARD_FILTERSAMREADS {
         """
         picard \\
             FilterSamReads \\
+            -R $fasta \\
             -Xmx${avail_mem}M \\
             --INPUT $bam \\
             --OUTPUT ${prefix}.bam \\

@@ -74,7 +74,7 @@ process SAGE {
         -high_confidence_bed ${sage_highconfidence} \\
         -panel_bed ${sage_actionablepanel} \\
         -hotspots ${sage_knownhotspots} \\
-        $ensembl_data_dir/*/ \\
+        $ensembl_data_dir \\
         $reference \\
         $args
 

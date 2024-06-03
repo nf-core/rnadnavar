@@ -14,7 +14,7 @@ process RUN_CONSENSUS {
         tuple val(meta), path('*.consensus_*.vcf'), val(caller) , optional:true , emit: vcf_separate
         tuple val(meta), path('*.consensus.maf')                , optional:true , emit: maf
         tuple val(meta), path('*.consensus_*.maf'), val(caller) , optional:true , emit: maf_separate
-        path("*.pdf")                                                           , emit: pdf
+        path("*.pdf")                                           , optional:true , emit: pdf
         path "versions.yml"                                                     , emit: versions
 
     when:

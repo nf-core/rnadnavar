@@ -41,7 +41,7 @@ workflow  SAMPLESHEET_TO_CHANNEL{
                 else {
                     error("Samplesheet contains fastq files but step is `$params.step`. Please check your samplesheet or adjust the step parameter.\nhttps://nf-co.re/rnadnavar/usage#input-samplesheet-configurations")
                 }
-            // start for second run
+            // start for realignment
             } else if ((maf || vcf) && params.step=="realignment"){
                 if (meta.lane == null) meta.lane = "LX"
                 meta            = meta + [id: "${meta.sample}-${meta.lane}-realign".toString()]
