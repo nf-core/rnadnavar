@@ -20,7 +20,7 @@ workflow VCF_NORMALISE {
     main:
     version          = Channel.empty()
 
-    if (params.step == 'normalise') vcf_to_normalise = input_sample
+    if (params.step == 'normalization') vcf_to_normalise = input_sample
 
     if ((params.step in ['mapping', 'markduplicates', 'splitncigar',
                         'prepare_recalibration', 'recalibrate',
