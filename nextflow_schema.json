@@ -58,7 +58,7 @@
                         "prepare_recalibration",
                         "recalibrate",
                         "variant_calling",
-                        "normalization",
+                        "normalise",
                         "consensus",
                         "annotate",
                         "filtering",
