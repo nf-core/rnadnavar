@@ -21,7 +21,6 @@ workflow  SAMPLESHEET_TO_CHANNEL{
             [ patient_sample, ch_items.size() ]
         }
         .combine(ch_with_patient_sample, by: 0) // for each entry add numLanes
-        .dump(tag:"after combine")
         .map { patient_sample, num_lanes, ch_items ->
 
             (meta, fastq_1, fastq_2, table, cram, crai, bam, bai, vcf, variantcaller, maf) = ch_items
@@ -120,7 +119,19 @@ workflow  SAMPLESHEET_TO_CHANNEL{
             } else if (vcf) {
                 meta = meta + [id: meta.sample, data_type: 'vcf', variantcaller: variantcaller ?: '']
 
-                if (params.step == 'annotate') return [ meta - meta.subMap('lane'), vcf ]
+                if (params.step == 'annotate' ) return [ meta - meta.subMap('lane'), vcf ]
+                else if (params.step == 'normalise') {
+                    if (meta.status == 0){ // TODO: more specific checks on this is needed
+                        error("Samplesheet contains vcf files with status 0, vcfs should only be for tumours (1|2).")
+                    }
+                    else if (meta.normal_id == null){
+                        error("When step 'normalise', `normal_id` should be added to the csv")
+                        // Need to get the normal id to create the tumour_vs_normal id
+                    } else {
+                        meta = meta + [id: meta.sample + "_vs_" + meta.normal_id, data_type: 'vcf', variantcaller: variantcaller ?: '']
+                        return [ meta - meta.subMap('lane'), vcf ]
+                    }
+                }
                 else {
                     error("Samplesheet contains vcf files but step is `$params.step`. Please check your samplesheet or adjust the step parameter.\nhttps://nf-co.re/rnadnavar/usage#input-samplesheet-configurations")
                 }
