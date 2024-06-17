@@ -45,11 +45,6 @@
                         "git_sha": "5c460c5a4736974abde2843294f35307ee2b0e5e",
                         "installed_by": ["modules"]
                     },
-                    "custom/dumpsoftwareversions": {
-                        "branch": "master",
-                        "git_sha": "8ec825f465b9c17f9d83000022995b4f7de6fe93",
-                        "installed_by": ["modules"]
-                    },
                     "dragmap/align": {
                         "branch": "master",
                         "git_sha": "603ecbd9f45300c9788f197d2a15a005685b4220",
@@ -269,12 +264,6 @@
                         "branch": "master",
                         "git_sha": "b7ebe95761cd389603f9cc0e0dc384c0f663815a",
                         "installed_by": ["modules"]
-                    },
-                    "picard/filtersamreads": {
-                        "branch": "master",
-                        "git_sha": "20b0918591d4ba20047d7e13e5094bcceba81447",
-                        "installed_by": ["modules"],
-                        "patch": "modules/nf-core/picard/filtersamreads/picard-filtersamreads.diff"
                     },
                     "samblaster": {
                         "branch": "master",
