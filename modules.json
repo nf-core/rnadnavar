@@ -272,7 +272,7 @@
                     },
                     "picard/filtersamreads": {
                         "branch": "master",
-                        "git_sha": "911696ea0b62df80e900ef244d7867d177971f73",
+                        "git_sha": "20b0918591d4ba20047d7e13e5094bcceba81447",
                         "installed_by": ["modules"],
                         "patch": "modules/nf-core/picard/filtersamreads/picard-filtersamreads.diff"
                     },
