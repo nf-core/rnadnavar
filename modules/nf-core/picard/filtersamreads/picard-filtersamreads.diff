@@ -14,21 +14,46 @@ Changes in module 'nf-core/picard/filtersamreads'
      path "versions.yml"           , emit: versions
  
      when:
-@@ -31,6 +33,7 @@
-         """
+@@ -35,6 +37,7 @@
          picard \\
              FilterSamReads \\
-+            -R $fasta \\
              -Xmx${avail_mem}M \\
++            -R $fasta \\
              --INPUT $bam \\
              --OUTPUT ${prefix}.bam \\
-@@ -46,6 +49,7 @@
-         """
+             --FILTER $filter \\
+@@ -50,6 +53,7 @@
          picard \\
              FilterSamReads \\
-+            -R $fasta \\
              -Xmx${avail_mem}M \\
++            -R $fasta \\
              --INPUT $bam \\
              --OUTPUT ${prefix}.bam \\
+             --FILTER $filter \\
+
+--- modules/nf-core/picard/filtersamreads/meta.yml
++++ modules/nf-core/picard/filtersamreads/meta.yml
+@@ -20,6 +20,10 @@
+       description: |
+         Groovy Map containing sample information
+         e.g. [ id:'test', single_end:false ]
++  - fasta:
++      type: file
++      description: reference fasta file
++      pattern: "*.{fasta,fa}"
+   - bam:
+       type: file
+       description: List of BAM files. If filtering without read list must be sorted by queryname with picard sortsam
+@@ -41,6 +45,10 @@
+       type: file
+       description: Filtered BAM file
+       pattern: "*.{bam}"
++  - bai:
++      type: file
++      description: Index of Filtered BAM file
++      pattern: "*.{bai}"
+   - versions:
+       type: file
+       description: File containing software versions
 
 ************************************************************

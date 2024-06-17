@@ -5,7 +5,7 @@ process SAGE {
     conda "bioconda::hmftools-sage=3.2.3"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/hmftools-sage:3.2.3--hdfd78af_0' :
-        'quay.io/biocontainers/hmftools-sage:hmftools-sage:3.2.3--hdfd78af_0' }"
+        'biocontainers/hmftools-sage:hmftools-sage:3.2.3--hdfd78af_0' }"
 
     input:
     tuple val(meta),  path(input_normal), path(input_index_normal), path(input_tumor), path(input_index_tumor), path(intervals)

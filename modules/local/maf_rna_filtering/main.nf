@@ -2,8 +2,8 @@ process RNA_FILTERING {
     tag "$meta.id"
     label 'process_low'
 
-    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'ghcr.io/raqmanzano/rnafilt:latest' : null }"
+    conda null
+    container 'ghcr.io/raqmanzano/rnafilt:latest'
 
     input:
         tuple val(meta), path(maf), path(maf_realignment)
@@ -11,8 +11,8 @@ process RNA_FILTERING {
         path fasta_fai
 
     output:
-        tuple val(meta), path('*.maf')                     , emit: maf
-        path "versions.yml"                                , emit: versions
+        tuple val(meta), path('*.maf'), emit: maf
+        path "versions.yml"           , emit: versions
 
     when:
         task.ext.when == null || task.ext.when

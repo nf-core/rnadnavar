@@ -5,7 +5,6 @@
 */
 
 include { MULTIQC                     } from '../modules/nf-core/multiqc/main'
-include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
 include { fromSamplesheet             } from 'plugin/nf-validation'
 include { paramsSummaryMap            } from 'plugin/nf-validation'
 include { paramsSummaryMultiqc        } from '../subworkflows/nf-core/utils_nfcore_pipeline'
@@ -254,8 +253,8 @@ workflow RNADNAVAR {
 //
     version_yaml = Channel.empty()
     if (!(params.skip_tools && params.skip_tools.split(',').contains('versions'))) {
-        CUSTOM_DUMPSOFTWAREVERSIONS(versions.unique().collectFile(name: 'collated_versions.yml'))
-        version_yaml = CUSTOM_DUMPSOFTWAREVERSIONS.out.mqc_yml.collect()
+        version_yaml = softwareVersionsToYAML(versions)
+            .collectFile(storeDir: "${params.outdir}/pipeline_info", name: 'nf_core_sarek_software_mqc_versions.yml', sort: true, newLine: true)
     }
 
     if (!(params.skip_tools && params.skip_tools.split(',').contains('multiqc'))) {

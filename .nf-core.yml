@@ -1,10 +1,13 @@
 repository_type: pipeline
+nf_core_version: "2.14.1"
 lint:
   files_exist:
     - conf/modules.config
     - conf/test.config
     - conf/test_full.config
-  files_unchanged:
+  modules_config: False
+  template_strings: False
+files_unchanged:
     - LICENSE
     - assets/nf-core-rnadnavar_logo_light.png
     - docs/images/nf-core-rnadnavar_logo_dark.png
