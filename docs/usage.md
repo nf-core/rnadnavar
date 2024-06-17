@@ -126,9 +126,8 @@ The pipeline has the flexibility to start from different steps
 
 - variant_calling will require: `patient,status,sample,lane,bam,bai` or `patient,status,sample,lane,cram,crai` or `patient,status,sample,lane,bam,bai,cram,crai`. When BAM and CRAM files are mixed BAMs will be converted to CRAMs to save on space.
 
-
 - normalise will require: `patient,status,sample,vcf,variantcaller,normal_id` if not realignment step in tools.
-    - `normal_id` is needed to properly create the id tag, which is going to be tumour_vs_normal style to match it with the rest of the pipeline (note that this will be simplified in the future to just id but it is not yet implemented).
+  - `normal_id` is needed to properly create the id tag, which is going to be tumour_vs_normal style to match it with the rest of the pipeline (note that this will be simplified in the future to just id but it is not yet implemented).
 
 ### Updating the pipeline
 
