@@ -36,15 +36,8 @@ process PICARD_FILTERSAMREADS {
         """
         picard \\
             FilterSamReads \\
-            -R $fasta \\
             -Xmx${avail_mem}M \\
-            --INPUT $bam \\
-            --OUTPUT ${prefix}.bam \\
-        """
-        picard \\
-            FilterSamReads \\
             -R $fasta \\
-            -Xmx${avail_mem}M \\
             --INPUT $bam \\
             --OUTPUT ${prefix}.bam \\
             --FILTER $filter \\
@@ -60,6 +53,7 @@ process PICARD_FILTERSAMREADS {
         picard \\
             FilterSamReads \\
             -Xmx${avail_mem}M \\
+            -R $fasta \\
             --INPUT $bam \\
             --OUTPUT ${prefix}.bam \\
             --FILTER $filter \\

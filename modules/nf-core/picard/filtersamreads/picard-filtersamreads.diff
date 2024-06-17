@@ -14,20 +14,21 @@ Changes in module 'nf-core/picard/filtersamreads'
      path "versions.yml"           , emit: versions
  
      when:
-@@ -34,6 +36,14 @@
-         """
+@@ -35,6 +37,7 @@
          picard \\
              FilterSamReads \\
-+            -R $fasta \\
-+            -Xmx${avail_mem}M \\
-+            --INPUT $bam \\
-+            --OUTPUT ${prefix}.bam \\
-+        """
-+        picard \\
-+            FilterSamReads \\
-+            -R $fasta \\
              -Xmx${avail_mem}M \\
++            -R $fasta \\
              --INPUT $bam \\
              --OUTPUT ${prefix}.bam \\
+             --FILTER $filter \\
+@@ -50,6 +53,7 @@
+         picard \\
+             FilterSamReads \\
+             -Xmx${avail_mem}M \\
++            -R $fasta \\
+             --INPUT $bam \\
+             --OUTPUT ${prefix}.bam \\
+             --FILTER $filter \\
 
 ************************************************************
