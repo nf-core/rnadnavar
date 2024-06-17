@@ -3,8 +3,7 @@ process RUN_CONSENSUS {
     label 'process_low'
 
     conda "bioconda::bioconductor-rtracklayer bioconda::bioconductor-complexheatmap conda-forge::r-ggrepel conda-forge::r-data.table conda-forge::r-dplyr conda-forge::ggpubr "
-    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'ghcr.io/raqmanzano/renv:latest' : null }"
+    container 'ghcr.io/raqmanzano/renv:latest'
 
     input:
         tuple val(meta), path(vcf), val(caller)
