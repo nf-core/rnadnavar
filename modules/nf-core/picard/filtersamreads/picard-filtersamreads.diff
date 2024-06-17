@@ -1,0 +1,34 @@
+Changes in module 'nf-core/picard/filtersamreads'
+--- modules/nf-core/picard/filtersamreads/main.nf
++++ modules/nf-core/picard/filtersamreads/main.nf
+@@ -9,10 +9,12 @@
+ 
+     input:
+     tuple val(meta), path(bam), path(readlist)
++    path fasta
+     val filter
+ 
+     output:
+     tuple val(meta), path("*.bam"), emit: bam
++    tuple val(meta), path("*.bai"), emit: bai
+     path "versions.yml"           , emit: versions
+ 
+     when:
+@@ -31,6 +33,7 @@
+         """
+         picard \\
+             FilterSamReads \\
++            -R $fasta \\
+             -Xmx${avail_mem}M \\
+             --INPUT $bam \\
+             --OUTPUT ${prefix}.bam \\
+@@ -46,6 +49,7 @@
+         """
+         picard \\
+             FilterSamReads \\
++            -R $fasta \\
+             -Xmx${avail_mem}M \\
+             --INPUT $bam \\
+             --OUTPUT ${prefix}.bam \\
+
+************************************************************

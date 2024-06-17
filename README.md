@@ -5,6 +5,8 @@
   </picture>
 </h1>
 
+# :warning: UNDER ACTIVE DEVELOPMENT :warning:
+
 [![GitHub Actions CI Status](https://github.com/nf-core/rnadnavar/actions/workflows/ci.yml/badge.svg)](https://github.com/nf-core/rnadnavar/actions/workflows/ci.yml)
 [![GitHub Actions Linting Status](https://github.com/nf-core/rnadnavar/actions/workflows/linting.yml/badge.svg)](https://github.com/nf-core/rnadnavar/actions/workflows/linting.yml)[![AWS CI](https://img.shields.io/badge/CI%20tests-full%20size-FF9900?labelColor=000000&logo=Amazon%20AWS)](https://nf-co.re/rnadnavar/results)[![Cite with Zenodo](http://img.shields.io/badge/DOI-10.5281/zenodo.XXXXXXX-1073c8?labelColor=000000)](https://doi.org/10.5281/zenodo.XXXXXXX)
 [![nf-test](https://img.shields.io/badge/unit_tests-nf--test-337ab7.svg)](https://www.nf-test.com)
@@ -19,20 +21,72 @@
 
 ## Introduction
 
-**nf-core/rnadnavar** is a bioinformatics pipeline that ...
+The **nf-core/rnadnavar** is a bioinformatics best-practice
+analysis pipeline for RNA somatic mutation detection
+able to perform in parallel.
+
+Initially designed for cancer research, the pipeline
+uses different variant calling algorithms and applies a
+consensus approach. A final filtering stage, should
+provide a set of annotated somatic variants.
+
+The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool to run tasks across
+multiple compute infrastructures in a very portable
+manner. It uses Docker/Singularity containers making
+installation trivial and results highly reproducible.
+The [Nextflow DSL2](https://www.nextflow.io/docs/latest/dsl2.html) implementation of this
+pipeline uses one container per process which makes it
+much easier to maintain and update software
+dependencies. Where possible, these processes have been
+submitted to and installed from [nf-core/modules](https://github.com/nf-core/modules) in order to make them available to all nf-core pipelines, and to everyone within the Nextflow community!
 
 <!-- TODO nf-core:
-   Complete this sentence with a 2-3 sentence summary of what types of data the pipeline ingests, a brief overview of the
-   major pipeline sections and the types of output it produces. You're giving an overview to someone new
-   to nf-core here, in 15-20 seconds. For an example, see https://github.com/nf-core/rnaseq/blob/master/README.md#introduction
+  Complete this sentence with a 2-3 sentence summary of what types of data the pipeline ingests, a brief overview of the
+  major pipeline sections and the types of output it produces. You're giving an overview to someone new
+  to nf-core here, in 15-20 seconds. For an example, see https://github.com/nf-core/rnaseq/blob/master/README.md#introduction
 -->
 
-<!-- TODO nf-core: Include a figure that guides the user through the major workflow steps. Many nf-core
-     workflows use the "tube map" design for that. See https://nf-co.re/docs/contributing/design_guidelines#examples for examples.   -->
-<!-- TODO nf-core: Fill in short bullet-pointed list of the default steps in the pipeline -->
+## Pipeline summary
 
-1. Read QC ([`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))
-2. Present QC for raw reads ([`MultiQC`](http://multiqc.info/))
+Depending on the options and samples provided, the
+pipeline will run different tasks. This is controlled
+mainly through `--step` and `--tools` parameters. This
+is a summary of the possible tasks to run with the pipeline:
+
+- Quality control and trimming (enabled by
+  `--trim_fastq` and runs [`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/) and
+  [`fastp`](https://github.com/OpenGene/fastp))
+- Map Reads to Reference (BWA-mem, BWA-mem2, dragmap
+  and/or STAR)
+- GATK preprocessing for DNA and RNA bulk sequencing
+  samples (`GATK MarkDuplicates`, `GATK SplitNCigarReads`,`GATK
+BaseRecalibrator` and `GATK ApplyBQSR`)
+- Summarise alignment statistics (`samtools stats`, `mosdepth`)
+- Variant calling (enabled with `--tools`)
+  - `Mutect2`
+  - `Strelka2`
+  - `SAGE`
+- Annotation with `VEP` (enabled with `--tools` adding
+  `vep`)
+- Normalisation of VCFs with VT (enabled with `--tools`
+  adding `normalisation`)
+- Transformation of VCF to MAF and consensus of variant
+  calling results (enabled with `--tools` adding
+  `consensus`)
+- Filtering of MAF files applying optional gnomad,
+  whitelisting and blacklisting (enabled with `--tools`
+  adding `filtering`)
+- Realignment step where reads from regions where a variant
+  was found will be extracted and re-processed, only for
+  RNA due to higher levels of background noise (enabled
+  with `--tools` adding `realignment`).
+- Filtering of MAF files specific for RNA (enabled with
+  `--tools` adding `rna_filtering`)
+
+<p align="center">
+    <img title="RNADNAVAR Workflow"
+src="docs/images/rnadnavar_schemav3.png">
+</p>
 
 ## Usage
 
@@ -40,15 +94,17 @@
 > If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/usage/installation) on how to set-up Nextflow. Make sure to [test your setup](https://nf-co.re/docs/usage/introduction#how-to-run-a-pipeline) with `-profile test` before running the workflow on actual data.
 
 <!-- TODO nf-core: Describe the minimum required steps to execute the pipeline, e.g. how to prepare samplesheets.
-     Explain what rows and columns represent. For instance (please edit as appropriate):
+    Explain what rows and columns represent. For instance (please edit as appropriate):
 
 First, prepare a samplesheet with your input data that looks as follows:
 
 `samplesheet.csv`:
 
+
 ```csv
-sample,fastq_1,fastq_2
-CONTROL_REP1,AEG588A1_S1_L002_R1_001.fastq.gz,AEG588A1_S1_L002_R2_001.fastq.gz
+sample,lane,fastq_1,fastq_2
+CONTROL_REP1,LX,AEG588A1_S1_L002_R1_001.fastq.gz,
+AEG588A1_S1_L002_R2_001.fastq.gz
 ```
 
 Each row represents a fastq file (single-end) or a pair of fastq files (paired end).
@@ -61,9 +117,9 @@ Now, you can run the pipeline using:
 
 ```bash
 nextflow run nf-core/rnadnavar \
-   -profile <docker/singularity/.../institute> \
-   --input samplesheet.csv \
-   --outdir <OUTDIR>
+  -profile <docker/singularity/.../institute> \
+  --input samplesheet.csv \
+  --outdir <OUTDIR>
 ```
 
 > [!WARNING]
@@ -80,9 +136,15 @@ For more details about the output files and reports, please refer to the
 
 ## Credits
 
-nf-core/rnadnavar was originally written by Raquel Manzano-Garcia, Maxime U Garcia.
+The nf-core/rnadnavar was originally written by Raquel
+Manzano Garcia at Cancer Research UK Cambridge Institute
+with the continuous support of [Maxime U Garcia](https://github.com/maxulysse). The
+workflow is based on
+[RNA-MuTect](https://github.com/broadinstitute/RNA_MUTECT_1.0-1) which was
+originally published by [Yizhak, _et al_ 2019 (Science)](https://www.science.org/doi/10.1126/science.aaw0726)
 
-We thank the following people for their extensive assistance in the development of this pipeline:
+We thank the following people for their assistance in the development of this pipeline:
+TBC
 
 <!-- TODO nf-core: If applicable, make list of people who have also contributed -->
 

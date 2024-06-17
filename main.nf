@@ -1,4 +1,5 @@
 #!/usr/bin/env nextflow
+
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     nf-core/rnadnavar
@@ -17,26 +18,37 @@ nextflow.enable.dsl = 2
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-include { RNADNAVAR  } from './workflows/rnadnavar'
+include { RNADNAVAR               } from './workflows/rnadnavar'
 include { PIPELINE_INITIALISATION } from './subworkflows/local/utils_nfcore_rnadnavar_pipeline'
 include { PIPELINE_COMPLETION     } from './subworkflows/local/utils_nfcore_rnadnavar_pipeline'
-
 include { getGenomeAttribute      } from './subworkflows/local/utils_nfcore_rnadnavar_pipeline'
-
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     GENOME PARAMETER VALUES
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-// TODO nf-core: Remove this line if you don't need a FASTA file
-//   This is an example of how to use getGenomeAttribute() to fetch parameters
-//   from igenomes.config using `--genome`
-params.fasta = getGenomeAttribute('fasta')
+params.bwa                  = getGenomeAttribute('bwa')
+params.bwamem2              = getGenomeAttribute('bwamem2')
+params.fasta                = getGenomeAttribute('fasta')
+params.fasta_fai            = getGenomeAttribute('fasta_fai')
+params.dict                 = getGenomeAttribute('dict')
+params.gtf                  = getGenomeAttribute('gtf')
+params.gff                  = getGenomeAttribute('gff')
+params.exon_bed             = getGenomeAttribute('exon_bed')
+params.star_index           = getGenomeAttribute('star')
+params.dbsnp                = getGenomeAttribute('dbsnp')
+params.dbsnp_tbi            = getGenomeAttribute('dbsnp_tbi')
+params.known_indels         = getGenomeAttribute('known_indels')
+params.known_indels_tbi     = getGenomeAttribute('known_indels_tbi')
+params.vep_cache_version    = getGenomeAttribute('vep_cache_version')
+params.vep_genome           = getGenomeAttribute('vep_genome')
+params.vep_species          = getGenomeAttribute('vep_species')
+
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    NAMED WORKFLOWS FOR PIPELINE
+    NAMED WORKFLOW FOR PIPELINE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 

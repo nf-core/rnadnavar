@@ -1,0 +1,4 @@
+patient,status,sample,lane,fastq_1,fastq_2
+P01,0,SAMPLE_NORMAL,L01,/path/to/fastq/files/AEG588A1_S1_L001_R1_001.fastq.gz,/path/to/fastq/files/AEG588A1_S1_L001_R2_001.fastq.gz
+P01,1,SAMPLE_TUMOR,L01,/path/to/fastq/files/AEG588A4_S1_L001_R1_001.fastq.gz,/path/to/fastq/files/AEG588A4_S1_L001_R2_001.fastq.gz
+P01,2,SAMPLE_RNA,L01,/path/to/fastq/files/AEG588A6_S1_L001_R1_001.fastq.gz,/path/to/fastq/files/AEG588A6_S1_L001_R2_001.fastq.gz

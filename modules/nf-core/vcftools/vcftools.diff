@@ -1,0 +1,19 @@
+Changes in module 'nf-core/vcftools'
+--- modules/nf-core/vcftools/meta.yml
++++ modules/nf-core/vcftools/meta.yml
+@@ -214,11 +214,11 @@
+       pattern: "*.012"
+   - genotypes_matrix_individual:
+       type: file
+-      description: Details the individuals included in the main genotypes_matrix file (optional)
++      description: Details the individuals included in the main.nf genotypes_matrix file (optional)
+       pattern: "*.012.indv"
+   - genotypes_matrix_position:
+       type: file
+-      description: Details the site locations included in the main genotypes_matrix file (optional)
++      description: Details the site locations included in the main.nf genotypes_matrix file (optional)
+       pattern: "*.012.pos"
+   - impute_hap:
+       type: file
+
+************************************************************
