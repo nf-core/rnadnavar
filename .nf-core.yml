@@ -7,3 +7,12 @@ lint:
     - conf/test_full.config
   modules_config: False
   template_strings: False
+files_unchanged:
+    - LICENSE
+    - assets/nf-core-rnadnavar_logo_light.png
+    - docs/images/nf-core-rnadnavar_logo_dark.png
+    - lib/NfcoreTemplate.groovy
+    - lib/NfcoreSchema.groovy
+  schema_params: False
+  template_strings: False
+  multiqc_config: False
