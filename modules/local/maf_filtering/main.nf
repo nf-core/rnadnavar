@@ -9,7 +9,7 @@ process MAF_FILTERING {
 
     input:
     tuple val(meta), path(maf)
-    path fasta
+    tuple val(meta2), path(fasta)
 
     output:
     tuple val(meta), path('*.maf'), emit: maf

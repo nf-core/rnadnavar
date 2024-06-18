@@ -108,7 +108,7 @@ workflow BAM_GATK_PREPROCESSING {
             // Make sure correct data types are carried through
             .map{ meta, cram, crai -> [ meta + [data_type: "cram"], cram, crai ] }
         // If params.save_output_as_bam, then convert CRAM files to BAM
-        CRAM_TO_BAM(ch_md_cram_for_restart, fasta, fasta_fai)
+        CRAM_TO_BAM(ch_md_cram_for_restart, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
         versions = versions.mix(CRAM_TO_BAM.out.versions)
 
         // CSV should be written for the file actually out, either CRAM or BAM
@@ -311,7 +311,7 @@ workflow BAM_GATK_PREPROCESSING {
             versions = versions.mix(CRAM_QC_RECAL.out.versions)
 
             // If params.save_output_as_bam, then convert CRAM files to BAM
-            CRAM_TO_BAM_RECAL(cram_variant_calling, fasta, fasta_fai)
+            CRAM_TO_BAM_RECAL(cram_variant_calling, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
             versions = versions.mix(CRAM_TO_BAM_RECAL.out.versions)
 
             // CSV should be written for the file actually out out, either CRAM or BAM

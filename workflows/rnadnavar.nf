@@ -143,6 +143,7 @@ workflow RNADNAVAR {
         PREPARE_REFERENCE_AND_INTERVALS.out.dragmap,
         PREPARE_REFERENCE_AND_INTERVALS.out.star_index,
         PREPARE_REFERENCE_AND_INTERVALS.out.gtf,
+        fasta,
         input_sample
         )
 

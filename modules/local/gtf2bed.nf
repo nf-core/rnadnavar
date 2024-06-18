@@ -8,7 +8,7 @@ process GTF2BED {
         'biocontainers/r-base:3.5.0' }"
 
     input:
-    path gtf
+    tuple val(meta), path(gtf)
 
     output:
     path '*.bed'       , emit: bed

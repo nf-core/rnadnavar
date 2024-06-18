@@ -30,7 +30,7 @@ workflow PREPARE_REFERENCE_AND_INTERVALS {
     versions = versions.mix(PREPARE_GENOME.out.versions)
 
     // Gather built indices or get them from the params
-    fasta                  = PREPARE_GENOME.out.fasta.map{it, fasta -> fasta}   // unbgzipped if .gz
+    fasta                  = PREPARE_GENOME.out.fasta   // unbgzipped if .gz
     bwa                    = params.fasta                   ? params.bwa                        ? Channel.fromPath(params.bwa).collect()                           : PREPARE_GENOME.out.bwa                   : []
     bwamem2                = params.fasta                   ? params.bwamem2                    ? Channel.fromPath(params.bwamem2).collect()                       : PREPARE_GENOME.out.bwamem2               : []
     dragmap                = params.fasta                   ? params.dragmap                    ? Channel.fromPath(params.dragmap).collect()                       : PREPARE_GENOME.out.hashtable             : []

@@ -1,0 +1,14 @@
+Changes in module 'nf-core/gatk4/baserecalibrator'
+--- modules/nf-core/gatk4/baserecalibrator/main.nf
++++ modules/nf-core/gatk4/baserecalibrator/main.nf
+@@ -9,7 +9,7 @@
+ 
+     input:
+     tuple val(meta), path(input), path(input_index), path(intervals)
+-    path  fasta
++    tuple val(meta2), path(fasta)
+     path  fai
+     path  dict
+     path  known_sites
+
+************************************************************

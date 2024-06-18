@@ -1,4 +1,29 @@
 Changes in module 'nf-core/picard/filtersamreads'
+--- modules/nf-core/picard/filtersamreads/meta.yml
++++ modules/nf-core/picard/filtersamreads/meta.yml
+@@ -20,6 +20,10 @@
+       description: |
+         Groovy Map containing sample information
+         e.g. [ id:'test', single_end:false ]
++  - fasta:
++      type: file
++      description: reference fasta file
++      pattern: "*.{fasta,fa}"
+   - bam:
+       type: file
+       description: List of BAM files. If filtering without read list must be sorted by queryname with picard sortsam
+@@ -41,6 +45,10 @@
+       type: file
+       description: Filtered BAM file
+       pattern: "*.{bam}"
++  - bai:
++      type: file
++      description: Index of Filtered BAM file
++      pattern: "*.{bai}"
+   - versions:
+       type: file
+       description: File containing software versions
+
 --- modules/nf-core/picard/filtersamreads/main.nf
 +++ modules/nf-core/picard/filtersamreads/main.nf
 @@ -9,10 +9,12 @@
@@ -30,30 +55,10 @@ Changes in module 'nf-core/picard/filtersamreads'
              --INPUT $bam \\
              --OUTPUT ${prefix}.bam \\
              --FILTER $filter \\
-
---- modules/nf-core/picard/filtersamreads/meta.yml
-+++ modules/nf-core/picard/filtersamreads/meta.yml
-@@ -20,6 +20,10 @@
-       description: |
-         Groovy Map containing sample information
-         e.g. [ id:'test', single_end:false ]
-+  - fasta:
-+      type: file
-+      description: reference fasta file
-+      pattern: "*.{fasta,fa}"
-   - bam:
-       type: file
-       description: List of BAM files. If filtering without read list must be sorted by queryname with picard sortsam
-@@ -41,6 +45,10 @@
-       type: file
-       description: Filtered BAM file
-       pattern: "*.{bam}"
-+  - bai:
-+      type: file
-+      description: Index of Filtered BAM file
-+      pattern: "*.{bai}"
-   - versions:
-       type: file
-       description: File containing software versions
-
+@@ -75,4 +79,4 @@
+     END_VERSIONS
+     """
+ 
+-}
++}
 ************************************************************

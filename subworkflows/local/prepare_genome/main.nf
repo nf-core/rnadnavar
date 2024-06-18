@@ -14,6 +14,7 @@ include { DRAGMAP_HASHTABLE                      } from '../../../modules/nf-cor
 include { GTF2BED                                } from '../../../modules/local/gtf2bed'                                       //addParams(options: params.genome_options)
 include { GUNZIP as GUNZIP_GENE_BED              } from '../../../modules/nf-core/gunzip/main'                         //addParams(options: params.genome_options)
 include { GUNZIP as GUNZIP_GTF                   } from '../../../modules/nf-core/gunzip/main'                         //addParams(options: params.genome_options)
+include { GUNZIP as GUNZIP_GFF                   } from '../../../modules/nf-core/gunzip/main'                         //addParams(options: params.genome_options)
 include { UNTAR as UNTAR_STAR_INDEX              } from '../../../modules/nf-core/untar/main'
 include { TABIX_BGZIP as UNBGZIP_FASTA           } from '../../../modules/nf-core/tabix/bgzip/main'
 include { STAR_GENOMEGENERATE                    } from '../../../modules/nf-core/star/genomegenerate/main'            //addParams(options: params.star_index_options)
@@ -96,10 +97,10 @@ workflow PREPARE_GENOME {
                 GUNZIP_GTF (
                     Channel.fromPath(params.gtf).map{ it -> [[id:it[0].baseName], it] }
                 )
-                ch_gtf = GUNZIP_GTF.out.gunzip.map{ meta, gtf -> [gtf] }.collect()
+                ch_gtf = GUNZIP_GTF.out.gunzip.collect()
                 versions = versions.mix(GUNZIP_GTF.out.versions)
             } else {
-                ch_gtf = Channel.fromPath(params.gtf).collect()
+                ch_gtf = Channel.fromPath(params.gtf).collect().map{gtf -> [[id:"gtf"], gtf]}
             }
         } else if (params.gff) {
             if (params.gff.endsWith('.gz')) {
@@ -109,7 +110,7 @@ workflow PREPARE_GENOME {
                 ch_gff = GUNZIP_GFF.out.gunzip.map{ meta, gff -> [gff] }.collect()
                 versions = versions.mix(GUNZIP_GFF.out.versions)
             } else {
-                ch_gff = Channel.fromPath(params.gff).collect()
+                ch_gff = Channel.fromPath(params.gff).collect().map{gff -> [[id:"gff"], gff]}
             }
 
             GFFREAD (
@@ -154,7 +155,7 @@ workflow PREPARE_GENOME {
             }
         }
         else {
-            STAR_GENOMEGENERATE ( fasta.map{meta, fasta -> fasta}, ch_gtf )
+            STAR_GENOMEGENERATE ( fasta, ch_gtf )
             ch_star_index = STAR_GENOMEGENERATE.out.index
             versions      = versions.mix(STAR_GENOMEGENERATE.out.versions)
         }

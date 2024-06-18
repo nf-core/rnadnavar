@@ -24,6 +24,11 @@ input:
       type: file
       description: The VCF/BCF file to be decomposed
       pattern: "*.{vcf.gz,vcf,bcf}"
+  - meta2:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test', single_end:false ]
   - fasta:
       type: file
       description: Input genome fasta file

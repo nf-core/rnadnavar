@@ -34,6 +34,8 @@
                 },
                 "input_restart": {
                     "type": "string",
+                    "description": "Automatic retrieval for restart",
+                    "fa_icon": "fas fa-file-csv",
                     "format": "file-path",
                     "exists": true,
                     "mimetype": "text/csv",
@@ -42,8 +44,22 @@
                     "schema": "assets/schema_input.json"
                 },
                 "split_fastq": {
+                    "oneOf": [
+                        {
+                            "type": "integer",
+                            "minimum": 250
+                        },
+                        {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 0
+                        }
+                    ],
                     "type": "integer",
-                    "default": 50000000
+                    "default": 50000000,
+                    "fa_icon": "fas fa-clock",
+                    "description": "Specify how many reads each split of a FastQ file contains. Set 0 to turn off splitting at all.",
+                    "help_text": "Use the the tool FastP to split FASTQ file by number of reads. This parallelizes across fastq file shards speeding up mapping. Note although the minimum value is 250 reads, if you have fewer than 250 reads a single FASTQ shard will still be created."
                 },
                 "step": {
                     "type": "string",
@@ -486,11 +502,16 @@
             "properties": {
                 "remove_duplicates": {
                     "type": "boolean",
-                    "default": false
+                    "fa_icon": "fas fa-hammer",
+                    "description": "Specify whether to remove duplicates from the BAM during Picard MarkDuplicates step.",
+                    "help_text": "Specify true for removing duplicates from BAM file during Picard MarkDuplicates step.",
+                    "hidden": false
                 },
                 "no_intervals": {
                     "type": "boolean",
-                    "default": false
+                    "fa_icon": "fas fa-ban",
+                    "description": "Disable usage of intervals.",
+                    "help_text": "Intervals are parts of the chopped up genome used to speed up preprocessing and variant calling. See `--intervals` for more info. \n\nIf  `--no_intervals` is set no intervals will be taken into account for speed up or data processing."
                 },
                 "intervals": {
                     "type": "string",
@@ -500,7 +521,9 @@
                 },
                 "gatk_interval_scatter_count": {
                     "type": "integer",
-                    "default": 25
+                    "default": 25,
+                    "description": "Number of times the gene interval list to be split in order to run GATK haplotype caller in parallel",
+                    "help_text": "Set this parameter to decide the number of splits for the gene interval list file."
                 },
                 "pon": {
                     "type": "string",

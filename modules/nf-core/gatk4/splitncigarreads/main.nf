@@ -2,16 +2,16 @@ process GATK4_SPLITNCIGARREADS {
     tag "$meta.id"
     label 'process_medium'
 
-    conda "bioconda::gatk4=4.4.0.0"
+    conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/mulled-v2-d9e7bad0f7fbc8f4458d5c3ab7ffaaf0235b59fb:f857e2d6cc88d35580d01cf39e0959a68b83c1d9-0':
-        'biocontainers/mulled-v2-d9e7bad0f7fbc8f4458d5c3ab7ffaaf0235b59fb:f857e2d6cc88d35580d01cf39e0959a68b83c1d9-0' }"
+        'https://depot.galaxyproject.org/singularity/gatk4:4.5.0.0--py36hdfd78af_0':
+        'biocontainers/gatk4:4.5.0.0--py36hdfd78af_0' }"
 
     input:
-    tuple val(meta), path(input), path(input_index), path(intervals)
-    path  fasta
-    path  fai
-    path  dict
+    tuple val(meta), path(bam), path(bai), path(intervals)
+    tuple val(meta2), path(fasta)
+    tuple val(meta3), path(fai)
+    tuple val(meta4), path(dict)
 
     output:
     tuple val(meta), path("*cram"),     emit: cram,  optional: true
@@ -25,11 +25,10 @@ process GATK4_SPLITNCIGARREADS {
 
     script:
     def args = task.ext.args ?: ''
-
+    def prefix = task.ext.prefix ?: "${meta.id}"
     prefix = task.ext.prefix ?: "${meta.id}.bam"
     // If the extension is CRAM, then change it to BAM
     prefix_bam = prefix.tokenize('.')[-1] == 'cram' ? "${prefix.substring(0, prefix.lastIndexOf('.'))}.bam" : prefix
-
     def interval_command = intervals ? "--intervals $intervals" : ""
 
     def avail_mem = 3072
@@ -39,8 +38,9 @@ process GATK4_SPLITNCIGARREADS {
         avail_mem = (task.memory.mega*0.8).intValue()
     }
     """
-    gatk --java-options "-Xmx${avail_mem}M" SplitNCigarReads \\
-        --input $input \\
+    gatk --java-options "-Xmx${avail_mem}M -XX:-UsePerfData" \\
+        SplitNCigarReads \\
+        --input $bam \\
         --output ${prefix_bam} \\
         --reference $fasta \\
         $interval_command \\
@@ -53,7 +53,6 @@ process GATK4_SPLITNCIGARREADS {
         rm ${prefix_bam}
         samtools index ${prefix}
     fi
-
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

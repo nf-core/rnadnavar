@@ -30,6 +30,7 @@ workflow BAM_ALIGN {
     dragmap
     star_index
     gtf
+    fasta
     input_sample
 
     main:
@@ -85,11 +86,13 @@ workflow BAM_ALIGN {
         //  STEP 1.C: Trimming and/or splitting
         if (params.trim_fastq || params.split_fastq > 0) {
 
-            save_trimmed_fail = false
-            save_merged = false
+            save_trimmed_fail    = false
+            save_merged          = false
+            discard_trimmed_pass = false
             FASTP(
                 input_fastq,
                 [], // we are not using any adapter fastas at the moment
+                discard_trimmed_pass,
                 save_trimmed_fail,
                 save_merged
             )
@@ -126,7 +129,7 @@ workflow BAM_ALIGN {
 
         //  STEP 1.D.1: DNA mapping with BWA
         sort_bam = true
-        FASTQ_ALIGN_BWAMEM_MEM2_DRAGMAP(reads_for_alignment_status.dna, index_alignment, sort_bam)
+        FASTQ_ALIGN_BWAMEM_MEM2_DRAGMAP(reads_for_alignment_status.dna, index_alignment, fasta, sort_bam)
 
         // Grouping the bams from the same samples not to stall the workflow
         bam_mapped_dna = FASTQ_ALIGN_BWAMEM_MEM2_DRAGMAP.out.bam.map{ meta, bam ->
@@ -154,7 +157,8 @@ workflow BAM_ALIGN {
             params.star_ignore_sjdbgtf,
             params.seq_platform ? params.seq_platform : [],
             params.seq_center ? params.seq_center : [],
-            [ [ id:"fasta" ], [] ] // fasta
+            fasta,
+            [ [ id:"transcript_fasta" ], [] ] // transcript_fasta
         )
         // Grouping the bams from the same samples not to stall the workflow
         bam_mapped_rna = FASTQ_ALIGN_STAR.out.bam.map{ meta, bam ->

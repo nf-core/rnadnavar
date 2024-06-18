@@ -19,6 +19,14 @@ input:
       type: file
       description: The MAF file to be filtered
       pattern: "*.{maf.gz,maf}"
+  - meta2:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test', single_end:false ]
+  - fasta:
+      type: file
+      description: Input genome fasta file
 
 output[:
   - meta:
