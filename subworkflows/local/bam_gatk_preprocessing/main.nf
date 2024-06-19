@@ -159,9 +159,9 @@ workflow BAM_GATK_PREPROCESSING {
                                             }
             BAM_SPLITNCIGARREADS (
                 cram_for_splitncigar_status.rna,
-                dict,
+                dict.map{dict -> [[id:"dict"], dict]},
                 fasta,
-                fasta_fai,
+                fasta_fai.map{fai -> [[id:"fai"], fai]},
                 intervals_and_num_intervals
             )
 

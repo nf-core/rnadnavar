@@ -11,8 +11,8 @@ workflow BAM_SPLITNCIGARREADS {
     take:
     cram            // channel: [mandatory] [ meta, cram_markduplicates, crai ]
     dict            // channel: [mandatory] [ dict ]
-    fasta           // channel: [mandatory] [ fasta ]
-    fasta_fai       // channel: [mandatory] [ fasta_fai ]
+    fasta           // channel: [mandatory] [ meta, fasta ]
+    fasta_fai       // channel: [mandatory] [ meta, fasta_fai ]
     intervals       // channel: [mandatory] [ intervals, num_intervals ] (or [ [], 0 ] if no intervals)
 
     main:
