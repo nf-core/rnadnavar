@@ -2,9 +2,9 @@ repository_type: pipeline
 nf_core_version: "2.14.1"
 lint:
   files_exist:
-  - conf/modules.config
-  - conf/test.config
-  - conf/test_full.config
+    - conf/modules.config
+    - conf/test.config
+    - conf/test_full.config
 modules_config: False
 files_unchanged:
   - LICENSE
