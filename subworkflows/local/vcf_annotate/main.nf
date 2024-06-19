@@ -9,7 +9,7 @@ include { UNZIP as UNZIP_VEP_CACHE                                           } f
 workflow VCF_ANNOTATE {
     take:
     vcf          // channel: [ val(meta), vcf ]
-    fasta
+    fasta        // channel: [ val(meta), fasta ]
     input_sample
     realignment
     vep_cache
@@ -25,8 +25,7 @@ workflow VCF_ANNOTATE {
 
     if (params.tools && params.tools.split(',').contains('vep') || realignment) {
 
-        if (params.tools && params.tools.split(',').contains('vep') || realignment) {
-            fasta = (params.vep_include_fasta) ? fasta : [[id: 'null'], []]
+            fasta = (params.vep_include_fasta) ? fasta.map{ meta, fasta -> [ [ id:fasta.baseName ], fasta ] } : [[id: 'null'], []]
             vep_cache_version  = params.vep_cache_version  ?: Channel.empty()
             vep_genome         = params.vep_genome         ?: Channel.empty()
             vep_species        = params.vep_species        ?: Channel.empty()
@@ -55,7 +54,6 @@ workflow VCF_ANNOTATE {
             versions = versions.mix(VCF_ANNOTATE_ENSEMBLVEP.out.versions)
             CHANNEL_ANNOTATE_CREATE_CSV(vcf_ann.map{meta, vcf, tbi -> [meta, vcf]}, "annotated")
 
-        }
     } else{
 
         vcf_ann = vcf.map{metaVCF -> [metaVCF[0] + [data_type:"vcf"], metaVCF[1]]}
