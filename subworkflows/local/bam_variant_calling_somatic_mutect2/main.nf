@@ -17,9 +17,9 @@ include { GATK4_MUTECT2                   as MUTECT2_PAIRED               } from
 workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
     take:
     input                     // channel: [ meta, [ input ], [ input_index ] ]
-    fasta                     // channel: /path/to/reference/fasta
-    fai                       // channel: /path/to/reference/fasta/index/fai
-    dict                      // channel: /path/to/reference/fasta/dictionary
+    fasta                     // channel: [ meta, fasta]
+    fai                       // channel: [ meta, fai]
+    dict                      // channel: [ meta, dict]
     germline_resource         // channel: /path/to/germline/resource
     germline_resource_tbi     // channel: /path/to/germline/index
     panel_of_normals          // channel: /path/to/panel/of/normals

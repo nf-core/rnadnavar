@@ -26,7 +26,7 @@ workflow VCF_ANNOTATE {
     if (params.tools && params.tools.split(',').contains('vep') || realignment) {
 
         if (params.tools && params.tools.split(',').contains('vep') || realignment) {
-            fasta = (params.vep_include_fasta) ? fasta.map{ fasta -> [ [ id:fasta.baseName ], fasta ] } : [[id: 'null'], []]
+            fasta = (params.vep_include_fasta) ? fasta : [[id: 'null'], []]
             vep_cache_version  = params.vep_cache_version  ?: Channel.empty()
             vep_genome         = params.vep_genome         ?: Channel.empty()
             vep_species        = params.vep_species        ?: Channel.empty()

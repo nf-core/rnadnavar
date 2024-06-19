@@ -9,7 +9,7 @@ process PICARD_FILTERSAMREADS {
 
     input:
     tuple val(meta), path(bam), path(readlist)
-    path fasta
+    tuple val(meta1), path(fasta)
     val filter
 
     output:

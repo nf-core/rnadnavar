@@ -102,7 +102,7 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     VCF_NORMALISE (
                     vcf_to_normalise,
                     // Remap channel to match module/subworkflow
-                    fasta.map{ it -> [ [ id:'fasta' ], it ] },
+                    fasta,
                     input_sample,
                     realignment
                     )

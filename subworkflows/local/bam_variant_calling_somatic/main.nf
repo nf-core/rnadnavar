@@ -40,7 +40,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
             // Remap channel to match module/subworkflow
             dict,
             // Remap channel to match module/subworkflow
-            fasta.map{ it -> [ [ id:'fasta' ], it ] },
+            fasta,
             // Remap channel to match module/subworkflow
             fasta_fai.map{ it -> [ [ id:'fasta_fai' ], it ] },
             intervals
@@ -91,7 +91,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
             // Remap channel to match module/subworkflow
             mutect_cram,
             // Remap channel to match module/subworkflow
-            fasta.map{ it -> [ [ id:'fasta' ], it ] },
+            fasta,
             // Remap channel to match module/subworkflow
             fasta_fai.map{ it -> [ [ id:'fasta_fai' ], it ] },
             dict,

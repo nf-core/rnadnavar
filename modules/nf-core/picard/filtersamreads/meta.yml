@@ -20,14 +20,19 @@ input:
       description: |
         Groovy Map containing sample information
         e.g. [ id:'test', single_end:false ]
-  - fasta:
-      type: file
-      description: reference fasta file
-      pattern: "*.{fasta,fa}"
   - bam:
       type: file
       description: List of BAM files. If filtering without read list must be sorted by queryname with picard sortsam
       pattern: "*.{bam}"
+  - meta1:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test', single_end:false ]
+  - fasta:
+      type: file
+      description: reference fasta file
+      pattern: "*.{fasta,fa}"
   - filter:
       type: string
       description: Picard filter type

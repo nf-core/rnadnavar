@@ -109,8 +109,8 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
             // Extract reads
             cram_to_convert = SAMTOOLS_EXTRACT_READ_IDS.out.read_ids.map{meta, readsid -> [meta + [readsid_file:readsid], meta.cram_file, meta.crai_file]}
             // 1) Convert cram 2 bam
-            CONVERT_CRAM2BAM(cram_to_convert, fasta, fasta_fai)
-            bam_to_filter = CONVERT_CRAM2BAM.out.alignment_index.map{meta, bam, bai -> [meta, bam, meta.readsid_file]}
+            CONVERT_CRAM2BAM(cram_to_convert, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
+            bam_to_filter = CONVERT_CRAM2BAM.out.bam.map{meta, bam -> [meta, bam, meta.readsid_file]}
             // 2) Apply picard filtersamreads
             PICARD_FILTERSAMREADS(bam_to_filter, fasta,'includeReadList') // bam -> filtered_bam
             // Conver to FQ
@@ -118,23 +118,20 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
             interleave_input = false // Currently don't allow interleaved input
             CONVERT_FASTQ_INPUT(
                                 bam_to_fq,
-                                fasta.map{it -> [ [ id:"fasta" ], it ]}, // fasta
-                                fasta_fai.map{it -> [ [ id:"fasta_fai" ], it ]},  // fasta_fai
+                                fasta,
+                                fasta_fai.map{it -> [ [ id:"fasta_fai" ], it ]},
                                 interleave_input
                                 )
             // Align with HISAT2
             reads_for_realignment = CONVERT_FASTQ_INPUT.out.reads
-            reads_for_realignment.map{meta, reads -> [meta + [single_end:se], reads]}.dump(tag:"reads_for_realignmentHISAT2")
             hisat2_index.dump(tag:"HISAT2index")
             splicesites.dump(tag:"HISAT2splicesites")
-            fasta.map{it -> [ [ id:"fasta" ], it ]}.dump(tag:"HISAT2fasta")
-            // TODO: add single_end to input check
-            se = false
+            // Note: single_end in meta always false for this subworkflow TODO: add to samplesheet in future?
             FASTQ_ALIGN_HISAT2(
-                                reads_for_realignment.map{meta, reads -> [meta + [single_end:se], reads]},
+                                reads_for_realignment.map{meta, reads -> [meta + [single_end:false], reads]},
                                 hisat2_index,
                                 splicesites,
-                                fasta.map{it -> [ [ id:"fasta" ], it ]}
+                                fasta
                                 )
             // Mix with index add data type and change id to sample
             bam_mapped = FASTQ_ALIGN_HISAT2.out.bam.join(FASTQ_ALIGN_HISAT2.out.bai).map{meta,bam,bai -> [meta + [ id:meta.sample, data_type:"bam"], bam, bai]}

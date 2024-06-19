@@ -1,4 +1,4 @@
-patient,status,sample,lane,cram,crai
-TCRBOA7,0,TCRBOA7-N,LX,/rds/project/rds-upenYb9rdtk/Work/rm889/repos/test-datasets/testdata/tcbr/TCRBOA7-N.recal.cram,/rds/project/rds-upenYb9rdtk/Work/rm889/repos/test-datasets/testdata/tcbr/TCRBOA7-N.recal.cram.crai
-TCRBOA7,1,TCRBOA7-T,LX,/rds/project/rds-upenYb9rdtk/Work/rm889/repos/test-datasets/testdata/tcbr/TCRBOA7-T.recal.cram,/rds/project/rds-upenYb9rdtk/Work/rm889/repos/test-datasets/testdata/tcbr/TCRBOA7-T.recal.cram.crai
-TCRBOA7,2,TCRBOA7-T-RNA,LX,/rds/project/rds-upenYb9rdtk/Work/rm889/repos/test-datasets/testdata/tcbr/TCRBOA7-T-RNA.recal.cram,/rds/project/rds-upenYb9rdtk/Work/rm889/repos/test-datasets/testdata/tcbr/TCRBOA7-T-RNA.recal.cram.crai
+patient,status,sample,cram,crai
+TCRBOA7,0,TCRBOA7-N,https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/data/tcrb/cram/TCRBOA7-N.chr7.recal.cram,https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/data/tcrb//cram/TCRBOA7-N.chr7.recal.cram.crai
+TCRBOA7,1,TCRBOA7-T,https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/data/tcrb/cram/TCRBOA7-T.chr7.recal.cram,https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/data/tcrb//cram/TCRBOA7-T.chr7.recal.cram.crai
+TCRBOA7,2,TCRBOA7-T-RNA,https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/data/tcrb//cram/TCRBOA7-T-RNA.chr7.recal.cram,https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/data/tcrb//cram/TCRBOA7-T-RNA.chr7.recal.cram.crai

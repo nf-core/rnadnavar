@@ -166,7 +166,7 @@ workflow PREPARE_GENOME {
             if (params.splicesites) {
                 ch_splicesites  = Channel.fromPath(params.splicesites).collect().map{ it -> [ [ id:'null' ], it ]}
             } else{
-                HISAT2_EXTRACTSPLICESITES ( ch_gtf.map{ it -> [ [ id:'null' ], it ]} )
+                HISAT2_EXTRACTSPLICESITES ( ch_gtf )
                 ch_splicesites  = HISAT2_EXTRACTSPLICESITES.out.txt
                 versions = versions.mix(HISAT2_EXTRACTSPLICESITES.out.versions)
             }
@@ -176,7 +176,7 @@ workflow PREPARE_GENOME {
             } else{
                 HISAT2_BUILD (
                                 fasta,
-                                ch_gtf.map{ it -> [ [ id:'null' ], it ]},
+                                ch_gtf,
                                 ch_splicesites
                             )
                 ch_hisat2_index = HISAT2_BUILD.out.index

@@ -73,10 +73,10 @@ workflow BAM_GATK_PREPROCESSING {
                 }
 
                 // Convert any input BAMs to CRAM
-                BAM_TO_CRAM(input_markduplicates_convert.bam, fasta, fasta_fai)
+                BAM_TO_CRAM(input_markduplicates_convert.bam, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
                 versions = versions.mix(BAM_TO_CRAM.out.versions)
 
-                cram_skip_markduplicates = Channel.empty().mix(input_markduplicates_convert.cram, BAM_TO_CRAM.out.alignment_index)
+                cram_skip_markduplicates = Channel.empty().mix(input_markduplicates_convert.cram, BAM_TO_CRAM.out.cram)
             }
 
             CRAM_QC_NO_MD(cram_skip_markduplicates, fasta, intervals_for_preprocessing)
@@ -133,10 +133,10 @@ workflow BAM_GATK_PREPROCESSING {
 
                 input_sncr_convert  = input_sncr_convert.bam.map{ meta, bam, bai, table -> [ meta, bam, bai ] }
                 // BAM files first must be converted to CRAM files since from this step on we base everything on CRAM format
-                BAM_TO_CRAM(input_sncr_convert, fasta, fasta_fai)
+                BAM_TO_CRAM(input_sncr_convert, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
                 versions = versions.mix(BAM_TO_CRAM.out.versions)
 
-                sncr_cram_from_bam = BAM_TO_CRAM.out.alignment_index
+                sncr_cram_from_bam = BAM_TO_CRAM.out.cram
                     // Make sure correct data types are carried through
                     .map{ meta, cram, crai -> [ meta + [data_type: "cram"], cram, crai ] }
 
@@ -195,10 +195,10 @@ workflow BAM_GATK_PREPROCESSING {
             }
 
             // BAM files first must be converted to CRAM files since from this step on we base everything on CRAM format
-            BAM_TO_CRAM(input_prepare_recal_convert.bam, fasta, fasta_fai)
+            BAM_TO_CRAM(input_prepare_recal_convert.bam, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
             versions = versions.mix(BAM_TO_CRAM.out.versions)
 
-            sncr_cram_from_bam = BAM_TO_CRAM.out.alignment_index
+            sncr_cram_from_bam = BAM_TO_CRAM.out.cram
                 // Make sure correct data types are carried through
                 .map{ meta, cram, crai -> [ meta + [data_type: "cram"], cram, crai ] }
 
@@ -271,11 +271,11 @@ workflow BAM_GATK_PREPROCESSING {
             input_only_bam   = input_recal_convert.bam.map{ meta, bam, bai, table -> [ meta, bam, bai ] }
 
             // BAM files first must be converted to CRAM files since from this step on we base everything on CRAM format
-            BAM_TO_CRAM(input_only_bam, fasta, fasta_fai)
+            BAM_TO_CRAM(input_only_bam, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
             versions = versions.mix(BAM_TO_CRAM.out.versions)
 
             cram_applybqsr = Channel.empty().mix(
-                BAM_TO_CRAM.out.alignment_index.join(input_only_table, failOnDuplicate: true, failOnMismatch: true),
+                BAM_TO_CRAM.out.cram.join(input_only_table, failOnDuplicate: true, failOnMismatch: true),
                 input_recal_convert.cram)
                 // Join together converted cram with input tables
                 .map{ meta, cram, crai, table -> [ meta + [data_type: "cram"], cram, crai, table ]}
@@ -314,9 +314,11 @@ workflow BAM_GATK_PREPROCESSING {
             CRAM_TO_BAM_RECAL(cram_variant_calling, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
             versions = versions.mix(CRAM_TO_BAM_RECAL.out.versions)
 
+            converted_cram_to_bam = CRAM_TO_BAM_RECAL.out.bam.join(CRAM_TO_BAM_RECAL.out.bai, failOnDuplicate: true, failOnMismatch: true)
+
             // CSV should be written for the file actually out out, either CRAM or BAM
             csv_recalibration = Channel.empty()
-            csv_recalibration = params.save_output_as_bam ?  CRAM_TO_BAM_RECAL.out.alignment_index : cram_variant_calling
+            csv_recalibration = params.save_output_as_bam ?  converted_cram_to_bam : cram_variant_calling
 
             // Create CSV to restart from this step
             CHANNEL_APPLYBQSR_CREATE_CSV(csv_recalibration)
@@ -325,8 +327,9 @@ workflow BAM_GATK_PREPROCESSING {
             // cram_variant_calling contains either:
             // - input bams converted to crams, if started from step recal + skip BQSR
             // - input crams if started from step recal + skip BQSR
+            converted = BAM_TO_CRAM.out.cram.join(BAM_TO_CRAM.out.crai, failOnDuplicate: true, failOnMismatch: true)
             cram_variant_calling = Channel.empty().mix(
-                BAM_TO_CRAM.out.alignment_index,
+                converted,
                 input_recal_convert.cram.map{ meta, cram, crai, table -> [ meta, cram, crai ] })
         } else {
             // cram_variant_calling contains either:
@@ -346,18 +349,21 @@ workflow BAM_GATK_PREPROCESSING {
     }
 
     // BAM files first must be converted to CRAM files since from this step on we base everything on CRAM format
-    BAM_TO_CRAM(input_variant_calling_convert.bam, fasta, fasta_fai)
+    BAM_TO_CRAM(input_variant_calling_convert.bam, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
     versions = versions.mix(BAM_TO_CRAM.out.versions)
-
-    cram_variant_calling = Channel.empty().mix(BAM_TO_CRAM.out.alignment_index, input_variant_calling_convert.cram)
+    BAM_TO_CRAM.out.cram.dump(tag:"BAM_TO_CRAM.out.cram")
+    converted = BAM_TO_CRAM.out.cram.join(BAM_TO_CRAM.out.crai, failOnDuplicate: true, failOnMismatch: true)
+    converted.dump(tag:"converted")
+    cram_variant_calling = Channel.empty().mix(converted, input_variant_calling_convert.cram)
 
     }
+    cram_variant_calling.dump(tag:"cram_variant_calling_BEFORE")
     // Remove lane from id (which is sample)
     cram_variant_calling = cram_variant_calling.map{meta, cram, crai ->
 //													meta['read_group'] = meta['read_group'].replaceFirst(/ID:[^\s]+/, "ID:" + meta['sample'])
                                                     meta['id'] = meta['sample']
-                                                    [meta,cram, crai]}
-    cram_variant_calling.dump(tag:"cram_variant_calling")
+                                                    [meta, cram, crai]}
+    cram_variant_calling.dump(tag:"cram_variant_calling_AFTER")
 
     emit:
     cram_variant_calling    = cram_variant_calling
