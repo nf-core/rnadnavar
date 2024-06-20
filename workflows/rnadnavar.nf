@@ -226,7 +226,7 @@ workflow RNADNAVAR {
             PREPARE_REALIGNMENT.out.dna_consensus_maf,  // to repeat rescue consensus
             PREPARE_REALIGNMENT.out.dna_varcall_mafs,   // to repeat rescue consensus
             true,  // is realignment
-            true // no_intervals
+            true   // no_intervals
             )
 
         multiqc_files                = multiqc_files.mix(REALIGNMENT.out.reports)

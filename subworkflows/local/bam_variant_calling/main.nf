@@ -36,8 +36,7 @@ workflow BAM_VARIANT_CALLING {
     reports   = Channel.empty()
     versions  = Channel.empty()
     if (tools || realignment) {
-        if (params.step == 'annotate' || params.step == 'normalise') {
-
+        if ((params.step == 'annotate' || params.step == 'normalise') && (!realignment)) {
             cram_variant_calling_pair   = Channel.empty()
             vcf_to_normalise            = input_sample
             contamination_table_mutect2 = Channel.empty()

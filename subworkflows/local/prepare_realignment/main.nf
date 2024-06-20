@@ -136,7 +136,7 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
             // Mix with index add data type and change id to sample
             bam_mapped = FASTQ_ALIGN_HISAT2.out.bam.join(FASTQ_ALIGN_HISAT2.out.bai).map{meta,bam,bai -> [meta + [ id:meta.sample, data_type:"bam"], bam, bai]}
     }
-    bam_mapped.dump(tag:"bam_mapped_REALIGN")
+    bam_mapped = bam_mapped.map{meta, bam, bai -> [meta - meta.subMap('single_end'), bam]}
 
     emit:
     bam_mapped         = bam_mapped

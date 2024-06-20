@@ -341,20 +341,19 @@ workflow BAM_GATK_PREPROCESSING {
     }
 
 
-    if (params.step == 'variant_calling') {
-
+    if (params.step == 'variant_calling' && !realignment) {
         input_variant_calling_convert = input_sample.branch{
             bam:  it[0].data_type == "bam"
             cram: it[0].data_type == "cram"
-    }
+        }
 
-    // BAM files first must be converted to CRAM files since from this step on we base everything on CRAM format
-    BAM_TO_CRAM(input_variant_calling_convert.bam, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
-    versions = versions.mix(BAM_TO_CRAM.out.versions)
-    BAM_TO_CRAM.out.cram.dump(tag:"BAM_TO_CRAM.out.cram")
-    converted = BAM_TO_CRAM.out.cram.join(BAM_TO_CRAM.out.crai, failOnDuplicate: true, failOnMismatch: true)
-    converted.dump(tag:"converted")
-    cram_variant_calling = Channel.empty().mix(converted, input_variant_calling_convert.cram)
+        // BAM files first must be converted to CRAM files since from this step on we base everything on CRAM format
+        BAM_TO_CRAM(input_variant_calling_convert.bam, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
+        versions = versions.mix(BAM_TO_CRAM.out.versions)
+        BAM_TO_CRAM.out.cram.dump(tag:"BAM_TO_CRAM.out.cram")
+        converted = BAM_TO_CRAM.out.cram.join(BAM_TO_CRAM.out.crai, failOnDuplicate: true, failOnMismatch: true)
+        converted.dump(tag:"converted")
+        cram_variant_calling = Channel.empty().mix(converted, input_variant_calling_convert.cram)
 
     }
     cram_variant_calling.dump(tag:"cram_variant_calling_BEFORE")

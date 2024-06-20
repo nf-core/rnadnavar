@@ -7,7 +7,7 @@ process RNA_FILTERING {
 
     input:
         tuple val(meta), path(maf), path(maf_realignment)
-        path fasta
+        tuple val(meta1), path(fasta)
         path fasta_fai
 
     output:
