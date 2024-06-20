@@ -53,7 +53,7 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
         input_sample,
         bam_mapped,                               // channel: [mandatory] [meta, [bam]]
         cram_mapped,                              // channel: [mandatory] [meta, [cram]]
-        fasta,                                    // channel: [mandatory] fasta
+        fasta,                                    // channel: [mandatory] [meta, fasta]
         fasta_fai,                                // channel: [mandatory] fasta_fai
         dict,                                     // channel: [mandatory] dict
         known_sites_indels,                       // channel: [optional]  known_sites
@@ -110,7 +110,6 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     vcf_to_annotate               = VCF_NORMALISE.out.vcf
 
     vcf_to_annotate.dump(tag:"vcf_to_annotate")
-
     // ANNOTATION
 
     VCF_ANNOTATE(
