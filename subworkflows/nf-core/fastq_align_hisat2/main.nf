@@ -5,9 +5,9 @@ workflow FASTQ_ALIGN_HISAT2 {
 
     take:
     reads       // channel: [ val(meta), [ reads ] ]
-    index       // channel: [ val(meta), /path/to/hisat2/index]
-    splicesites // channel: [ val(meta), /path/to/genome.splicesites.txt]
-    ch_fasta    // channel: [ val(meta), fasta ]
+    index       // channel: /path/to/hisat2/index
+    splicesites // channel: /path/to/genome.splicesites.txt
+    ch_fasta    // channel: [ fasta ]
 
     main:
 
@@ -41,4 +41,3 @@ workflow FASTQ_ALIGN_HISAT2 {
 
     versions = ch_versions                          // channel: [ versions.yml ]
 }
-

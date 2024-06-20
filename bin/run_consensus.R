@@ -55,7 +55,6 @@ if(!grepl(pattern = "--cpu=", x = paste(script_args, collapse = ""))) {
     script_args <- c(script_args, "--cpu=1")
 }
 
-
 ## Parse arguments (we expect the form --arg=value)
 parseArgs <- function(x) strsplit(sub("^--", "", x), "=")
 argsDF <- as.data.frame(do.call("rbind", parseArgs(script_args)))
@@ -67,7 +66,6 @@ names(argsL) <- argsDF$V1
 sampleid <- argsL$id
 input_files <- list.files(strsplit(argsL[["input_dir"]], split=",")[[1]], pattern="\\.maf$", full.names=TRUE)
 
-
 # Extract caller names from file names
 get_caller <- function(filename) {
     sub(".*\\.(.*?)\\.maf", "\\1", filename)
@@ -75,8 +73,6 @@ get_caller <- function(filename) {
 callers <- sapply(input_files, get_caller)
 
 names(input_files) <- callers
-
-print(input_files)
 
 is.vcf <- grepl(x = input_files[1], pattern = ".vcf$|.vcf.gz$", perl = T)
 
