@@ -70,7 +70,7 @@ input_files <- list.files(strsplit(argsL[["input_dir"]], split=",")[[1]], patter
 
 # Extract caller names from file names
 get_caller <- function(filename) {
-  sub(".*\\.(.*?)\\.maf", "\\1", filename)
+    sub(".*\\.(.*?)\\.maf", "\\1", filename)
 }
 callers <- sapply(input_files, get_caller)
 
