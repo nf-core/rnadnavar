@@ -31,23 +31,19 @@ if("--help" %in% script_args) {
     cat("The consensusR script:
 
         Arguments:
-        --input=input_file.maf     - character, VCf/MAF file, can be specfied more than once for several inputs
-        --caller=caller_name       - character, caller that was used to generate input file - has to be in the SAME order as input
-        --out_prefix=output_prefix - character, preffix for outputs
-        --thr=thr                  - integer, the number of callers that support a mutation to be called consensus (default: 2)
-        --cpu=cpu                  - integer, number of threads/cores to use in the parallelisation
-        --help                     - print this text
-
+        --input_dir=input_directory - character, Directory containing input files
+        --out_prefix=output_prefix  - character, preffix for outputs
+        --thr=thr                   - integer, the number of callers that support a mutation to be called consensus (default: 2)
+        --cpu=cpu                   - integer, number of threads/cores to use in the parallelisation
+        --help                      - print this text
+        Note: Please ensure caller name is as follows: sample_id.caller.maf
         Example:
-        ./consensusR.R --id=sample01 --input=caller1.vcf --input=caller2.vcf --callers C1 --callers C2  --out_prefix=consensus \n\n")
+        ./consensusR.R --id=sample01 --input_dir=inputs/  --out_prefix=consensus \n\n")
 
     q(save="no")
 }
-if(!grepl(pattern = "--input=", x = paste(script_args, collapse = ""))) {
-    stop("Missing --input file!")
-}
-if(!grepl(pattern = "--caller=", x = paste(script_args, collapse = ""))) {
-    stop("Missing --caller value! Please put it in the same order as caller.")
+if(!grepl(pattern = "--input_dir=", x = paste(script_args, collapse = ""))) {
+    stop("Missing --input_dir name!")
 }
 if(!grepl(pattern = "--out_prefix=", x = paste(script_args, collapse = ""))) {
     script_args <- c(script_args, "--out_prefix=consensus")
@@ -69,11 +65,20 @@ names(argsL) <- argsDF$V1
 
 # Input variables
 sampleid <- argsL$id
-vcfs <- strsplit(argsL[["input"]], split=",")[[1]]
-callers <- strsplit(argsL[["caller"]], split=",")[[1]]
-names(vcfs) <- callers
+input_files <- list.files(strsplit(argsL[["input_dir"]], split=",")[[1]], pattern="\\.maf$", full.names=TRUE)
 
-is.vcf <- grepl(x = vcfs[1], pattern = ".vcf$|.vcf.gz$", perl = T)
+
+# Extract caller names from file names
+get_caller <- function(filename) {
+  sub(".*\\.(.*?)\\.maf", "\\1", filename)
+}
+callers <- sapply(input_files, get_caller)
+
+names(input_files) <- callers
+
+print(input_files)
+
+is.vcf <- grepl(x = input_files[1], pattern = ".vcf$|.vcf.gz$", perl = T)
 
 # output files
 pdf.out <- paste0(argsL$out_prefix, ".pdf")
@@ -85,8 +90,8 @@ if (is.vcf){
 
 message("- Parsing headers")
 if (is.vcf){
-    # First, get contigs from one of the VCFs
-    contigs_meta <- fread(cmd=paste0("zgrep '##contig' ", vcfs[1]), sep = NULL, header = F)
+    # First, get contigs from one of the input files
+    contigs_meta <- fread(cmd=paste0("zgrep '##contig' ", input_files[1]), sep = NULL, header = F)
     contigs_meta <- paste0(contigs_meta$V1, collapse = "\n")
 } else {
     contigs_meta <- ""
@@ -94,25 +99,25 @@ if (is.vcf){
 # Collecting vcf headers for the outputs
 callers_meta <- list()
 for ( c in callers){
-    vcf_meta <- fread(cmd=paste0("zgrep -E '##|#version' ", vcfs[c]), sep = NULL, header = F)
+    vcf_meta <- fread(cmd=paste0("zgrep -E '##|#version' ", input_files[c]), sep = NULL, header = F)
     if (is.vcf){
-        vcf_header <- fread(cmd=paste0("zgrep '#CHROM' ", vcfs[c]), sep = NULL, header = F)
+        vcf_header <- fread(cmd=paste0("zgrep '#CHROM' ", input_files[c]), sep = NULL, header = F)
         callers_meta[[c]] <-  list(meta=paste0(vcf_meta$V1, collapse = "\n"),
                                                         header=strsplit(vcf_header$V1, "\t")[[1]])
     } else{
-        maf_header <- fread(cmd=paste0("zgrep 'Hugo_Symbol' ", vcfs[c]), sep = NULL, header = F)
+        maf_header <- fread(cmd=paste0("zgrep 'Hugo_Symbol' ", input_files[c]), sep = NULL, header = F)
         callers_meta[[c]] <-  list(meta=paste0(vcf_meta$V1, collapse = "\n"),
                                                                 header=strsplit(maf_header$V1, "\t")[[1]])
     }
 }
 
 
-# Second, we read and convert the VCFs in GenomicRanges for easy manipulation.
+# Second, we read and convert the input files to GenomicRanges for easy manipulation.
 message("- Converting to genomic ranges")
 mutsGR <- list()
 muts <-  list()
 for(c in callers[1:length(callers)]){
-    v <- vcfs[c]
+    v <- input_files[c]
     message("  - ", v)
     if (!is.vcf){
         tmp <- fread(cmd=paste0("zgrep -v '#' ", v))

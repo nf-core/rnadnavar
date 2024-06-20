@@ -22,6 +22,8 @@ def argparser():
     parser.add_argument("--blacklist", help="BED file with regions to remove (CHROM START END)")
     parser.add_argument("--filters", help="Other filters to be considered as PASS", default=["PASS"], nargs="+")
     parser.add_argument("--ref", help="FASTA reference file to extract context")
+    parser.add_argument("--vc_priority", help="The order of priority will mark which caller annotation will be kept. Only one annotation is kept per sample and per caller.",
+                        default=["mutect2", "sage", "strelka"], nargs="+")
     return parser.parse_args()
 
 
@@ -272,7 +274,7 @@ def deduplicate_maf(variants, vc_priority):
     return pd.concat(deduped).drop_duplicates(subset="DNAchange", keep="first")
 
 
-def write_maf(maf_df, mafin_file, mafout_file, vc_priority=["mutect2", "sage", "strelka"]):
+def write_maf(maf_df, mafin_file, mafout_file, vc_priority):
     """Write output"""
     header_lines = subprocess.getoutput(f"zgrep -Eh '#|Hugo_Symbol' {mafin_file} 2>/dev/null")
     if "Caller" in maf_df.columns:
@@ -330,7 +332,7 @@ def main():
     maf = add_ravex_filters(maf=maf, filters=args.filters, blacklist=blacklist, whitelist=whitelist)
     if not args.output:
         args.output = args.input.replace(".maf", "filtered.maf")
-    write_maf(maf_df=maf, mafin_file=args.input, mafout_file=args.output)
+    write_maf(maf_df=maf, mafin_file=args.input, mafout_file=args.output,vc_priority=args.vc_priority)
 
 
 if __name__ == "__main__":

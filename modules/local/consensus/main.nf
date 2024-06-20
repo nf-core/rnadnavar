@@ -6,7 +6,7 @@ process RUN_CONSENSUS {
     container 'ghcr.io/raqmanzano/renv:latest'
 
     input:
-        tuple val(meta), path(vcf), val(caller)
+        tuple val(meta), path(vcf, stageAs: "inputs/*"), val(caller)
 
     output:
         tuple val(meta), path('*.consensus.vcf')                , optional:true , emit: vcf
@@ -22,11 +22,9 @@ process RUN_CONSENSUS {
     script: // This script is bundled with the pipeline, in nf-core/rnadnavar/bin/
         def args = task.ext.args ?: ''
         def prefix = task.ext.prefix ?: "${meta.id}"
-        def input_list = vcf.collect{ "--input=$it"}.join(' ')
-        def caller_list = caller.collect{ "--caller=$it"}.join(' ')
 
         """
-        run_consensus.R ${input_list} ${caller_list} --out_prefix=${prefix}.consensus --cpu=$task.cpus $args
+        run_consensus.R --input_dir=inputs/ --out_prefix=${prefix}.consensus --cpu=$task.cpus $args
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
             R: \$(echo \$(R --version 2>&1) | head -n 1)
