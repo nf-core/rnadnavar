@@ -107,7 +107,7 @@ workflow PREPARE_GENOME {
                 GUNZIP_GFF (
                     Channel.fromPath(params.gff).map{ it -> [[id:it[0].baseName], it] }
                 )
-                ch_gff = GUNZIP_GFF.out.gunzip.map{ meta, gff -> [gff] }.collect()
+                ch_gff = GUNZIP_GFF.out.gunzip.collect()
                 versions = versions.mix(GUNZIP_GFF.out.versions)
             } else {
                 ch_gff = Channel.fromPath(params.gff).collect().map{gff -> [[id:"gff"], gff]}
@@ -148,10 +148,10 @@ workflow PREPARE_GENOME {
                 UNTAR_STAR_INDEX (
                     Channel.fromPath(params.star_index).map{ it -> [[id:it[0].baseName], it] }
                 )
-                ch_star_index = UNTAR_STAR_INDEX.out.untar.map{ meta, star_index -> [star_index] }.collect()
+                ch_star_index = UNTAR_STAR_INDEX.out.untar.collect()
                 versions   = versions.mix(UNTAR_STAR_INDEX.out.versions)
             } else {
-                ch_star_index = Channel.fromPath(params.star_index).collect()
+                ch_star_index = Channel.fromPath(params.star_index).collect().map{star_index -> [[id:"star_index"], star_index]}
             }
         }
         else {
