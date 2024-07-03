@@ -32,7 +32,7 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
         bam_mapped = Channel.empty()
 
         if (params.step in ['mapping', 'markduplicates', 'splitncigar',
-        'prepare_recalibration', 'recalibrate', 'variant_calling', 'normalise', 'consensus',
+        'prepare_recalibration', 'recalibrate', 'variant_calling', 'norm', 'consensus',
         'realignment'] && !(params.skip_tools && params.skip_tools.split(",").contains("realignment"))) {
             if (params.step == 'realignment') {
                 input_elements_status = input_sample.branch{

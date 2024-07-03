@@ -27,15 +27,14 @@ workflow VCF_CONSENSUS {
     mafs_from_varcal_dna    = Channel.empty()
     consensus_maf           = Channel.empty()
 
-    if (params.step == 'consensus') vcf_to_consensus = input_sample
+    if (params.step == 'consensus' && !realignment) vcf_to_consensus = input_sample
 
 
     if ((params.step in ['mapping', 'markduplicates', 'splitncigar',
                         'prepare_recalibration', 'recalibrate', 'variant_calling', 'annotate',
-                        'normalise', 'consensus'] &&
+                        'norm', 'consensus'] &&
                         ((params.tools && params.tools.split(",").contains("consensus")))) ||
                         realignment) {
-
         vcf_to_consensus_type = vcf_to_consensus.branch{
                                 vcf: it[0].data_type == "vcf"
                                 maf: it[0].data_type == "maf"
@@ -48,7 +47,9 @@ workflow VCF_CONSENSUS {
 
 //        maf_to_consensus.dump(tag:"maf_to_consensus")
         // count number of callers to generate groupKey
-        if (realignment) tools = "sage,strelka,mutect2"
+        if (realignment || (params.step in ['consensus', 'annotate','filtering', 'rna_filtering'] && params.tools && params.tools.split(',').contains("realignment")) ) {
+            tools = "sage,strelka,mutect2" // TODO: this is hardcoded at the moment. Should be a param
+            }
         maf_to_consensus.dump(tag:"maf_to_consensus0")
         maf_to_consensus = maf_to_consensus.map{ meta, maf ->
                                     def toolsllist = tools.split(',')
@@ -64,6 +65,7 @@ workflow VCF_CONSENSUS {
         RUN_CONSENSUS ( maf_to_consensus )
 
         consensus_maf = RUN_CONSENSUS.out.maf  // 1 consensus_maf from all callers
+        consensus_maf.dump(tag:"consensus_maf0")
         // Separate DNA from RNA
         // VCFs from variant calling
         mafs_from_varcal   = maf_to_consensus.branch{

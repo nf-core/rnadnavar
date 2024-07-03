@@ -40,24 +40,29 @@ workflow  SAMPLESHEET_TO_CHANNEL{
                 else {
                     error("Samplesheet contains fastq files but step is `$params.step`. Please check your samplesheet or adjust the step parameter.\nhttps://nf-co.re/rnadnavar/usage#input-samplesheet-configurations")
                 }
-            // start for realignment
-            } else if ((maf || vcf) && params.step=="realignment"){
+            // start for realignment or will do realignment later starting after pre-processing
+            } else if ((maf || vcf) && (params.step=="realignment" || (params.tools && params.tools.split(',').contains("realignment")))){
                 if (meta.lane == null) meta.lane = "LX"
-                meta            = meta + [id: "${meta.sample}-${meta.lane}-realign".toString()]
-                def CN          = params.seq_center ? "CN:${params.seq_center}\\t" : ''
-                def read_group  = "\"@RG\\tID:${meta.sample}_${meta.lane}_realign\\t${CN}PU:${meta.lane}\\tSM:${meta.sample}\\tLB:${meta.sample}\\tDS:${params.fasta}\\tPL:${params.seq_platform}\""
-                if (meta.status >= 2) { // STAR does not need '@RG'
-                    read_group  = "ID:${meta.sample}_${meta.lane}_realign ${CN}PU:${meta.lane} SM:${meta.sample} LB:${meta.sample} DS:${params.fasta} PL:${params.seq_platform}"
-                }
-                if (meta.status >= 2 || meta.status==0){ // these are the files that will go through realignment
+
+                if ((meta.status >= 2 || meta.status==0) && !maf){ // these are the files that will go through realignment
+                    meta            = meta + [id: "${meta.sample}-${meta.lane}-realign".toString()]
+                    def CN          = params.seq_center ? "CN:${params.seq_center}\\t" : ''
+                    def read_group  = "\"@RG\\tID:${meta.sample}_${meta.lane}_realign\\t${CN}PU:${meta.lane}\\tSM:${meta.sample}\\tLB:${meta.sample}\\tDS:${params.fasta}\\tPL:${params.seq_platform}\""
+                    if (meta.status >= 2) { // STAR does not need '@RG'
+                        read_group  = "ID:${meta.sample}_${meta.lane}_realign ${CN}PU:${meta.lane} SM:${meta.sample} LB:${meta.sample} DS:${params.fasta} PL:${params.seq_platform}"
+                    }
                     if (cram)  return [ meta + [num_lanes: num_lanes.toInteger(), read_group: read_group.toString(), data_type: 'cram', size: 1], cram, crai, maf ]
                     else if (bam) return [ meta + [num_lanes: num_lanes.toInteger(), read_group: read_group.toString(), data_type: 'bam', size: 1], bam, bai, maf ]
                     else {
                         error("Combination error")}
-                } else if (meta.status == 1){
-
-                    return [meta + [data_type: 'maf', variantcaller: variantcaller ?: ''], maf]
-
+                } else if (meta.status >= 1){
+                    if (meta.normal_id == null){
+                        error("When tool 'realigment' enabled, `normal_id` should be added to the csv for maf files.")
+                        // Need to get the normal id to create the tumour_vs_normal id
+                    } else {
+                        meta = meta + [id: meta.sample + "_vs_" + meta.normal_id, data_type: 'maf', variantcaller: variantcaller ?: '']
+                        return [ meta, maf ]
+                    }
                 }
             // start from BAM
             } else if (meta.lane && bam) {
@@ -120,12 +125,12 @@ workflow  SAMPLESHEET_TO_CHANNEL{
                 meta = meta + [id: meta.sample, data_type: 'vcf', variantcaller: variantcaller ?: '']
 
                 if (params.step == 'annotate' ) return [ meta - meta.subMap('lane'), vcf ]
-                else if (params.step == 'normalise') {
+                else if (params.step == 'norm') {
                     if (meta.status == 0){ // TODO: more specific checks on this is needed
                         error("Samplesheet contains vcf files with status 0, vcfs should only be for tumours (1|2).")
                     }
                     else if (meta.normal_id == null){
-                        error("When step 'normalise', `normal_id` should be added to the csv for all samples.")
+                        error("When step 'norm', `normal_id` should be added to the csv for all samples.")
                         // Need to get the normal id to create the tumour_vs_normal id
                     } else {
                         meta = meta + [id: meta.sample + "_vs_" + meta.normal_id, data_type: 'vcf', variantcaller: variantcaller ?: '']

@@ -144,6 +144,7 @@ workflow RNADNAVAR {
         PREPARE_REFERENCE_AND_INTERVALS.out.star_index,
         PREPARE_REFERENCE_AND_INTERVALS.out.gtf,
         fasta,
+        fasta_fai,
         input_sample
         )
 
@@ -185,7 +186,6 @@ workflow RNADNAVAR {
         params.split_fastq = 0
         // reset intervals to none (realignment files are small)
         PREPARE_INTERVALS_FOR_REALIGNMENT(fasta_fai, null, true)
-
         PREPARE_REALIGNMENT(
                             input_sample,           // input from CSV if applicable
                             filtered_maf,
