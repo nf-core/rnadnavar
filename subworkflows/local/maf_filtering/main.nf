@@ -18,7 +18,7 @@ workflow MAF_FILTERING {
     maf       = Channel.empty()
     if ((params.step in ['mapping', 'markduplicates', 'splitncigar',
                 'prepare_recalibration', 'recalibrate', 'variant_calling', 'annotate',
-                'normalise', 'consensus', 'filtering'] &&
+                'norm', 'consensus', 'filtering'] &&
                 ((params.tools && params.tools.split(",").contains("filtering")))) ||
                 realignment) {
 
