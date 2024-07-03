@@ -54,8 +54,8 @@ workflow VCF_CONSENSUS {
         maf_to_consensus = maf_to_consensus.map{ meta, maf ->
                                     def toolsllist = tools.split(',')
                                     def ncallers   = toolsllist.count('sage') +
-                                                     toolsllist.count('strelka') +
-                                                     toolsllist.count('mutect2')
+                                                    toolsllist.count('strelka') +
+                                                    toolsllist.count('mutect2')
                                     key = groupKey(meta.subMap('id', 'patient', 'status') +
                                                 [ncallers : ncallers], ncallers)
                                     [key, maf, meta.variantcaller]}
