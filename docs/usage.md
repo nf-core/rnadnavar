@@ -141,6 +141,7 @@ The pipeline has the flexibility to start from different steps but `tools` need 
   - At the end of the RNA filtering you will have two entries per mutation, the extra one is the annotation from realignment mode. If you want to remove these entried, they can be filtered through the column `Tumor_Sample_Barcode` and remove all entries with the suffix `_realign`.
 
 - `realignment`: this step is slightly different from the rest as it requires both results from variant calling (`vcf/maf`) and alignment files (`bam,cram`). Reason being that it will convert coordinates from `vcf/maf` to `bed` and extract reads from the alignment files of those regions of interest where a mutation was found. With those reads a re-alignment is performed using HISAT2. requires `patient,status,sample,normal_id,vcf/maf,variantcaller,bam/cram,bai/crai`.
+
   - Realignment can be activated from any step as long as it is specified in `params.tools`, alignment files are provided and a maf/vcf file is provided or produced by the pipeline.
 
 -
