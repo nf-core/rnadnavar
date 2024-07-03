@@ -70,8 +70,6 @@ def add_filters(maf, rnaeditingsites, realignment, whitelist):
     Check for RNA editing sites in the MAF table
     """
     print("- Annotating RNA filters")
-    if not rnaeditingsites:
-        rnaeditingsites = pd.DataFrame()
     if not rnaeditingsites.empty:
         rnaedits = pd.DataFrame({"rnaediting": maf["DNAchange"].isin(rnaeditingsites["DNAchange"])})
         maf = pd.merge(maf, rnaedits, left_index=True, right_index=True)
@@ -190,17 +188,16 @@ def write_output(args, results, output, out_suffix):
         results[0].sort_values(["Chromosome", "Start_Position"]).to_csv(output, sep="\t", index=False, header=True)
         print(f"See: {output}")
 
-def check_rnaediting(rnaedits, rnadbs):
+def check_rnaediting(rnaedits):
     print("- Obtaining RNA editing sites from bed(s)")
+    rnadbs = []
     for rnadb_file in rnaedits:
         print(f" - Reading {rnadb_file}")
         rnadb = pd.read_csv(rnadb_file, sep="\s+", names=["chr", "start", "end", "ref", "alt"], header=None, low_memory=False)
-        rnadb["DNAchange"] = rnadb["chr"] + ":g." + rnadb["start"].map(str) + rnadb["ref"] + ">" + rnadb["alt"]
-        rnadbs += [rnadb]
-        rnadb["DNAchange"] = rnadb["chr"] + ":g." + rnadb["start"].map(str) + rnadb["alt"] + ">" + rnadb["ref"]
-        rnadbs += [rnadb]
-    rnadbs = pd.concat(rnadbs)
-    return rnadbs
+        rnadbs += [rnadb.assign(DNAchange=rnadb["chr"] + ":g." + rnadb["start"].map(str) + rnadb["ref"] + ">" + rnadb["alt"])]
+        rnadbs += [rnadb.assign(DNAchange=rnadb["chr"] + ":g." + rnadb["start"].map(str) + rnadb["alt"] + ">" + rnadb["ref"])]
+    rnadbs_concat = pd.concat(rnadbs)
+    return rnadbs_concat
 
 def main():
     args = argparser()
@@ -237,9 +234,9 @@ def main():
         if args.pon:
             calls = run_capy(M=calls, pon=args.pon,  ref=args.ref,  thr=args.thr, suffix='_'+args.refname, chroms=chroms, refname2=False)
         # Annotate known RNA editing
-        rnadbs = []
+        rnadbs = pd.DataFrame()
         if args.rnaedits:
-            rnadbs = check_rnaediting(args.rnaedits, rnadbs)
+            rnadbs = check_rnaediting(args.rnaedits)
         calls = add_filters(maf=calls, rnaeditingsites=rnadbs, realignment=didrealignment, whitelist=args.whitelist)
         results[idx] = calls
     # write maf files
