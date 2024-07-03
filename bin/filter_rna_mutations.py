@@ -33,7 +33,6 @@ def argparser():
 
     return parser.parse_args()
 
-
 def realignment(maf1, maf2):
     """
     Get variants that intersect both mafs without taking into account potential consensus variants
@@ -74,7 +73,7 @@ def add_filters(maf, rnaeditingsites, realignment, whitelist):
         maf = maf.assign(mut=maf["Reference_Allele"] + ">" + maf["Tumor_Seq_Allele2"])
         maf = maf.assign(chr_start=maf['Chromosome'] + maf['Start_Position'].astype(str))
         rnaeditingsites = rnaeditingsites.assign(chr_start = rnaeditingsites['chr'] + rnaeditingsites['start'].astype(str))
-        rnaedits = pd.DataFrame({"rnaediting": maf['chr_start'].isin(rnaeditingsites['chr_start']) & maf['mut'].str.contains("^T>C$|^C>T$|^A>G$|^G>A$")})
+        rnaedits = pd.DataFrame({"rnaediting": maf['chr_start'].isin(rnaeditingsites['chr_start']) & maf['mut'].str.contains("^T>>
         maf.drop("chr_start", axis=1,inplace=True)
         maf = pd.merge(maf, rnaedits, left_index=True, right_index=True)
     else:
@@ -152,7 +151,6 @@ def run_capy(M, pon, ref, thr, chroms, suffix="_hg38", refname2="hg19"):
 
     return M
 
-
 def add_coords2_with_liftover(M, chain_file,ref1="hg38",ref2="hg19"):
     """
     Liftover ref1 coordinates from maf to ref2
@@ -178,7 +176,6 @@ def add_coords2_with_liftover(M, chain_file,ref1="hg38",ref2="hg19"):
     M = pd.concat([M, tmp], axis=1).drop(0, axis=1)
 
     return M
-
 
 def write_output(args, results, output, out_suffix):
     """Write filtered maf(s). If realignment was provided then there will be three files:
@@ -206,7 +203,6 @@ def check_rnaediting(rnaedits):
     for rnadb_file in rnaedits:
         print(f" - Reading {rnadb_file}")
         rnadb = pd.read_csv(rnadb_file, sep="\s+", names=["chr", "start", "end", "ref", "alt"], header=None, low_memory=False)
-        # Possible RNA editing, depending on forward/reverse
         rnadbs += [rnadb.assign(DNAchange=rnadb["chr"] + ":g." + rnadb["start"].map(str) + rnadb["ref"] + ">" + rnadb["alt"])]
     rnadbs_concat = pd.concat(rnadbs)
     return rnadbs_concat
@@ -257,7 +253,6 @@ def main():
         results[idx] = calls
     # write maf files
     write_output(args, results, args.output, args.out_suffix)
-
 
 if __name__ == "__main__":
     main()

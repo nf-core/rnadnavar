@@ -23,7 +23,7 @@ def argparser():
     parser.add_argument("--filters", help="Other filters to be considered as PASS", default=["PASS"], nargs="+")
     parser.add_argument("--ref", help="FASTA reference file to extract context")
     parser.add_argument("--vc_priority", help="The order of priority will mark which caller annotation will be kept. Only one annotation is kept per sample and per caller.",
-                        default=["mutect2", "sage", "strelka"], nargs="+")
+                        default=["mutect2", "sage", "strelka", "consensus"], nargs="+")
     return parser.parse_args()
 
 
@@ -68,10 +68,10 @@ def read_maf(maf_file):
     if type(maf_file) == type([]):
         maf_list = []
         for m in maf_file:
-            maf_list += [pd.read_csv(m, sep="\t", comment="#")]
+            maf_list += [pd.read_csv(m, sep="\t", comment="#", low_memory=False)]
         maf = pd.concat(maf_list)
     else:
-        maf = pd.read_csv(maf_file, sep="\t", comment="#")
+        maf = pd.read_csv(maf_file, sep="\t", comment="#", low_memory=False)
     if "DNAchange" not in maf.columns:
         maf["DNAchange"] = (
             maf["Chromosome"].map(str)
@@ -195,7 +195,7 @@ def remove_muts_in_range(df, blacklist):
         end = row[2]
         if len(row) >= 3:  # optional
             reason = row[3]
-        df_bkl = df[df["Chromosome"] == chrom][df["Start_Position"].between(start, end, inclusive=True)].index
+        df_bkl = df[df["Chromosome"] == chrom][df["Start_Position"].between(start, end, inclusive="both")].index
         df.loc[df_bkl, "blacklist"] = True
         df.loc[df_bkl, "blk_reason"] = reason
     return df
@@ -266,32 +266,49 @@ def add_ravex_filters(
         maf.at[idx, "RaVeX_FILTER"] = ravex_filter
     return maf
 
+def merge_rows(group):
+    """Merge info when mut is repeated due to consensus
+    """
+    # Take the first row as the base
+    merged_row = group.iloc[0].copy()
+    # Merge the 'callers' column
+    merged_row['callers'] = group['callers'].iloc[0] + "|" + group['Caller'].iloc[1] if len(group) > 1 else group['callers'].iloc[0]
+    # Merge the 'filters' column
+    merged_row['filters'] = group['filters'].iloc[0] + "|" +  group['FILTER_consensus'].iloc[1] if len(group) > 1 else group['callers'].iloc[0]
+    # Set the Tumor_Sample_Barcode_consensus column
+    merged_row['Tumor_Sample_Barcode_consensus'] = group['Tumor_Sample_Barcode'].iloc[1] if len(group) > 1 else None
+
+    return merged_row
 
 def deduplicate_maf(variants, vc_priority):
     deduped = []
     for caller in vc_priority:
         deduped.append(variants[variants["Caller"] == caller])
-    return pd.concat(deduped).drop_duplicates(subset="DNAchange", keep="first")
+    # we deduplicate per DNAchange and Tumor_Sample_Barcode
+    deduplicated = pd.concat(deduped).drop_duplicates(subset=["DNAchange", "Tumor_Sample_Barcode"], keep="first")
+    # when two same mutations are still present, we assume this is due to "consensus" from different data type (DNA/RNA)
+    grouped = deduplicated.groupby('DNAchange')
+    # merge the info from consensus
+    consensus_merged = grouped.apply(merge_rows).reset_index(drop=True)
+    return consensus_merged
 
 
 def write_maf(maf_df, mafin_file, mafout_file, vc_priority):
     """Write output"""
     header_lines = subprocess.getoutput(f"zgrep -Eh '#|Hugo_Symbol' {mafin_file} 2>/dev/null")
     if "Caller" in maf_df.columns:
-        print("Removing duplicated variants from maf (only one entry from a caller will be kept)")
+        print("Removing duplicated variants from maf (only one entry from a caller will be kept)\nNote: `consensus` info will be merged")
         # Separate the multiallelic variants
         multiallelic_variants = maf_df[maf_df["FILTER"].str.contains("multiallelic", case=False, na=False)]
         other_variants = maf_df[~maf_df["FILTER"].str.contains("multiallelic", case=False, na=False)]
 
-        # Combine variants with Caller for multiallelic changed
+        # Combine variants with Caller from multiallelic
         multiallelic_variants["Caller"] = multiallelic_variants["Caller"] + "_multiallelic"
         maf_to_dedup = pd.concat([other_variants, multiallelic_variants])
-
         # Deduplicate variants
         maf_to_write = deduplicate_maf(maf_to_dedup, vc_priority + list(multiallelic_variants["Caller"].unique()))
     else:
         maf_to_write = maf_df
-
     # Write the header and deduplicated MAF to the output file
     with open(mafout_file, "w") as mafout:
         mafout.write(header_lines)
