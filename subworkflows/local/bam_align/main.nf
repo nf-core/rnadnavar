@@ -13,6 +13,7 @@ include { FASTQ_ALIGN_BWAMEM_MEM2_DRAGMAP               } from '../fastq_align_b
 include { FASTQ_ALIGN_STAR                              } from '../../nf-core/fastq_align_star/main'
 // Merge and index BAM files (optional)
 include { BAM_MERGE_INDEX_SAMTOOLS                      } from '../bam_merge_index_samtools/main'
+include { SAMTOOLS_CONVERT as BAM_TO_CRAM_MAPPING       } from '../../../modules/nf-core/samtools/convert/main'
 // Create samplesheets to restart from mapping
 include { CHANNEL_ALIGN_CREATE_CSV                      } from '../channel_align_create_csv/main'
 // MODULES
@@ -31,6 +32,7 @@ workflow BAM_ALIGN {
     star_index
     gtf
     fasta
+    fasta_fai
     input_sample
 
     main:
