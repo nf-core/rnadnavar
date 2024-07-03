@@ -27,7 +27,7 @@ def argparser():
     parser.add_argument("--refname", help="e.g. hg38", default="hg38")
     parser.add_argument("--ref2", help="FASTA - e.g. hg19 (hs37d5)")
     parser.add_argument("--refname2", help="e.g. HG19", default="hg19")
-    parser.add_argument("--rnaedits", help="BED file(s) with known RNA editing events separated by space", nargs="+")
+    parser.add_argument("--rnaedits", help="BED file(s) with known RNA editing events separated by space", nargs="+", default=[])
     parser.add_argument("--thr", default=-2.8)
     parser.add_argument("--chain", help="Chain file")
 
@@ -65,11 +65,13 @@ def realignment(maf1, maf2):
     return maf1, maf2, maf_intersect
 
 
-def add_filters(maf, rnaeditingsites, realignment):
+def add_filters(maf, rnaeditingsites, realignment, whitelist):
     """
     Check for RNA editing sites in the MAF table
     """
     print("- Annotating RNA filters")
+    if not rnaeditingsites:
+        rnaeditingsites = pd.DataFrame()
     if not rnaeditingsites.empty:
         rnaedits = pd.DataFrame({"rnaediting": maf["DNAchange"].isin(rnaeditingsites["DNAchange"])})
         maf = pd.merge(maf, rnaedits, left_index=True, right_index=True)
@@ -89,8 +91,9 @@ def add_filters(maf, rnaeditingsites, realignment):
         for pon_col in pon_cols:
             if row[pon_col]:
                 ravex_filter += ["rna_pon" + pon_col[-5:]]
-        if not ravex_filter or row["whitelist"]:
-            ravex_filter = ["PASS"]
+        if whitelist:
+            if not ravex_filter or row["whitelist"]:
+                ravex_filter = ["PASS"]
         ravex_filter = ";".join(ravex_filter)
         maf.at[idx, "RaVeX_FILTER"] = ravex_filter
     return maf
@@ -182,7 +185,7 @@ def write_output(args, results, output, out_suffix):
             maf2_out, sep="\t", index=False, header=True
         )
         results[2].sort_values(["Chromosome", "Start_Position"]).to_csv(maf12_out, sep="\t", index=False, header=True)
-        print(f"See:\n-{maf_out}\n-{maf2_out}\n-{maf12_out}")
+        print(f"See:\n- {maf_out}\n- {maf2_out}\n- {maf12_out}")
     else:
         results[0].sort_values(["Chromosome", "Start_Position"]).to_csv(output, sep="\t", index=False, header=True)
         print(f"See: {output}")
@@ -221,7 +224,7 @@ def main():
         calls = [calls_1pass]
     results = {}
     for idx, calls in enumerate(calls):
-        print(f"> Annotating {idx}/3")
+        print(f"> Annotating {idx+1}/3")
         if calls.empty:
             results[idx] = calls
             continue
@@ -237,7 +240,7 @@ def main():
         rnadbs = []
         if args.rnaedits:
             rnadbs = check_rnaediting(args.rnaedits, rnadbs)
-        calls = add_filters(maf=calls, rnaeditingsites=rnadbs, realignment=didrealignment)
+        calls = add_filters(maf=calls, rnaeditingsites=rnadbs, realignment=didrealignment, whitelist=args.whitelist)
         results[idx] = calls
     # write maf files
     write_output(args, results, args.output, args.out_suffix)
