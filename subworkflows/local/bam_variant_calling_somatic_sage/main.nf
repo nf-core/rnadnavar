@@ -37,7 +37,6 @@ workflow BAM_VARIANT_CALLING_SOMATIC_SAGE {
         sage_ensembl = Channel.fromPath(params.sage_ensembl_dir).collect().map{ it -> [ [ id:it[0].baseName ], it ] }
     }
 
-    sage_ensembl.dump(tag:"sage_ensembl")
     // sage_resources.dump(tag:"sage_resources")
     // Combine cram and intervals for spread and gather strategy
     // sage_resources = Channel.value([])

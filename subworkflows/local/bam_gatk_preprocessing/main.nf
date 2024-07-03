@@ -341,12 +341,11 @@ workflow BAM_GATK_PREPROCESSING {
     }
 
 
-    if (params.step == 'variant_calling' && !realignment) {
+    if ((params.step == 'variant_calling' || (params.step in ['consensus', 'annotate','norm','filtering', 'rna_filtering'] && params.tools && params.tools.split(',').contains("realignment"))) && !realignment) {
         input_variant_calling_convert = input_sample.branch{
             bam:  it[0].data_type == "bam"
             cram: it[0].data_type == "cram"
         }
-
         // BAM files first must be converted to CRAM files since from this step on we base everything on CRAM format
         BAM_TO_CRAM(input_variant_calling_convert.bam, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
         versions = versions.mix(BAM_TO_CRAM.out.versions)
