@@ -71,9 +71,11 @@ def add_filters(maf, rnaeditingsites, realignment, whitelist):
     print("- Annotating RNA filters")
     if not rnaeditingsites.empty:
         # if mut is in a editing position T>C; A>G; G>A; C>T
-        maf["mut"] = maf["Reference_Allele"] + ">" + maf["Tumor_Seq_Allele2"]
-        rnaedits = pd.DataFrame({"rnaediting": (maf["Chromosome"] + maf["Start_Position"].map(str).isin(rnaeditingsites["chr"]+ rnaeditingsites['start'].map(str)) &
-                                                (maf['mut'].str.contains("^T>C$|^C>T$|^A>G$|^G>A$")))})
+        maf = maf.assign(mut=maf["Reference_Allele"] + ">" + maf["Tumor_Seq_Allele2"])
+        maf = maf.assign(chr_start=maf['Chromosome'] + maf['Start_Position'].astype(str))
+        rnaeditingsites = rnaeditingsites.assign(chr_start = rnaeditingsites['chr'] + rnaeditingsites['start'].astype(str))
+        rnaedits = pd.DataFrame({"rnaediting": maf['chr_start'].isin(rnaeditingsites['chr_start']) & maf['mut'].str.contains("^T>C$|^C>T$|^A>G$|^G>A$")})
+        maf.drop("chr_start", axis=1,inplace=True)
         maf = pd.merge(maf, rnaedits, left_index=True, right_index=True)
     else:
         maf["rnaediting"] = False
@@ -205,10 +207,7 @@ def check_rnaediting(rnaedits):
         print(f" - Reading {rnadb_file}")
         rnadb = pd.read_csv(rnadb_file, sep="\s+", names=["chr", "start", "end", "ref", "alt"], header=None, low_memory=False)
         # Possible RNA editing, depending on forward/reverse
-        rnadbs += [rnadb.assign(DNAchange=rnadb["chr"] + ":g." + rnadb["start"].map(str) + "A>G")]
-        rnadbs += [rnadb.assign(DNAchange=rnadb["chr"] + ":g." + rnadb["start"].map(str) + "G>A")]
-        rnadbs += [rnadb.assign(DNAchange=rnadb["chr"] + ":g." + rnadb["start"].map(str) + "T>C")]
-        rnadbs += [rnadb.assign(DNAchange=rnadb["chr"] + ":g." + rnadb["start"].map(str) + "C>T")]
+        rnadbs += [rnadb.assign(DNAchange=rnadb["chr"] + ":g." + rnadb["start"].map(str) + rnadb["ref"] + ">" + rnadb["alt"])]
     rnadbs_concat = pd.concat(rnadbs)
     return rnadbs_concat
 
