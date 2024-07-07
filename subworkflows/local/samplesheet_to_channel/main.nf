@@ -40,8 +40,8 @@ workflow  SAMPLESHEET_TO_CHANNEL{
                 else {
                     error("Samplesheet contains fastq files but step is `$params.step`. Please check your samplesheet or adjust the step parameter.\nhttps://nf-co.re/rnadnavar/usage#input-samplesheet-configurations")
                 }
-            // start for realignment
-            } else if ((maf || vcf) && params.step=="realignment"){
+            // start for realignment or will do realignment later starting after pre-processing
+            } else if ((maf || vcf) && (params.step=="realignment" || (params.tools && params.tools.split(',').contains("realignment")))){
                 if (meta.lane == null) meta.lane = "LX"
                 meta            = meta + [id: "${meta.sample}-${meta.lane}-realign".toString()]
                 def CN          = params.seq_center ? "CN:${params.seq_center}\\t" : ''
@@ -54,10 +54,14 @@ workflow  SAMPLESHEET_TO_CHANNEL{
                     else if (bam) return [ meta + [num_lanes: num_lanes.toInteger(), read_group: read_group.toString(), data_type: 'bam', size: 1], bam, bai, maf ]
                     else {
                         error("Combination error")}
-                } else if (meta.status == 1){
-
-                    return [meta + [data_type: 'maf', variantcaller: variantcaller ?: ''], maf]
-
+                } else if (meta.status >= 1){  // either DNA (status=1) or RNA (status=2)
+                    if (meta.normal_id == null){
+                        error("When tool 'realigment' enabled, `normal_id` should be added to the csv for maf files.")
+                        // Need to get the normal id to create the tumour_vs_normal id
+                    } else {
+                        meta = meta + [id: meta.sample + "_vs_" + meta.normal_id, data_type: 'maf', variantcaller: variantcaller ?: '']
+                        return [ meta, maf ]
+                    }
                 }
             // start from BAM
             } else if (meta.lane && bam) {

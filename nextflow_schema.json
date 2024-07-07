@@ -500,6 +500,13 @@
             "default": "",
             "fa_icon": "fas fa-toolbox",
             "properties": {
+                "defaultvariantcallers": {
+                    "type": "string",
+                    "default": "sage,strelka,mutect2",
+                    "fa_icon": "fas fa-play",
+                    "description": "Variant callers used to generate calls",
+                    "help_text": "Name of variant calling tools separated by commans used to generate VCF/MAF input files."
+                },
                 "remove_duplicates": {
                     "type": "boolean",
                     "fa_icon": "fas fa-hammer",
