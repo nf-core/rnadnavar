@@ -206,7 +206,6 @@ def check_rnaediting(rnaedits):
     for rnadb_file in rnaedits:
         print(f" - Reading {rnadb_file}")
         rnadb = pd.read_csv(rnadb_file, sep="\s+", names=["chr", "start", "end", "ref", "alt"], header=None, low_memory=False)
-        # Possible RNA editing, depending on forward/reverse
         rnadbs += [rnadb.assign(DNAchange=rnadb["chr"] + ":g." + rnadb["start"].map(str) + rnadb["ref"] + ">" + rnadb["alt"])]
     rnadbs_concat = pd.concat(rnadbs)
     return rnadbs_concat
