@@ -20,11 +20,11 @@ workflow VCF_NORMALISE {
     main:
     version          = Channel.empty()
 
-    if (params.step == 'normalization') vcf_to_normalise = input_sample
+    if (params.step == 'norm') vcf_to_normalise = input_sample
 
     if ((params.step in ['mapping', 'markduplicates', 'splitncigar',
                         'prepare_recalibration', 'recalibrate',
-                        'variant_calling', 'normalise'] &&
+                        'variant_calling', 'norm'] &&
                         ((params.tools && params.tools.split(",").contains("consensus")))) ||
                         realignment) {
 

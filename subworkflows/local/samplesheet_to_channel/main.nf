@@ -120,12 +120,12 @@ workflow  SAMPLESHEET_TO_CHANNEL{
                 meta = meta + [id: meta.sample, data_type: 'vcf', variantcaller: variantcaller ?: '']
 
                 if (params.step == 'annotate' ) return [ meta - meta.subMap('lane'), vcf ]
-                else if (params.step == 'normalise') {
+                else if (params.step == 'norm') {
                     if (meta.status == 0){ // TODO: more specific checks on this is needed
                         error("Samplesheet contains vcf files with status 0, vcfs should only be for tumours (1|2).")
                     }
                     else if (meta.normal_id == null){
-                        error("When step 'normalise', `normal_id` should be added to the csv for all samples.")
+                        error("When step 'norm', `normal_id` should be added to the csv for all samples.")
                         // Need to get the normal id to create the tumour_vs_normal id
                     } else {
                         meta = meta + [id: meta.sample + "_vs_" + meta.normal_id, data_type: 'vcf', variantcaller: variantcaller ?: '']

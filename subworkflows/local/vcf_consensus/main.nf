@@ -32,7 +32,7 @@ workflow VCF_CONSENSUS {
 
     if ((params.step in ['mapping', 'markduplicates', 'splitncigar',
                         'prepare_recalibration', 'recalibrate', 'variant_calling', 'annotate',
-                        'normalise', 'consensus'] &&
+                        'norm', 'consensus'] &&
                         ((params.tools && params.tools.split(",").contains("consensus")))) ||
                         realignment) {
 

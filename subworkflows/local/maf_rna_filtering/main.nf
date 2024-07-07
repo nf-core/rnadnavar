@@ -16,7 +16,7 @@ workflow MAF_FILTERING_RNA {
     maf_to_filter.dump(tag:"maf_to_filter")
     maf_to_filter_realigned.dump(tag:"maf_to_filter_realigned")
     if (params.step in ['mapping', 'markduplicates', 'splitncigar',
-    'prepare_recalibration', 'recalibrate', 'variant_calling', 'normalize', 'consensus',
+    'prepare_recalibration', 'recalibrate', 'variant_calling', 'norm', 'consensus',
     'realignment', 'rna_filtering'] && (params.tools && params.tools.split(",").contains("rna_filtering"))) {
 
         if (params.step == 'rna_filtering') { maf_to_filter = input_sample} // TODO: not implemented yet
