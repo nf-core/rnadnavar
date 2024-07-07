@@ -136,13 +136,14 @@ The pipeline has the flexibility to start from different steps but `tools` need 
   - we recommend adding `vep,norm,consensus` to `tools` to get annotated vcfs and consensus maf with this option.
 
 - `filtering`
+
   - If you use other variant callers that are not mutect2, strelka or SAGE you will need to change in `config/modules/filtering/maf_filtering.config` and add to args `--vc_priority caller1 caller2 caller3`
   - If you use other variant callers that are not mutect2, strelka or SAGE you will need to change in `config/modules/filtering/maf_filtering.config` and add to args `--vc_priority caller1 caller2 caller3`. Do not forget to add `consensus` to callers if you are running DNA and RNA in parallel to annotate mutations found in both data types. **Disclaimer: this has not been tested thoroughly, therefore please ask in our slack channel or open an issue in github describing your issue. Be aware that even if processes run, you will need to review your results**
   - At the end of the RNA filtering you will have two entries per mutation, the extra one is the annotation from realignment mode. If you want to remove these entried, they can be filtered through the column `Tumor_Sample_Barcode` and remove all entries with the suffix `_realign`.
 
 - `realignment`: this step is slightly different from the rest as it requires both results from variant calling (`vcf/maf`) and alignment files (`bam,cram`). Reason being that it will convert coordinates from `vcf/maf` to `bed` and extract reads from the alignment files of those regions of interest where a mutation was found. With those reads a re-alignment is performed using HISAT2. requires `patient,status,sample,normal_id,vcf/maf,variantcaller,bam/cram,bai/crai`.
-  - Realignment can be activated from any step as long as it is specified in `params.tools`, alignment files are provided and a maf/vcf file is provided or produced by the pipeline.
 
+  - Realignment can be activated from any step as long as it is specified in `params.tools`, alignment files are provided and a maf/vcf file is provided or produced by the pipeline.
 
 - realigns regions where mutations in RNA samples (status=2) where found using HISAT2 instead of STAR. If you want to activate this step it needs to be specified in `tools` and CRAM/BAM must be specified.
 
