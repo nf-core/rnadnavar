@@ -35,7 +35,6 @@ workflow VCF_CONSENSUS {
                         'norm', 'consensus'] &&
                         ((params.tools && params.tools.split(",").contains("consensus")))) ||
                         realignment) {
-
         vcf_to_consensus_type = vcf_to_consensus.branch{
                                 vcf: it[0].data_type == "vcf"
                                 maf: it[0].data_type == "maf"
@@ -64,6 +63,7 @@ workflow VCF_CONSENSUS {
         RUN_CONSENSUS ( maf_to_consensus )
 
         consensus_maf = RUN_CONSENSUS.out.maf  // 1 consensus_maf from all callers
+        consensus_maf.dump(tag:"consensus_maf0")
         // Separate DNA from RNA
         // VCFs from variant calling
         mafs_from_varcal   = maf_to_consensus.branch{

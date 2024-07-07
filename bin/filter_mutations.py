@@ -280,6 +280,19 @@ def add_ravex_filters(
         maf.at[idx, "RaVeX_FILTER"] = ravex_filter
     return maf
 
+def merge_rows(group):
+    """Merge info when mut is repeated due to consensus
+    """
+    # Take the first row as the base
+    merged_row = group.iloc[0].copy()
+    # Merge the 'callers' column
+    merged_row['callers'] = group['callers'].iloc[0] + "|" + group['Caller'].iloc[1] if len(group) > 1 else group['callers'].iloc[0]
+    # Merge the 'filters' column
+    merged_row['filters'] = group['filters'].iloc[0] + "|" +  group['FILTER_consensus'].iloc[1] if len(group) > 1 else group['callers'].iloc[0]
+    # Set the Tumor_Sample_Barcode_consensus column
+    merged_row['Tumor_Sample_Barcode_consensus'] = group['Tumor_Sample_Barcode'].iloc[1] if len(group) > 1 else None
+
+    return merged_row
 
 def deduplicate_maf(variants, vc_priority):
     deduped = []
@@ -305,12 +318,10 @@ def write_maf(maf_df, mafin_file, mafout_file, vc_priority):
         # Combine variants with Caller from multiallelic
         multiallelic_variants["Caller"] = multiallelic_variants["Caller"] + "_multiallelic"
         maf_to_dedup = pd.concat([other_variants, multiallelic_variants])
-
         # Deduplicate variants
         maf_to_write = deduplicate_maf(maf_to_dedup, vc_priority + list(multiallelic_variants["Caller"].unique()))
     else:
         maf_to_write = maf_df
-
     # Write the header and deduplicated MAF to the output file
     with open(mafout_file, "w") as mafout:
         mafout.write(header_lines)

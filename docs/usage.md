@@ -127,6 +127,7 @@ The pipeline has the flexibility to start from different steps but `tools` need 
   - `tools` is set to null by default but all GATK pre-processing will run regardless unless skipped with `skip_tools`.
 
 - `variant_calling` will require: `patient,status,sample,lane,bam,bai` or `patient,status,sample,lane,cram,crai` or `patient,status,sample,lane,bam,bai,cram,crai`. When BAM and CRAM files are mixed BAMs will be converted to CRAMs to save on space.
+- `variant_calling` will require: `patient,status,sample,lane,bam,bai` or `patient,status,sample,lane,cram,crai` or `patient,status,sample,lane,bam,bai,cram,crai`. When BAM and CRAM files are mixed BAMs will be converted to CRAMs to save on space.
 
   - we recommend adding `mutect2,strelka,sage` to `tools` option for this step.
 

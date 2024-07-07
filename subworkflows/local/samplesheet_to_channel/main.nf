@@ -43,13 +43,14 @@ workflow  SAMPLESHEET_TO_CHANNEL{
             // start for realignment or will do realignment later starting after pre-processing
             } else if ((maf || vcf) && (params.step=="realignment" || (params.tools && params.tools.split(',').contains("realignment")))){
                 if (meta.lane == null) meta.lane = "LX"
-                meta            = meta + [id: "${meta.sample}-${meta.lane}-realign".toString()]
-                def CN          = params.seq_center ? "CN:${params.seq_center}\\t" : ''
-                def read_group  = "\"@RG\\tID:${meta.sample}_${meta.lane}_realign\\t${CN}PU:${meta.lane}\\tSM:${meta.sample}\\tLB:${meta.sample}\\tDS:${params.fasta}\\tPL:${params.seq_platform}\""
-                if (meta.status >= 2) { // STAR does not need '@RG'
-                    read_group  = "ID:${meta.sample}_${meta.lane}_realign ${CN}PU:${meta.lane} SM:${meta.sample} LB:${meta.sample} DS:${params.fasta} PL:${params.seq_platform}"
-                }
-                if (meta.status >= 2 || meta.status==0){ // these are the files that will go through realignment
+
+                if ((meta.status >= 2 || meta.status==0) && !maf){ // these are the files that will go through realignment
+                    meta            = meta + [id: "${meta.sample}-${meta.lane}-realign".toString()]
+                    def CN          = params.seq_center ? "CN:${params.seq_center}\\t" : ''
+                    def read_group  = "\"@RG\\tID:${meta.sample}_${meta.lane}_realign\\t${CN}PU:${meta.lane}\\tSM:${meta.sample}\\tLB:${meta.sample}\\tDS:${params.fasta}\\tPL:${params.seq_platform}\""
+                    if (meta.status >= 2) { // STAR does not need '@RG'
+                        read_group  = "ID:${meta.sample}_${meta.lane}_realign ${CN}PU:${meta.lane} SM:${meta.sample} LB:${meta.sample} DS:${params.fasta} PL:${params.seq_platform}"
+                    }
                     if (cram)  return [ meta + [num_lanes: num_lanes.toInteger(), read_group: read_group.toString(), data_type: 'cram', size: 1], cram, crai, maf ]
                     else if (bam) return [ meta + [num_lanes: num_lanes.toInteger(), read_group: read_group.toString(), data_type: 'bam', size: 1], bam, bai, maf ]
                     else {

@@ -186,7 +186,6 @@ workflow RNADNAVAR {
         params.split_fastq = 0
         // reset intervals to none (realignment files are small)
         PREPARE_INTERVALS_FOR_REALIGNMENT(fasta_fai, null, true)
-
         PREPARE_REALIGNMENT(
                             input_sample,           // input from CSV if applicable
                             filtered_maf,
