@@ -144,6 +144,7 @@ workflow RNADNAVAR {
         PREPARE_REFERENCE_AND_INTERVALS.out.star_index,
         PREPARE_REFERENCE_AND_INTERVALS.out.gtf,
         fasta,
+        fasta_fai,
         input_sample
         )
 
