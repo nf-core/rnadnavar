@@ -69,6 +69,8 @@ def add_filters(maf, rnaeditingsites, realignment, whitelist):
     Check for RNA editing sites in the MAF table
     """
     print("- Annotating RNA filters")
+    if not rnaeditingsites:
+        rnaeditingsites = pd.DataFrame()
     if not rnaeditingsites.empty:
         # if mut is in a editing position T>C; A>G; G>A; C>T
         maf = maf.assign(mut=maf["Reference_Allele"] + ">" + maf["Tumor_Seq_Allele2"])
