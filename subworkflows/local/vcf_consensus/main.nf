@@ -48,12 +48,16 @@ workflow VCF_CONSENSUS {
 //        maf_to_consensus.dump(tag:"maf_to_consensus")
         // count number of callers to generate groupKey
         if (realignment || (params.step in ['consensus', 'annotate','filtering', 'rna_filtering'] && params.tools && params.tools.split(',').contains("realignment")) ) {
-            tools = params.defaultvariantcallers // TODO: testing is necessary if this changes
-            }
+            variantcallerslist = params.defaultvariantcallers.split(',') as List // TODO: testing is necessary if this changes
+            ncallers = variantcallerslist.toSet().size()
+        } else {
+            variantcallerslist = tools.split(',')  as List
+            ncallers           = variantcallerslist.count('sage') +
+                                variantcallerslist.count('strelka') +
+                                variantcallerslist.count('mutect2')
+        }
         maf_to_consensus.dump(tag:"maf_to_consensus0")
         maf_to_consensus = maf_to_consensus.map{ meta, maf ->
-                                    def toolsllist = tools.split(',')
-                                    def ncallers   = toolsllist.unique().size()
                                     key = groupKey(meta.subMap('id', 'patient', 'status') +
                                                 [ncallers : ncallers], ncallers)
                                     [key, maf, meta.variantcaller]}
