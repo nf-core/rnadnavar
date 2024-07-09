@@ -97,7 +97,6 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
                 reads_to_realign_and_join.dump(tag:'reads_to_realign1')
                 maf_with_candidates_to_realign.dump(tag:'maf_with_candidates_to_realign')
                 cram_to_realign = reads_to_realign_and_join.join(maf_with_candidates_to_realign)
-                cram_to_realign.dump(tag:"cram_to_realign")
             }
             // Get candidate regions
             // Add files to meta to keep them for next processes
@@ -105,7 +104,7 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
             MAF2BED(maf_to_bed)
             // Extract read names with regions from bed
             cram_to_extract = MAF2BED.out.bed.map{meta, bed -> [meta, meta.cram_file, meta.crai_file, bed]}
-            SAMTOOLS_EXTRACT_READ_IDS(cram_to_extract)
+            SAMTOOLS_EXTRACT_READ_IDS(cram_to_extract, fasta)
             // Extract reads
             cram_to_convert = SAMTOOLS_EXTRACT_READ_IDS.out.read_ids.map{meta, readsid -> [meta + [readsid_file:readsid], meta.cram_file, meta.crai_file]}
             // 1) Convert cram 2 bam
