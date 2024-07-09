@@ -193,10 +193,10 @@ workflow BAM_ALIGN {
             BAM_MERGE_INDEX_SAMTOOLS(bam_mapped)
 
             BAM_TO_CRAM_MAPPING(BAM_MERGE_INDEX_SAMTOOLS.out.bam_bai, fasta, fasta_fai)
-            cram_mapped = BAM_TO_CRAM_MAPPING.out.alignment_index
+            cram_mapped = BAM_TO_CRAM_MAPPING.out.cram
 
             // Create CSV to restart from this step
-            params.save_output_as_bam ? CHANNEL_ALIGN_CREATE_CSV(BAM_MERGE_INDEX_SAMTOOLS.out.bam_bai) : CHANNEL_ALIGN_CREATE_CSV(BAM_TO_CRAM_MAPPING.out.alignment_index)
+            params.save_output_as_bam ? CHANNEL_ALIGN_CREATE_CSV(BAM_MERGE_INDEX_SAMTOOLS.out.bam_bai) : CHANNEL_ALIGN_CREATE_CSV(BAM_TO_CRAM_MAPPING.out.cram)
 
             // Gather used softwares versions
             versions = versions.mix(BAM_MERGE_INDEX_SAMTOOLS.out.versions)
