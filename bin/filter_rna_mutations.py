@@ -69,8 +69,6 @@ def add_filters(maf, rnaeditingsites, realignment, whitelist):
     Check for RNA editing sites in the MAF table
     """
     print("- Annotating RNA filters")
-    if not rnaeditingsites:
-        rnaeditingsites = pd.DataFrame()
     if not rnaeditingsites.empty:
         # if mut is in a editing position T>C; A>G; G>A; C>T
         maf = maf.assign(mut=maf["Reference_Allele"] + ">" + maf["Tumor_Seq_Allele2"])
@@ -102,8 +100,6 @@ def add_filters(maf, rnaeditingsites, realignment, whitelist):
             ravex_filter = ["PASS"]
         ravex_filter = ";".join(ravex_filter)
         maf.at[idx, "RaVeX_FILTER"] = ravex_filter
-    # column cleanup
-    maf.drop(["coordinates_hg19"], axis=1, inplace=True)
     return maf
 
 
@@ -164,10 +160,8 @@ def add_coords2_with_liftover(M, chain_file,ref1="hg38",ref2="hg19"):
     na_nr = M[M["Chromosome"].isnull()].shape[0]
     if na_nr > 0:
         print(f"[WGN] Removing {na_nr} variants where Chromosome is NA")
-        M = M[
-            ~M["Chromosome"].isna()
-        ].reindex()  # remove positions where coordinates are not present (maybe liftover went wrong)
-
+        # remove positions where coordinates are not present (maybe liftover went wrong)
+        M = M[~M["Chromosome"].isna()].reindex()
     starting_size = M.shape[0]
     M["coordinates_" + ref2] = M.apply(lambda x: converter[x["Chromosome"]][x["Start_Position"]], axis=1)
     # Replace with tuple of None's when position has been deleted in new reference genome
@@ -178,7 +172,6 @@ def add_coords2_with_liftover(M, chain_file,ref1="hg38",ref2="hg19"):
     liftover_size = tmp.shape[0]
     assert starting_size == liftover_size, "Liftovered positions are not the same number as in original MAF"
     M = pd.concat([M, tmp], axis=1).drop(0, axis=1)
-
     return M
 
 
