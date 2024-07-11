@@ -3,7 +3,7 @@ process RNA_FILTERING {
     label 'process_low'
 
     conda null
-    container 'ghcr.io/raqmanzano/rnadnavar_pyenv_rnafilt:1.0'
+    container 'nf-core/rnadnavar_pyenv_rnafilt:1.0'
 
     input:
         tuple val(meta), path(maf), path(maf_realignment)
