@@ -3,7 +3,7 @@ process RUN_CONSENSUS {
     label 'process_low'
 
     conda "bioconda::bioconductor-rtracklayer bioconda::bioconductor-complexheatmap conda-forge::r-ggrepel conda-forge::r-data.table conda-forge::r-dplyr conda-forge::ggpubr "
-    container 'ghcr.io/raqmanzano/renv:1.0'
+    container 'ghcr.io/raqmanzano/rnadnavar_renv_consensus:1.0'
 
     input:
         tuple val(meta), path(vcf, stageAs: "inputs/*"), val(caller)
