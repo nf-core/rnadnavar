@@ -114,7 +114,8 @@ workflow BAM_GATK_PREPROCESSING {
         // CSV should be written for the file actually out, either CRAM or BAM
         // Create CSV to restart from this step
         csv_subfolder = 'markduplicates'
-        params.save_output_as_bam ? CHANNEL_MARKDUPLICATES_CREATE_CSV(CRAM_TO_BAM.out.alignment_index, csv_subfolder, params.outdir, params.save_output_as_bam) : CHANNEL_MARKDUPLICATES_CREATE_CSV(ch_md_cram_for_restart, csv_subfolder, params.outdir, params.save_output_as_bam)
+        cram_to_bam_bai = CRAM_TO_BAM.out.bam.join(CRAM_TO_BAM.out.bai, failOnDuplicate: true, failOnMismatch: true)
+        params.save_output_as_bam ? CHANNEL_MARKDUPLICATES_CREATE_CSV(cram_to_bam_bai, csv_subfolder, params.outdir, params.save_output_as_bam) : CHANNEL_MARKDUPLICATES_CREATE_CSV(ch_md_cram_for_restart, csv_subfolder, params.outdir, params.save_output_as_bam)
     } else {
         ch_md_cram_for_restart   = Channel.empty().mix(input_sample)
         cram_skip_markduplicates = Channel.empty().mix(input_sample)

@@ -55,7 +55,7 @@ workflow  SAMPLESHEET_TO_CHANNEL{
                     else if (bam) return [ meta + [num_lanes: num_lanes.toInteger(), read_group: read_group.toString(), data_type: 'bam', size: 1], bam, bai, maf ]
                     else {
                         error("Combination error")}
-                } else if (meta.status >= 1){
+                } else if (meta.status >= 1){  // either DNA (status=1) or RNA (status=2)
                     if (meta.normal_id == null){
                         error("When tool 'realigment' enabled, `normal_id` should be added to the csv for maf files.")
                         // Need to get the normal id to create the tumour_vs_normal id

@@ -20,7 +20,7 @@ def argparser():
     parser.add_argument("--maf_realign", help="Input MAF file after a second pass")
     parser.add_argument("--pon2", help="Path to optional second binary pon")
     parser.add_argument("--pon", help="Path to binary pon")
-    parser.add_argument("--whitelist", help="Input MAF file after a second pass")
+    parser.add_argument("--whitelist", help="BED file with variants to keep (CHROM POS REF ALT)")
     parser.add_argument("--output", help="output file name")
     parser.add_argument("--out_suffix", help="Suffix for intermediate output", default="withRNAfilters")
     parser.add_argument("--ref", help="FASTA - e.g. HG38")
@@ -61,7 +61,6 @@ def realignment(maf1, maf2):
     maf1_intersect = maf1[maf1["realignment"]]
     maf2_intersect = maf2[maf2["realignment"]]
     maf_intersect = pd.concat([maf1_intersect, maf2_intersect]).drop_duplicates(subset="DNAchange")
-
     return maf1, maf2, maf_intersect
 
 
@@ -71,7 +70,12 @@ def add_filters(maf, rnaeditingsites, realignment, whitelist):
     """
     print("- Annotating RNA filters")
     if not rnaeditingsites.empty:
-        rnaedits = pd.DataFrame({"rnaediting": maf["DNAchange"].isin(rnaeditingsites["DNAchange"])})
+        # if mut is in a editing position T>C; A>G; G>A; C>T
+        maf = maf.assign(mut=maf["Reference_Allele"] + ">" + maf["Tumor_Seq_Allele2"])
+        maf = maf.assign(chr_start=maf['Chromosome'] + maf['Start_Position'].astype(str))
+        rnaeditingsites = rnaeditingsites.assign(chr_start = rnaeditingsites['chr'] + rnaeditingsites['start'].astype(str))
+        rnaedits = pd.DataFrame({"rnaediting": maf['chr_start'].isin(rnaeditingsites['chr_start']) & maf['mut'].str.contains("^T>C$|^C>T$|^A>G$|^G>A$")})
+        maf.drop("chr_start", axis=1,inplace=True)
         maf = pd.merge(maf, rnaedits, left_index=True, right_index=True)
     else:
         maf["rnaediting"] = False
@@ -90,8 +94,10 @@ def add_filters(maf, rnaeditingsites, realignment, whitelist):
             if row[pon_col]:
                 ravex_filter += ["rna_pon" + pon_col[-5:]]
         if whitelist:
-            if not ravex_filter or row["whitelist"]:
+            if row["whitelist"]:
                 ravex_filter = ["PASS"]
+        if not ravex_filter:
+            ravex_filter = ["PASS"]
         ravex_filter = ";".join(ravex_filter)
         maf.at[idx, "RaVeX_FILTER"] = ravex_filter
     return maf
@@ -126,6 +132,7 @@ def run_capy(M, pon, ref, thr, chroms, suffix="_hg38", refname2="hg19"):
     )
     M = M[M["chr"] != "M"]
     M = M.astype({"chr": "int32", "pos": "int32"})
+    M.reset_index(inplace=True, drop=True)
     # Get PoN scores
     pon_scores = mut.filter_mutations_against_token_PoN(M=M, ponfile=pon, ref=ref)
     assert len(pon_scores) == M.shape[0], "PoN scores are not same length as nrow"
@@ -134,6 +141,8 @@ def run_capy(M, pon, ref, thr, chroms, suffix="_hg38", refname2="hg19"):
         "pon_score" + suffix: pon_scores,
         "pon_thr" + suffix: [score >= thr for score in pon_scores]
     })
+    pon_scores_df.reset_index(inplace=True, drop=True)
+    assert pon_scores_df.index.equals(M.index)
     # Ensure the threshold column is of boolean type
     pon_scores_df["pon_thr" + suffix] = pon_scores_df["pon_thr" + suffix].astype(bool)
     # Merge the original DataFrame with the PoN scores DataFrame
@@ -151,17 +160,15 @@ def add_coords2_with_liftover(M, chain_file,ref1="hg38",ref2="hg19"):
     na_nr = M[M["Chromosome"].isnull()].shape[0]
     if na_nr > 0:
         print(f"[WGN] Removing {na_nr} variants where Chromosome is NA")
-        M = M[
-            ~M["Chromosome"].isna()
-        ].reindex()  # remove positions where coordinates are not present (maybe liftover went wrong)
-
+        # remove positions where coordinates are not present (maybe liftover went wrong)
+        M = M[~M["Chromosome"].isna()].reindex()
     starting_size = M.shape[0]
-    M["coordinates_"+ref2] = M.apply(lambda x: converter[x["Chromosome"]][x["Start_Position"]], axis=1)
+    M["coordinates_" + ref2] = M.apply(lambda x: converter[x["Chromosome"]][x["Start_Position"]], axis=1)
     # Replace with tuple of None's when position has been deleted in new reference genome
     tmp = pd.DataFrame(M["coordinates_"+ref2].tolist(), index=M.index).apply(
         lambda ds: ds.map(lambda x: x if x != None else (None, None, None))
     )
-    tmp[["Chromosome_"+ref2, "Start_Position_"+ref2, "STRAND_"+ref2]] = pd.DataFrame(tmp[0].tolist(), index=M.index)
+    tmp[["Chromosome_" + ref2, "Start_Position_" + ref2, "STRAND_" + ref2]] = pd.DataFrame(tmp[0].tolist(), index=M.index)
     liftover_size = tmp.shape[0]
     assert starting_size == liftover_size, "Liftovered positions are not the same number as in original MAF"
     M = pd.concat([M, tmp], axis=1).drop(0, axis=1)
@@ -195,7 +202,6 @@ def check_rnaediting(rnaedits):
         print(f" - Reading {rnadb_file}")
         rnadb = pd.read_csv(rnadb_file, sep="\s+", names=["chr", "start", "end", "ref", "alt"], header=None, low_memory=False)
         rnadbs += [rnadb.assign(DNAchange=rnadb["chr"] + ":g." + rnadb["start"].map(str) + rnadb["ref"] + ">" + rnadb["alt"])]
-        rnadbs += [rnadb.assign(DNAchange=rnadb["chr"] + ":g." + rnadb["start"].map(str) + rnadb["alt"] + ">" + rnadb["ref"])]
     rnadbs_concat = pd.concat(rnadbs)
     return rnadbs_concat
 
@@ -209,7 +215,11 @@ def main():
     chroms = [f"chr{x}" for x in list(range(1, 23)) + ["X", "Y"]]
 
     # realignment
-    calls_1pass = pd.read_csv(args.maf, sep="\t", comment="#", low_memory=False)
+    try:
+        calls_1pass = pd.read_csv(args.maf, sep="\t", comment="#", low_memory=False)
+    except pd.errors.EmptyDataError:
+        print("[Error] No columns to parse from file, is your input empty?")
+        exit()
     # If REALIGNMENT provide intersect
     if args.maf_realign and args.maf != args.maf_realign:
         didrealignment = True

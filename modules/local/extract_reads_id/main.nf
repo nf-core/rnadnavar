@@ -9,6 +9,7 @@ process SAMTOOLS_EXTRACT_READ_IDS {
 
     input:
     tuple val(meta), path(input), path(index), path(bed)
+    tuple val(meta2), path(fasta)
 
     output:
     tuple val(meta), path("*_IDs_all.txt") , emit: read_ids
@@ -20,10 +21,12 @@ process SAMTOOLS_EXTRACT_READ_IDS {
     script:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
+    def reference = fasta ? "--reference ${fasta}" : ""
     """
     samtools \\
         view \\
         --threads ${task.cpus-1} \\
+        ${reference} \\
         -L $bed \\
         $args \\
         $input | cut -f1 > ${prefix}_IDs_all.txt

@@ -200,6 +200,20 @@ def remove_muts_in_range(df, blacklist):
         df.loc[df_bkl, "blk_reason"] = reason
     return df
 
+def merge_rows(group):
+    """Merge info when mut is repeated due to consensus
+    """
+    # Take the first row as the base
+    merged_row = group.iloc[0].copy()
+    # Merge the 'callers' column
+    merged_row['callers'] = group['callers'].iloc[0] + "|" + group['Caller'].iloc[1] if len(group) > 1 else group['callers'].iloc[0]
+    # Merge the 'filters' column
+    merged_row['filters'] = group['filters'].iloc[0] + "|" +  group['FILTER_consensus'].iloc[1] if len(group) > 1 else group['callers'].iloc[0]
+    # Set the Tumor_Sample_Barcode_consensus column
+    merged_row['Tumor_Sample_Barcode_consensus'] = group['Tumor_Sample_Barcode'].iloc[1] if len(group) > 1 else None
+
+    return merged_row
+
 
 def filtering(maf, gnomad_thr, whitelist, blacklist, filters):
     """
@@ -291,7 +305,6 @@ def deduplicate_maf(variants, vc_priority):
     # merge the info from consensus
     consensus_merged = grouped.apply(merge_rows).reset_index(drop=True)
     return consensus_merged
-
 
 def write_maf(maf_df, mafin_file, mafout_file, vc_priority):
     """Write output"""

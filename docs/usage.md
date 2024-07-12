@@ -127,16 +127,18 @@ The pipeline has the flexibility to start from different steps but `tools` need 
   - `tools` is set to null by default but all GATK pre-processing will run regardless unless skipped with `skip_tools`.
 
 - `variant_calling` will require: `patient,status,sample,lane,bam,bai` or `patient,status,sample,lane,cram,crai` or `patient,status,sample,lane,bam,bai,cram,crai`. When BAM and CRAM files are mixed BAMs will be converted to CRAMs to save on space.
+- `variant_calling` will require: `patient,status,sample,lane,bam,bai` or `patient,status,sample,lane,cram,crai` or `patient,status,sample,lane,bam,bai,cram,crai`. When BAM and CRAM files are mixed BAMs will be converted to CRAMs to save on space.
 
   - we recommend adding `mutect2,strelka,sage` to `tools` option for this step.
 
-- `norm` step will require: `patient,status,sample,vcf,variantcaller,normal_id` if not realignment step in tools.
+- `norm` will require: `patient,status,sample,vcf,variantcaller,normal_id` if not realignment step in tools.
 
   - `normal_id` is needed to properly create the id tag, which is going to be tumour_vs_normal style to match it with the rest of the pipeline (note that this will be simplified in the future to just id but it is not yet implemented).
-  - we recommend adding `vep,normalise,consensus` to `tools` to get annotated vcfs and consensus maf with this option.
+  - we recommend adding `vep,norm,consensus` to `tools` to get annotated vcfs and consensus maf with this option.
 
 - `filtering`
 
+  - If you use other variant callers that are not mutect2, strelka or SAGE you will need to change in `config/modules/filtering/maf_filtering.config` and add to args `--vc_priority caller1 caller2 caller3`
   - If you use other variant callers that are not mutect2, strelka or SAGE you will need to change in `config/modules/filtering/maf_filtering.config` and add to args `--vc_priority caller1 caller2 caller3`. Do not forget to add `consensus` to callers if you are running DNA and RNA in parallel to annotate mutations found in both data types. **Disclaimer: this has not been tested thoroughly, therefore please ask in our slack channel or open an issue in github describing your issue. Be aware that even if processes run, you will need to review your results**
   - At the end of the RNA filtering you will have two entries per mutation, the extra one is the annotation from realignment mode. If you want to remove these entried, they can be filtered through the column `Tumor_Sample_Barcode` and remove all entries with the suffix `_realign`.
 
@@ -144,7 +146,6 @@ The pipeline has the flexibility to start from different steps but `tools` need 
 
   - Realignment can be activated from any step as long as it is specified in `params.tools`, alignment files are provided and a maf/vcf file is provided or produced by the pipeline.
 
--
 - realigns regions where mutations in RNA samples (status=2) where found using HISAT2 instead of STAR. If you want to activate this step it needs to be specified in `tools` and CRAM/BAM must be specified.
 
 - rescue will require:`patient,status,sample,vcf,variantcaller,normal_id` if not realignment step in tools. If realignment step then: `patient,status,sample,vcf,variantcaller,normal_id,cram,crai` if not realignment step in tools.
