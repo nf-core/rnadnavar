@@ -247,6 +247,8 @@ def add_ravex_filters(
         ravex_filter = []
         if row["t_alt_count"] <= min_alt_reads:
             ravex_filter += ["min_alt_reads"]
+        if row["ingnomAD"]:
+            ravex_filter += ["gnomad"]
         if not blacklist.empty:
             if row["blacklist"]:
                 ravex_filter += ["blacklist"]
