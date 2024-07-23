@@ -24,7 +24,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MANTA {
         [it[0], it[1], it[2], it[3], it[4], bed_gz, bed_tbi]
     }
 
-    MANTA_SOMATIC(cram_intervals, fasta, fasta_fai. [])
+    MANTA_SOMATIC(cram_intervals, fasta, fasta_fai, [])
 
     candidate_small_indels_vcf = MANTA_SOMATIC.out.candidate_small_indels_vcf
     candidate_small_indels_vcf_tbi = MANTA_SOMATIC.out.candidate_small_indels_vcf_tbi
