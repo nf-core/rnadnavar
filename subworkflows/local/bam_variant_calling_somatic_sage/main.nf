@@ -43,12 +43,17 @@ workflow BAM_VARIANT_CALLING_SOMATIC_SAGE {
     cram_intervals = cram.combine(intervals)
         // Move num_intervals to meta map and reorganize channel for SAGE module
         .map{ meta, cram1, crai1, cram2, crai2, intervals, num_intervals -> [ meta + [ num_intervals:num_intervals ], cram1, crai1, cram2, crai2, intervals ]}
+    
+    // init resources
+    sage_highconfidence  = params.sage_highconfidence   ? Channel.fromPath(params.sage_highconfidence).collect().map{ it -> [ [ id:it[0].baseName ], it ] }  : Channel.value([])
+    sage_actionablepanel = params.sage_actionablepanel  ? Channel.fromPath(params.sage_actionablepanel).collect().map{ it -> [ [ id:it[0].baseName ], it ] } : Channel.value([])
+    sage_knownhotspots   = params.sage_knownhotspots    ? Channel.fromPath(params.sage_knownhotspots).collect().map{ it -> [ [ id:it[0].baseName ], it ] }   : Channel.value([])
     SAGE(
         cram_intervals,
         sage_ensembl,
-        Channel.fromPath(params.sage_highconfidence).collect().map{ it -> [ [ id:it[0].baseName ], it ] },
-        Channel.fromPath(params.sage_actionablepanel).collect().map{ it -> [ [ id:it[0].baseName ], it ] },
-        Channel.fromPath(params.sage_knownhotspots).collect().map{ it -> [ [ id:it[0].baseName ], it ] },
+        sage_highconfidence,
+        sage_actionablepanel,
+        sage_knownhotspots,
         fasta,
         fasta_fai,
         dict)
