@@ -4,7 +4,7 @@ lint:
     - conf/modules.config
     - conf/test.config
     - conf/test_full.config
-nf_core_version: 3.0.0
+nf_core_version: 3.0.1
 org_path: null
 repository_type: pipeline
 template:
