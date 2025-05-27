@@ -2,7 +2,7 @@ process VCF2MAF {
     tag "$meta.id"
     label 'process_low'
 
-    conda "bioconda::vcf2maf-1.6.21-hdfd78af_0"
+    conda "bioconda::vcf2maf=1.6.21"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/vcf2maf:1.6.21--hdfd78af_0' :
         'biocontainers/vcf2maf:1.6.21--hdfd78af_0' }"
