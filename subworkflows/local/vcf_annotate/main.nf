@@ -29,7 +29,7 @@ workflow VCF_ANNOTATE {
             vep_cache_version  = params.vep_cache_version  ?: Channel.empty()
             vep_genome         = params.vep_genome         ?: Channel.empty()
             vep_species        = params.vep_species        ?: Channel.empty()
-            // vep_cache          = params.vep_cache    ? params.use_annotation_cache_keys ? Channel.fromPath("${params.vep_cache}/${params.vep_cache_version}_${params.vep_genome}").collect() : Channel.fromPath(params.vep_cache).collect()    : []
+            vep_cache          = params.vep_cache          ? params.use_annotation_cache_keys ? Channel.fromPath("${params.vep_cache}/${params.vep_cache_version}_${params.vep_genome}").collect() : Channel.fromPath(params.vep_cache).collect()    : []
 
             vep_extra_files = []
             if (params.dbnsfp && params.dbnsfp_tbi) {
