@@ -128,17 +128,9 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
         // Prepare input channel for normal pileup summaries.
         // Remember, the input channel contains tumor-normal pairs, so there will be multiple copies of the normal sample for each tumor for a given patient.
         // Therefore, we use unique function to generate normal pileup summaries once for each patient for better efficiency.
-        pileup_normal = pileup.normal.map{ meta, cram, crai, intervls ->
-            def new_meta = meta.findAll { key, value -> key != 'tumor_id' }
-            new_meta.id = meta.normal_id
-            [new_meta, cram, crai, intervls]
-        }.unique()
-
-        pileup_tumor = pileup.tumor.map{ meta, cram, crai, intervls ->
-            def new_meta = meta.clone()
-            new_meta.id = meta.tumor_id
-            [new_meta, cram, crai, intervls]
-        }
+        pileup_normal = pileup.normal.map{ meta, cram, crai, intervls -> [ meta - meta.subMap('tumor_id') + [ id:meta.normal_id ], cram, crai, intervls] }.unique()
+        // Prepare input channel for tumor pileup summaries.
+        pileup_tumor = pileup.tumor.map{ meta, cram, crai, intervls -> [ meta - meta.subMap('normal_id') + [ id:meta.tumor_id ], cram, crai, intervls ] }
         // Generate pileup summary tables using getepileupsummaries. tumor sample should always be passed in as the first input and input list entries of vcf_to_filter,
         GETPILEUPSUMMARIES_NORMAL(pileup_normal, fasta, fai, dict, germline_resource_pileup, germline_resource_pileup_tbi)
         GETPILEUPSUMMARIES_TUMOR(pileup_tumor, fasta, fai, dict, germline_resource_pileup, germline_resource_pileup_tbi)
@@ -156,7 +148,6 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
             intervals:    it[0].num_intervals > 1
             no_intervals: it[0].num_intervals <= 1
         }
-
         // Only when using intervals
         pileup_table_normal_to_merge = pileup_table_normal_branch.intervals.map{ meta, table -> [ groupKey(meta, meta.num_intervals), table ] }.groupTuple()
         pileup_table_tumor_to_merge = pileup_table_tumor_branch.intervals.map{ meta, table -> [ groupKey(meta, meta.num_intervals), table ] }.groupTuple()
@@ -167,29 +158,20 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
 
         // Do some channel magic to generate tumor-normal pairs again.
         // This is necessary because we generated one normal pileup summary for each patient but we need run calculate contamination for each tumor-normal pair.
-        pileup_table_tumor = Channel.empty()
-            .mix(GATHERPILEUPSUMMARIES_TUMOR.out.table, pileup_table_tumor_branch.no_intervals)
-            .map{ meta, table ->
-                def new_meta = meta.findAll { key, value -> !(key in ['normal_id', 'tumor_id', 'num_intervals']) }
-                new_meta.id = meta.patient
-                [ groupKey(new_meta, new_meta.id), meta.id, table ]
-            }
+        pileup_table_tumor  = Channel.empty().mix(GATHERPILEUPSUMMARIES_TUMOR.out.table, pileup_table_tumor_branch.no_intervals).map{meta, table -> [ meta - meta.subMap('normal_id', 'tumor_id', 'num_intervals') + [id:meta.patient], meta.id, table ] }
+        pileup_table_normal = Channel.empty().mix(GATHERPILEUPSUMMARIES_NORMAL.out.table, pileup_table_normal_branch.no_intervals).map{meta, table -> [ meta - meta.subMap('normal_id', 'tumor_id', 'num_intervals') + [id:meta.patient], meta.id, table ] }
 
-        pileup_table_normal = Channel.empty()
-            .mix(GATHERPILEUPSUMMARIES_NORMAL.out.table, pileup_table_normal_branch.no_intervals)
-            .map{ meta, table ->
-                def new_meta = meta.findAll { key, value -> !(key in ['normal_id', 'tumor_id', 'num_intervals']) }
-                new_meta.id = meta.patient
-                [ groupKey(new_meta, new_meta.id), meta.id, table ]
-            }
 
-        ch_calculatecontamination_in_tables = pileup_table_tumor
-            .combine(pileup_table_normal, by: 0)
-            .map{ meta, tumor_id, tumor_table, normal_id, normal_table ->
-                def combined_meta = meta.clone()
-                combined_meta.id = "${tumor_id}_vs_${normal_id}".toString()
-                [combined_meta.clone(), tumor_table, normal_table]
+        ch_calculatecontamination_in_tables = pileup_table_tumor.combine(
+        pileup_table_normal, by:0).map{
+        meta, tumor_id, tumor_table, normal_id, normal_table ->
+            if(joint_mutect2){
+                [ meta + [ id: tumor_id + "_vs_" + normal_id], tumor_table, normal_table]
+            }else{
+                // we need tumor and normal ID for further post processing
+                [ meta + [ id: tumor_id + "_vs_" + normal_id, normal_id:normal_id, tumor_id:tumor_id ], tumor_table, normal_table]
             }
+        }
         ch_calculatecontamination_in_tables.dump(tag:'ch_calculatecontamination_in_tablesMUTECT2')
         CALCULATECONTAMINATION(ch_calculatecontamination_in_tables)
 
@@ -199,26 +181,12 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
 
         if (joint_mutect2) {
             // Reduce the meta to only patient name
-            ch_seg_to_filtermutectcalls = CALCULATECONTAMINATION.out.segmentation.map{ meta, seg ->
-                def new_meta = meta.findAll { key, value -> key != 'tumor_id' }
-                [ groupKey(new_meta, new_meta.id), seg ]
-            }.groupTuple()
-
-            ch_cont_to_filtermutectcalls = CALCULATECONTAMINATION.out.contamination.map{ meta, cont ->
-                def new_meta = meta.findAll { key, value -> key != 'tumor_id' }
-                new_meta.id = meta.patient
-                [ groupKey(new_meta, new_meta.id), cont ]
-            }.groupTuple()
+            ch_seg_to_filtermutectcalls = CALCULATECONTAMINATION.out.segmentation.map{ meta, seg -> [ meta + [id: meta.patient], seg]}.groupTuple()
+            ch_cont_to_filtermutectcalls = CALCULATECONTAMINATION.out.contamination.map{ meta, cont -> [ meta + [id: meta.patient], cont]}.groupTuple()
         } else {
             // Keep tumor_vs_normal ID
-            ch_seg_to_filtermutectcalls  = CALCULATECONTAMINATION.out.segmentation.map { meta, file ->
-                                                                                        def normalized_meta = meta.subMap('id', 'patient', 'status')
-                                                                                        [normalized_meta, file]
-                                                                                    }
-            ch_cont_to_filtermutectcalls = CALCULATECONTAMINATION.out.contamination.map { meta, file ->
-                                                                                        def normalized_meta = meta.subMap('id', 'patient', 'status')
-                                                                                        [normalized_meta, file]
-                                                                                    }
+            ch_seg_to_filtermutectcalls = CALCULATECONTAMINATION.out.segmentation
+            ch_cont_to_filtermutectcalls = CALCULATECONTAMINATION.out.contamination
         }
         LEARNREADORIENTATIONMODEL.out.artifactprior.dump(tag:"LEARNREADORIENTATIONMODEL.out.artifactpriorMUTECT2")
         ch_seg_to_filtermutectcalls.dump(tag:"ch_seg_to_filtermutectcallsMUTECT2")
