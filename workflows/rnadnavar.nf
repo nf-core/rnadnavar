@@ -95,16 +95,16 @@ workflow RNADNAVAR {
     else {
         // Assuming that if the cache is provided, the user has already downloaded it
         ANNOTATION_CACHE_INITIALISATION(
-            (params.vep_cache && params.tools && (params.tools.split(',').contains("vep") || params.tools.split(',').contains('merge'))),
+            (params.vep_cache && params.tools && params.tools.split(',').contains("vep")),
             params.vep_cache,
             params.vep_species,
             params.vep_cache_version,
             params.vep_genome,
             params.vep_custom_args,
-            "Please refer to https://nf-co.re/sarek/docs/usage/#how-to-customise-vep-annotation for more information.",
-        )
-        vep_cache = ANNOTATION_CACHE_INITIALISATION.out.ensemblvep_cache.map { it[1] }
+            "Please refer to https://nf-co.re/rnadnavar/docs/usage/#how-to-customise-vep-annotation for more information.")
+            vep_cache = ANNOTATION_CACHE_INITIALISATION.out.ensemblvep_cache
     }
+
 
     // STEP 0: Build reference and indices if needed
     PREPARE_REFERENCE_AND_INTERVALS()
