@@ -7,8 +7,8 @@ include { VCF2MAF                                  } from '../../../modules/loca
 include { RUN_CONSENSUS                            } from '../../../modules/local/consensus/main'
 include { RUN_CONSENSUS as RUN_CONSENSUS_RESCUE    } from '../../../modules/local/consensus/main'
 // Create samplesheets to restart from consensus
-include { CHANNEL_CONSENSUS_CREATE_CSV                 } from '../channel_consensus_create_csv/main'
-include { CHANNEL_CONSENSUS_CREATE_CSV as CHANNEL_RESCUE_CREATE_CSV                 } from '../channel_consensus_create_csv/main'
+include { CHANNEL_CONSENSUS_CREATE_CSV                              } from '../channel_consensus_create_csv/main'
+include { CHANNEL_CONSENSUS_CREATE_CSV as CHANNEL_RESCUE_CREATE_CSV } from '../channel_consensus_create_csv/main'
 
 workflow VCF_CONSENSUS {
     take:
@@ -182,7 +182,7 @@ workflow VCF_CONSENSUS {
                                 vcf: it[0].data_type == "vcf"
                                 maf: it[0].data_type == "maf"
                                 }
-            // First we transform the maf to MAF
+            // First we transform the vcf to MAF
             VCF2MAF(vcf_to_consensus_type.vcf.map{metaVCF -> [metaVCF[0], metaVCF[1]]},
                     fasta)
             consensus_maf    = VCF2MAF.out.maf.mix(vcf_to_consensus_type.maf)

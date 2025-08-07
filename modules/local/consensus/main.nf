@@ -6,7 +6,7 @@ process RUN_CONSENSUS {
     container 'nf-core/rnadnavar_renv_consensus:1.0'
 
     input:
-        tuple val(meta), path(vcf, stageAs: "inputs/*")
+        tuple val(meta), path(vcf, stageAs: "inputs/*"), val(caller)
 
     output:
         tuple val(meta), path('*.consensus.vcf')   , optional:true , emit: vcf
