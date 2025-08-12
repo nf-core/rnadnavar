@@ -261,7 +261,8 @@ workflow RNADNAVAR {
     //
     version_yaml = Channel.empty()
     if (!(params.skip_tools && params.skip_tools.split(',').contains('versions'))) {
-        version_yaml = softwareVersionsToYAML(versions).collectFile(storeDir: "${params.outdir}/pipeline_info", name: 'nf_core_rnadnavar_software_mqc_versions.yml', sort: true, newLine: true)
+        version_yaml = softwareVersionsToYAML(versions)
+            .collectFile(storeDir: "${params.outdir}/pipeline_info", name: 'nf_core_rnadnavar_software_mqc_versions.yml', sort: true, newLine: true)
     }
 
     if (!(params.skip_tools && params.skip_tools.split(',').contains('multiqc'))) {
