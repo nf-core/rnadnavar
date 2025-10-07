@@ -42,21 +42,17 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
 
     if (joint_mutect2) { // TODO: test this mode
         // Separate normal cram files and remove duplicates
-        ch_normal_cram = input.map{ meta, cram, crai ->
-            def new_meta = meta.findAll { key, value -> key != 'tumor_id' }
-            new_meta.id = meta.patient
-            [new_meta, cram[0], crai[0]]
-        }.unique()
+        ch_cram = input.multiMap{ meta, cram, crai ->
+                normal: [ meta - meta.subMap('tumor_id') , cram[0], crai[0] ]
+                tumor:  [ meta - meta.subMap('tumor_id') , cram[1], crai[1] ]
+            }
 
-        ch_tumor_cram = input.map{ meta, cram, crai ->
-            def new_meta = meta.findAll { key, value -> key != 'tumor_id' }
-            new_meta.id = meta.patient
-            [new_meta, cram[1], crai[1]]
-        }// Merge normal and tumor crams by patient
-        ch_tn_cram = ch_normal_cram.mix(ch_tumor_cram).groupTuple()
+        // Remove duplicates from normal channel and merge normal and tumor crams by patient
+        ch_tn_cram =  ch_cram.normal.unique().mix(ch_cram.tumor).groupTuple()
         // Combine input and intervals for scatter and gather strategy
         ch_tn_intervals = ch_tn_cram.combine(intervals)
             // Move num_intervals to meta map and reorganize channel for MUTECT2_PAIRED module
+            // meta: [id:patient_id, num_intervals, patient, sex]
             .map{ meta, cram, crai, intervls, num_intervals -> [ meta + [ num_intervals:num_intervals ], cram, crai, intervls ] }
         MUTECT2_PAIRED( ch_tn_intervals, fasta, fai, dict, germline_resource, germline_resource_tbi, panel_of_normals, panel_of_normals_tbi)
     }
