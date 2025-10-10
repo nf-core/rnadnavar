@@ -35,7 +35,7 @@ workflow BAM_APPLYBQSR {
     cram_to_merge = GATK4_APPLYBQSR.out.cram.map{ meta, c -> [ groupKey(meta, meta.num_intervals), c ] }.groupTuple()
     cram_to_merge.dump(tag:"cram_to_merge1")
     // Merge and index the recalibrated cram files
-    CRAM_MERGE_INDEX_SAMTOOLS(cram_to_merge, fasta, fasta_fai)
+    CRAM_MERGE_INDEX_SAMTOOLS(cram_to_merge, fasta.map{_meta, fa -> fa}, fasta_fai)
 
     cram_recal = CRAM_MERGE_INDEX_SAMTOOLS.out.cram_crai
         // Remove no longer necessary field: num_intervals
