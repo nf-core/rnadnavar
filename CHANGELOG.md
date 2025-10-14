@@ -2,6 +2,36 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## v1.0dev - [2025-08-12]
+
+### `Added`
+
+- Added full pipeline nf-test (`test_full.nf.test`) 
+- Added test snapshots 
+- Restored rnadnavar logo in pipeline output with color support
+
+### `Fixed`
+
+- Fixed help text and documentation URLs
+- Fixed pipeline-specific parameter descriptions in schema
+- Fixed workflow path references and documentation links
+- Fixed consensus module caller value to avoid warnings
+- Fixed VEP cache handling and empty RNA edits processing
+
+### `Changed`
+
+- **Updated nf-schema plugin** from v2.4.2 to v2.5.0 for logo color support
+- Cleaned up code formatting and style across configuration files
+- Updated test configurations and `.nftignore` files
+- Improved subworkflow organization and consistency (typos, remove unused code blocks, spacing, comments, readability)
+
+
+### `Removed`
+
+- Cleaned up unused VCFlib and VT variant processing modules
+- Removed obsolete module configurations and test files
+
+---
 
 ## v1.0dev - [2025-08-01]
 
