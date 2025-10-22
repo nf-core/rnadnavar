@@ -1,6 +1,8 @@
 #!/usr/bin/env Rscript
+# Date: Sun 20 Sep 2020
 # Author: Raquel Manzano - @RaqManzano
-# Script: Find overlaps between vcf
+# Script: Find overlaps between vcf - specific filename convention will be expected to extract the variant caller name
+# Expected filename pattern: <sample>_<caller>.maf or <sample>.<caller>.maf (e.g. S001_mutect2.maf or S001.mutect2.maf)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Libraries
 options(warn=-1)
@@ -31,13 +33,14 @@ if("--help" %in% script_args) {
 
         Arguments:
         --input_dir=input_directory - character, Directory containing input files
-        --out_prefix=output_prefix  - character, preffix for outputs
+        --out_prefix=output_prefix  - character, prefix for outputs
         --thr=thr                   - integer, the number of callers that support a mutation to be called consensus (default: 2)
         --cpu=cpu                   - integer, number of threads/cores to use in the parallelisation
+        --interval=coord_interval   - character, chrom:start-end to analyse
         --help                      - print this text
         Note: Please ensure caller name is as follows: sample_id.caller.maf
         Example:
-        ./consensusR.R --id=sample01 --input_dir=inputs/  --out_prefix=consensus \n\n")
+        ./consensusR.R --id=sample01 --input_dir=inputs/  --out_prefix=consensus --cpu=1 --thr=2 \n\n")
 
     q(save="no")
 }
@@ -47,27 +50,33 @@ if(!grepl(pattern = "--input_dir=", x = paste(script_args, collapse = ""))) {
 if(!grepl(pattern = "--out_prefix=", x = paste(script_args, collapse = ""))) {
     script_args <- c(script_args, "--out_prefix=consensus")
 }
-if(!grepl(pattern = "---thr=", x = paste(script_args, collapse = ""))) {
+if(!grepl(pattern = "--thr=", x = paste(script_args, collapse = ""))) {
     script_args <- c(script_args, "--thr=2")
 }
 if(!grepl(pattern = "--cpu=", x = paste(script_args, collapse = ""))) {
     script_args <- c(script_args, "--cpu=1")
 }
+if(!grepl(pattern = "--interval=", x = paste(script_args, collapse = ""))) {
+    script_args <- c(script_args, "--interval=0")
+}
 
 ## Parse arguments (we expect the form --arg=value)
-parseArgs <- function(x) strsplit(sub("^--", "", x), "=")
-argsDF <- as.data.frame(do.call("rbind", parseArgs(script_args)))
-argsDF <- aggregate(.~V1, data=argsDF, paste, collapse=",")
-argsL <- as.list(as.character(argsDF$V2))
+parseArgs    <- function(x) strsplit(sub("^--", "", x), "=")
+argsDF       <- as.data.frame(do.call("rbind", parseArgs(script_args)))
+argsDF       <- aggregate(.~V1, data=argsDF, paste, collapse=",")
+argsL        <- as.list(as.character(argsDF$V2))
 names(argsL) <- argsDF$V1
 
 # Input variables
 sampleid <- argsL$id
 input_files <- list.files(strsplit(argsL[["input_dir"]], split=",")[[1]], pattern="\\.maf$", full.names=TRUE)
 
-# Extract caller names from file names
+# Extract caller names from file names - specific name convention is expected
 get_caller <- function(filename) {
-    sub(".*(\\.|_)(.*?)\\.maf", "\\2", filename)
+    caller_name <- sub(".*(\\.|_)(.*?)\\.maf", "\\2", filename)
+    if (caller_name == filename) caller_name <- "unknown"
+    return(caller_name)
+
 }
 callers <- sapply(input_files, get_caller)
 
@@ -86,7 +95,7 @@ if (is.vcf){
 message("- Parsing headers")
 if (is.vcf){
     # First, get contigs from one of the input files
-    contigs_meta <- fread(cmd=paste0("zgrep '##contig' ", input_files[1]), sep = NULL, header = F)
+    contigs_meta <- fread(cmd=paste0("awk '/^##contig/ {print; next} !/^##contig/ {exit}' ", input_files[1]), sep = NULL, header = F)
     contigs_meta <- paste0(contigs_meta$V1, collapse = "\n")
 } else {
     contigs_meta <- ""
@@ -94,60 +103,82 @@ if (is.vcf){
 # Collecting vcf headers for the outputs
 callers_meta <- list()
 for ( c in callers){
-    vcf_meta <- fread(cmd=paste0("zgrep -E '##|#version' ", input_files[c]), sep = NULL, header = F)
+    vcf_meta <- fread(cmd=paste0("awk '/^#CHROM/ || /^Hugo_Symbol/ {exit} {print}' ", input_files[c]), sep = NULL, header = F)
     if (is.vcf){
-        vcf_header <- fread(cmd=paste0("zgrep '#CHROM' ", input_files[c]), sep = NULL, header = F)
+        vcf_header <- fread(cmd=paste0("zgrep -m 1 '#CHROM' ", input_files[c]), sep = NULL, header = F)
+        vcf_header <- strsplit(vcf_header$V1, "\t")[[1]]
         callers_meta[[c]] <-  list(meta=paste0(vcf_meta$V1, collapse = "\n"),
-                                                        header=strsplit(vcf_header$V1, "\t")[[1]])
+                                header=vcf_header)
     } else{
-        maf_header <- fread(cmd=paste0("zgrep 'Hugo_Symbol' ", input_files[c]), sep = NULL, header = F)
+        maf_header <- fread(cmd=paste0("zgrep -m 1 'Hugo_Symbol' ", input_files[c]), sep = NULL, header = F, showProgress = F)
+        maf_header <- strsplit(maf_header$V1, "\t")[[1]]
         callers_meta[[c]] <-  list(meta=paste0(vcf_meta$V1, collapse = "\n"),
-                                                                header=strsplit(maf_header$V1, "\t")[[1]])
+                                    header=maf_header)
     }
 }
-
 
 # Second, we read and convert the input files to GenomicRanges for easy manipulation.
 message("- Converting to genomic ranges")
 mutsGR <- list()
 muts <-  list()
+if (argsL$interval != '0') {
+
+    message( ' - Subset input by interval: ', argsL$interval)
+    interval_chr   = strsplit(argsL$interval, ':')[[1]][1]
+    interval_start = as.numeric(strsplit(strsplit(argsL$interval, ':')[[1]][2], '-')[[1]][1])
+    interval_end   = as.numeric(strsplit(strsplit(argsL$interval, ':')[[1]][2], '-')[[1]][2])
+
+}
+
 for(c in callers[1:length(callers)]){
     v <- input_files[c]
     message("  - ", v)
     if (!is.vcf){
-        tmp <- fread(cmd=paste0("zgrep -v '#' ", v))
+        fread_cmd =  paste0("zgrep -v '#' ", v)
+        if (argsL$interval != '0') {
+            fread_cmd <- paste0(fread_cmd, "| grep -Ew 'Hugo_Symbol|", interval_chr, "'")
+        }
+        # message("CMD:", fread_cmd)
+        tmp <- fread(cmd=fread_cmd, header=TRUE)
+        if (argsL$interval != '0') {
+            tmp <- tmp[Chromosome == interval_chr & Start_Position >= interval_start & Start_Position < interval_end]
+        }
         tmp$`#CHROM` <- tmp$Chromosome
-        tmp$POS <- tmp$Start_Position
-        tmp$REF <- tmp$Reference_Allele
-        tmp$ALT <- tmp$Tumor_Seq_Allele2
+        tmp$POS      <- tmp$Start_Position
+        tmp$REF      <- tmp$Reference_Allele
+        tmp$ALT      <- tmp$Tumor_Seq_Allele2
     } else {
-        tmp <- fread(paste0("zgrep -v '##' ", v))
+        fread_cmd =  paste0("zgrep -v '##' ", v)
+        if (argsL$interval != '0') {
+            fread_cmd <- paste0(fread_cmd, "| grep -w ", interval_chr)
+        }
+        tmp <- fread(cmd=fread_cmd)
     }
-    if (nrow(tmp)>0) {
-        tmp$Caller <- c
-        tmp$mut <- paste0(tmp$REF, ">", tmp$ALT)
+    if (nrow(tmp) > 0) {
+        tmp$Caller    <- c
+        tmp$mut       <- paste0(tmp$REF, ">", tmp$ALT)
         tmp$DNAchange <- paste0(tmp$`#CHROM`, ":g.", tmp$POS, tmp$REF, ">", tmp$ALT)
-        tmp$start <- tmp$POS
+        tmp$start     <- tmp$POS
         # get end position to create a range
         tmp$end <- ifelse(nchar(tmp$REF) > nchar(tmp$ALT),
-                                        tmp$POS + nchar(tmp$REF) - 1,
-                                        ifelse(nchar(tmp$REF) < nchar(tmp$ALT), tmp$POS + nchar(tmp$ALT) - 1,
-                                                        ifelse(nchar(tmp$REF) == nchar(tmp$ALT) & nchar(tmp$ALT) > 1, tmp$POS + nchar(tmp$REF),
-                                                                        tmp$POS)
-                                        )
+                        tmp$POS + nchar(tmp$REF) - 1,
+                        ifelse(nchar(tmp$REF) < nchar(tmp$ALT), tmp$POS + nchar(tmp$ALT) - 1,
+                                ifelse(nchar(tmp$REF) == nchar(tmp$ALT) & nchar(tmp$ALT) > 1, tmp$POS + nchar(tmp$REF),
+                                        tmp$POS)
+                        )
         )
-        message("   - Removing ",nrow(tmp[is.na(end)]), " spurious calls with no alt")
+        message("   - [WARNING] Removing ",nrow(tmp[is.na(end)]), " spurious calls with no alt. There should be 0.")
         tmp <- tmp[!is.na(end)]
-        muts[[c]] <- tmp
+        muts[[c]]   <- tmp
         mutsGR[[c]] <- GenomicRanges::makeGRangesFromDataFrame(df = tmp,
-                                                            ignore.strand = TRUE,
-                                                            start.field = "start",
-                                                            end.field = "end",
-                                                            seqnames.field = "#CHROM",
-                                                            keep.extra.columns = T)
-        } else {
-            mutsGR[[c]] <- tmp  # empty
-        }
+                                                        ignore.strand = TRUE,
+                                                        start.field = "start",
+                                                        end.field = "end",
+                                                        seqnames.field = "#CHROM",
+                                                        keep.extra.columns = T)
+    } else {
+        mutsGR[[c]] <- tmp  # empty
+    }
 }
 
 # callers <- names(mutsGR) # All callers might not be present
@@ -163,13 +194,13 @@ for (c1 in names(mutsGR)){
             # The gap between 2 adjacent ranges is 0.
             hits <- GenomicRanges::findOverlaps(query = mutsGR[[c1]], subject = mutsGR[[c2]], maxgap = 0)
             dnachange.hits <- muts[[c1]][queryHits(hits)]$DNAchange
-            filt.hits <- muts[[c1]][queryHits(hits)]$FILTER
+            filt.hits      <- muts[[c1]][queryHits(hits)]$FILTER
             if (length(dnachange.hits) > 0) {
                 # due to normalization we might find the same variant with different filters - these come from homopolymer regions
                 overlapping.vars <- rbind(overlapping.vars, unique(data.frame(DNAchange = dnachange.hits, caller = c1, FILTER = filt.hits)))
             }
         }
-}
+    }
 }
 
 # Finally, extract the set of variants that will be the consensus set
@@ -202,9 +233,9 @@ what.caller.called <- function(row, consensus, variants){
         var.callers <- paste(var.callers, collapse = "|")
         filters <- variants[variants$DNAchange==variant,]$FILTER
         filters <- paste(sub(pattern = ";",
-                                                replacement = ",",
-                                                x =filters),
-                                        collapse = "|")
+                            replacement = ",",
+                            x =filters),
+                        collapse = "|")
         if (var.callers == ""){
         var.callers <- row["Caller"]
         filters <- row["FILTER"]
@@ -228,6 +259,8 @@ for (c in callers){
     }
 }
 
+stopCluster(cl)
+
 all.muts <- do.call(rbind.fill, muts)
 
 # Remove duplication if consensus input came annotated with more than one caller
@@ -241,7 +274,7 @@ message("- Preparing output")
 ## Prepare output
 simplified.filter <- sapply(all.muts$filters, FUN = function(x){
     filt.val <- strsplit(x=x, split = "|", fixed = T)[[1]]
-    filt.t <- table(filt.val == "PASS")
+    filt.t   <- table(filt.val == "PASS")
     ifelse(prop.table(filt.t)["FALSE"] > 0.5, "FAIL", "PASS")
 })
 simplified.filter <- ifelse(is.na(simplified.filter), "PASS", simplified.filter)
@@ -255,20 +288,20 @@ all.muts$isconsensus <- grepl(pattern = "|", x = all.muts$callers, fixed = T)
 # WRITE OUTPUTS
 
 meta_consensus <- paste0('##INFO=<ID=callers,Number=1,Type=String,Description="Variant callers that called this mutation, separated by |">\n',
-'##INFO=<ID=filters,Number=1,Type=String,Description="Filters provided by each variant caller, separated by |">\n',
-'##INFO=<ID=consensus_filter,Number=1,Type=String,Description="PASS if 50% or more of the callers give the mutation, otherwise FAIL.">')
+                        '##INFO=<ID=filters,Number=1,Type=String,Description="Filters provided by each variant caller, separated by |">\n',
+                        '##INFO=<ID=consensus_filter,Number=1,Type=String,Description="PASS if 50% or more of the callers give the mutation, otherwise FAIL.">')
 extra.cols <- c()
 for ( c in callers){
     if (is.vcf){
         updated_meta <-  paste(callers_meta[[c]]$meta,
-                                                        meta_consensus,
-                                                        sep="\n")
-        vcf.out.caller <- paste0(argsL$out_prefix, "_", c,".vcf")
+                        meta_consensus,
+                        sep="\n")
+    vcf.out.caller <- paste0(argsL$out_prefix, "_", c,".vcf")
     } else{
         if ("Caller" %in% callers_meta[[c]]$header){
-        extra.cols <- c()
+            extra.cols <- c()
         } else{
-        extra.cols <- c("Caller", "callers", "filters", "FILTER_consensus", "isconsensus")
+            extra.cols <- c("Caller", "callers", "filters", "FILTER_consensus", "isconsensus")
         }
         callers_meta[[c]]$header <- c(callers_meta[[c]]$header, extra.cols)
         updated_meta <- "#version 2.4" ## is a maf file
@@ -277,23 +310,23 @@ for ( c in callers){
     write(x = updated_meta, file = vcf.out.caller, ncolumns = 1, append = F)
     # if empty maf/vcf just write empty file with columns
     if(nrow(all.muts[all.muts$Caller==c,][,callers_meta[[c]]$header])==0){
-        empty.df <- data.frame(matrix(ncol = length(callers_meta[[c]]$header), nrow = 0))
-        fwrite(x = empty.df,
-                        file = vcf.out.caller,
-                        append = T,
-                        sep = "\t",
-                        col.names = T)
-        next
+    empty.df <- data.frame(matrix(ncol = length(callers_meta[[c]]$header), nrow = 0))
+    fwrite(x = empty.df,
+        file = vcf.out.caller,
+        append = T,
+        sep = "\t",
+        col.names = T)
+    next
     }
     extra_cols <- c()
     if (is.vcf){
         fields_to_write <- all.muts[all.muts$Caller==c,][,callers_meta[[c]]$header]
         fields_to_write$INFO <- paste(fields_to_write$INFO, all.muts[all.muts$Caller==c,]$INFO_consensus, sep=";")
         fwrite(x = fields_to_write,
-                        file = vcf.out.caller,
-                        append = T,
-                        sep = "\t",
-                        col.names = T)
+            file = vcf.out.caller,
+            append = T,
+            sep = "\t",
+            col.names = T)
     } else{
         colnames(all.muts)[colnames(all.muts)=="FILTER_consensus"] <- "FILTER_consensus"
         if (all(all.muts[all.muts$Caller==c,][,callers_meta[[c]]$header] == callers_meta[[c]]$header)){
@@ -302,28 +335,27 @@ for ( c in callers){
             to_write <- all.muts[all.muts$Caller==c,][,callers_meta[[c]]$header]
         }
         fwrite(x = to_write,
-                    file = vcf.out.caller,
-                    append = T,
-                    sep = "\t",
-                    col.names = T)
-    }
+            file = vcf.out.caller,
+            append = T,
+            sep = "\t",
+            col.names = T)
+        }
     message(" - Output in: ", vcf.out.caller)
 }
 
 # Final VCF consensus
 if (is.vcf){
     meta <- paste0("##fileformat=VCFv4.2\n##source=Consensus", length(callers), "Callers (", paste0(callers, collapse = ","), ")\n", contigs_meta,
-                                '##FILTER=<ID=PASS,Description="All filters passed">\n##FILTER=<ID=FAIL,Description="More than half the callers did not give a PASS">\n')
+                    '##FILTER=<ID=PASS,Description="All filters passed">\n##FILTER=<ID=FAIL,Description="More than half the callers did not give a PASS">\n')
     # we need the meta contigs and the INFO
-    meta <- paste0(meta,
-                                meta_consensus)
+    meta <- paste0(meta, meta_consensus)
 } else{
     meta <- "#version 2.4"
 }
 
 to.vcf <- all.muts[all.muts$isconsensus==T,]
-if (is.vcf){
 
+if (is.vcf){
     col.out <- c("#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT")
     to.vcf$ID <- to.vcf$DNAchange
     to.vcf$QUAL <- "."
@@ -358,15 +390,15 @@ if (length(unlist(variants_list)) > 0 & length(unlist(variants_list_pass)) > 0){
     u  <- grid.grabExpr(draw(UpSet(m = m, comb_order = comb_order, column_title="All variants"), newpage = FALSE))
 
 
-m2 <- make_comb_mat(variants_list_pass)
-comb_order2 <- order(comb_size(m2), decreasing = T)
-g <- ggplot(all.muts, aes(Caller, fill=isconsensus)) +
-    geom_bar() +
-    coord_flip() +
-    scale_fill_manual(values = c(`TRUE`='#247671', `FALSE`='#92C2B5')) +
-    geom_text_repel(stat='count', aes(label=prettyNum(..count.., big.mark = ","))) +
-    ggtitle(subtitle = "PASS=All filters passed (note that '.' will be considered FAIL)", label = "") +
-    facet_grid(.~FILTER_consensus, scales="free")  + theme(title = element_text(color="grey40"))
+    m2 <- make_comb_mat(variants_list_pass)
+    comb_order2 <- order(comb_size(m2), decreasing = T)
+    g <- ggplot(all.muts, aes(Caller, fill=isconsensus)) +
+        geom_bar() +
+        coord_flip() +
+        scale_fill_manual(values = c(`TRUE`='#247671', `FALSE`='#92C2B5')) +
+        geom_text_repel(stat='count', aes(label=prettyNum(..count.., big.mark = ","))) +
+        ggtitle(subtitle = "PASS=All filters passed (note that '.' will be considered FAIL)", label = "") +
+        facet_grid(.~FILTER_consensus, scales="free")  + theme(title = element_text(color="grey40"))
     u2 <- grid.grabExpr(draw(UpSet(m = m2, comb_order = comb_order2, column_title="PASS variants"), newpage = FALSE))
     # 8.27 x 11.69
     pdf(pdf.out, width = 8.3, height = 11.7, paper = "A4")
@@ -374,7 +406,7 @@ g <- ggplot(all.muts, aes(Caller, fill=isconsensus)) +
                         labels = c("A", "B", "C"),
                         ncol = 1, nrow = 3)
     annotate_figure(plot, top = text_grob(paste("Consensus summary for", sampleid),
-                                                                                face = "bold", size = 14, family="Courier"))
+                                            face = "bold", size = 14, family="Courier"))
 
     dev.off()
     message(" - Output in: ", pdf.out)

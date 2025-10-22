@@ -126,6 +126,7 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     VCF_CONSENSUS (
             vcf_to_consensus,
             fasta,
+            intervals,
             dna_consensus_maf, // null when first pass
             dna_varcall_mafs,  // null when first pass
             input_sample,
