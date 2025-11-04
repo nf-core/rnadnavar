@@ -14,8 +14,6 @@ suppressPackageStartupMessages(library(ggpubr))
 suppressPackageStartupMessages(library(ComplexHeatmap))
 suppressPackageStartupMessages(library(ggrepel))
 suppressPackageStartupMessages(library(stringr))
-suppressPackageStartupMessages(library(parallel))
-
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 options(datatable.fread.input.cmd.message=FALSE)
@@ -26,26 +24,30 @@ if(length(script_args) < 1) {
     script_args <- c("--help")
 }
 
-
-# Help section
+# Help section ----
 if("--help" %in% script_args) {
     cat("The consensusR script:
 
         Arguments:
+        --id=sample_id              - character, id for the sample (default: sample)
         --input_dir=input_directory - character, Directory containing input files
         --out_prefix=output_prefix  - character, prefix for outputs
         --thr=thr                   - integer, the number of callers that support a mutation to be called consensus (default: 2)
-        --cpu=cpu                   - integer, number of threads/cores to use in the parallelisation
         --interval=coord_interval   - character, chrom:start-end to analyse
         --help                      - print this text
         Note: Please ensure caller name is as follows: sample_id.caller.maf
         Example:
-        ./consensusR.R --id=sample01 --input_dir=inputs/  --out_prefix=consensus --cpu=1 --thr=2 \n\n")
+        ./run_consensus.R --id=sample01 --input_dir=inputs/  --out_prefix=consensus --thr=2 \n\n")
 
     q(save="no")
 }
+
+# Dealing with missing params ----
 if(!grepl(pattern = "--input_dir=", x = paste(script_args, collapse = ""))) {
     stop("Missing --input_dir name!")
+}
+if(!grepl(pattern = "--id=", x = paste(script_args, collapse = ""))) {
+    script_args <- c(script_args, "--id=sample")
 }
 if(!grepl(pattern = "--out_prefix=", x = paste(script_args, collapse = ""))) {
     script_args <- c(script_args, "--out_prefix=consensus")
@@ -53,38 +55,34 @@ if(!grepl(pattern = "--out_prefix=", x = paste(script_args, collapse = ""))) {
 if(!grepl(pattern = "--thr=", x = paste(script_args, collapse = ""))) {
     script_args <- c(script_args, "--thr=2")
 }
-if(!grepl(pattern = "--cpu=", x = paste(script_args, collapse = ""))) {
-    script_args <- c(script_args, "--cpu=1")
-}
 if(!grepl(pattern = "--interval=", x = paste(script_args, collapse = ""))) {
     script_args <- c(script_args, "--interval=0")
 }
 
-## Parse arguments (we expect the form --arg=value)
+## Parse arguments (we expect the form --arg=value) ----
 parseArgs    <- function(x) strsplit(sub("^--", "", x), "=")
 argsDF       <- as.data.frame(do.call("rbind", parseArgs(script_args)))
 argsDF       <- aggregate(.~V1, data=argsDF, paste, collapse=",")
 argsL        <- as.list(as.character(argsDF$V2))
 names(argsL) <- argsDF$V1
 
-# Input variables
-sampleid <- argsL$id
+# Input variables ----
+sampleid    <- argsL$id. # just used for the title of the plot at the end
 input_files <- list.files(strsplit(argsL[["input_dir"]], split=",")[[1]], pattern="\\.maf$", full.names=TRUE)
 
-# Extract caller names from file names - specific name convention is expected
+# Extract caller names from file names - specific name convention is expected ----
 get_caller <- function(filename) {
     caller_name <- sub(".*(\\.|_)(.*?)\\.maf", "\\2", filename)
     if (caller_name == filename) caller_name <- "unknown"
     return(caller_name)
-
 }
 callers <- sapply(input_files, get_caller)
-
 names(input_files) <- callers
 
+# check if input is a vcf or maf ----
 is.vcf <- grepl(x = input_files[1], pattern = ".vcf$|.vcf.gz$", perl = T)
 
-# output files
+# init output files ----
 pdf.out <- paste0(argsL$out_prefix, ".pdf")
 if (is.vcf){
     vcf.out <- paste0(argsL$out_prefix, ".vcf")
@@ -98,9 +96,10 @@ if (is.vcf){
     contigs_meta <- fread(cmd=paste0("awk '/^##contig/ {print; next} !/^##contig/ {exit}' ", input_files[1]), sep = NULL, header = F)
     contigs_meta <- paste0(contigs_meta$V1, collapse = "\n")
 } else {
+    # this is not a vcf so no contigs
     contigs_meta <- ""
 }
-# Collecting vcf headers for the outputs
+# First, collect vcf headers for the outputs ----
 callers_meta <- list()
 for ( c in callers){
     vcf_meta <- fread(cmd=paste0("awk '/^#CHROM/ || /^Hugo_Symbol/ {exit} {print}' ", input_files[c]), sep = NULL, header = F)
@@ -116,11 +115,12 @@ for ( c in callers){
                                     header=maf_header)
     }
 }
-
-# Second, we read and convert the input files to GenomicRanges for easy manipulation.
+# Second, read and convert the input files to GenomicRanges for easy manipulation.
 message("- Converting to genomic ranges")
 mutsGR <- list()
 muts <-  list()
+
+## if there are intervals parse now
 if (argsL$interval != '0') {
 
     message( ' - Subset input by interval: ', argsL$interval)
@@ -133,13 +133,13 @@ if (argsL$interval != '0') {
 for(c in callers[1:length(callers)]){
     v <- input_files[c]
     message("  - ", v)
-    if (!is.vcf){
+    if (!is.vcf){ # is a maf
         fread_cmd =  paste0("zgrep -v '#' ", v)
         if (argsL$interval != '0') {
             fread_cmd <- paste0(fread_cmd, "| grep -Ew 'Hugo_Symbol|", interval_chr, "'")
         }
-        # message("CMD:", fread_cmd)
         tmp <- fread(cmd=fread_cmd, header=TRUE)
+        # tmp <- tmp[Chromosome=="chr21"]
         if (argsL$interval != '0') {
             tmp <- tmp[Chromosome == interval_chr & Start_Position >= interval_start & Start_Position < interval_end]
         }
@@ -147,14 +147,14 @@ for(c in callers[1:length(callers)]){
         tmp$POS      <- tmp$Start_Position
         tmp$REF      <- tmp$Reference_Allele
         tmp$ALT      <- tmp$Tumor_Seq_Allele2
-    } else {
+    } else { # is a vcf
         fread_cmd =  paste0("zgrep -v '##' ", v)
         if (argsL$interval != '0') {
             fread_cmd <- paste0(fread_cmd, "| grep -w ", interval_chr)
         }
         tmp <- fread(cmd=fread_cmd)
     }
-    if (nrow(tmp) > 0) {
+    if (nrow(tmp) > 0) { # if not empty
         tmp$Caller    <- c
         tmp$mut       <- paste0(tmp$REF, ">", tmp$ALT)
         tmp$DNAchange <- paste0(tmp$`#CHROM`, ":g.", tmp$POS, tmp$REF, ">", tmp$ALT)
@@ -167,7 +167,9 @@ for(c in callers[1:length(callers)]){
                                         tmp$POS)
                         )
         )
-        message("   - [WARNING] Removing ",nrow(tmp[is.na(end)]), " spurious calls with no alt. There should be 0.")
+        if (nrow(tmp[is.na(end)])>0){
+            message("   - [WARNING] Removing ",nrow(tmp[is.na(end)]), " spurious calls with no alt. There should be 0.")
+        }
         tmp <- tmp[!is.na(end)]
         muts[[c]]   <- tmp
         mutsGR[[c]] <- GenomicRanges::makeGRangesFromDataFrame(df = tmp,
@@ -176,37 +178,66 @@ for(c in callers[1:length(callers)]){
                                                         end.field = "end",
                                                         seqnames.field = "#CHROM",
                                                         keep.extra.columns = T)
-    } else {
-        mutsGR[[c]] <- tmp  # empty
+    } else { # if empty add empty genomic range
+        mutsGR[[c]] <- GenomicRanges::GRanges()  # empty
     }
+    rm(tmp); gc(verbose = FALSE)
 }
 
-# callers <- names(mutsGR) # All callers might not be present
+# Extract variants where their coordinates overlap between inputs ----
 message("- Finding overlaps")
 # Third, we find overlaps
-overlapping.vars <- data.frame(DNAchange=character(), caller=character(), FILTER=character())
-for (c1 in names(mutsGR)){
-    if (nrow(data.frame(mutsGR[[c1]]))==0) next
-    for (c2 in names(mutsGR)){
-        if (nrow(data.frame(mutsGR[[c2]]))==0) next
-        if (c1!=c2){
-            group_name <- paste0(c1, "vs", c2)
+# Split each GRange by chromosome to speed things up
+mutsGR_by_chr <- lapply(mutsGR, function(gr) {
+    if (!methods::is(gr, "GRanges") || length(gr) == 0) return(list())
+    split(gr, seqnames(gr))
+})
+
+rm(mutsGR); gc(verbose = FALSE)
+callers.names.GR <- names(mutsGR_by_chr)
+
+overlapping.vars.list <- list()
+for (c1 in callers.names.GR){
+    gr1_chr <- mutsGR_by_chr[[c1]]
+    if (length(gr1_chr) == 0) next  # if empty jump to next
+    for (c2 in callers.names.GR){
+        if (c1 == c2) next  # skip self-comparison
+        gr2_chr <- mutsGR_by_chr[[c2]]
+        if (length(gr2_chr) == 0) next  # if (length(gr1_chr) == 0) next
+        # Only consider chromosomes both callers share
+        chroms <- intersect(names(gr1_chr), names(gr2_chr))
+        if (length(chroms) == 0) next
+        for (chrom in chroms) {
+            gr1 <- gr1_chr[[chrom]]
+            gr2 <- gr2_chr[[chrom]]
+            if (length(gr1) == 0 || length(gr2) == 0) next
             # The gap between 2 adjacent ranges is 0.
-            hits <- GenomicRanges::findOverlaps(query = mutsGR[[c1]], subject = mutsGR[[c2]], maxgap = 0)
-            dnachange.hits <- muts[[c1]][queryHits(hits)]$DNAchange
-            filt.hits      <- muts[[c1]][queryHits(hits)]$FILTER
-            if (length(dnachange.hits) > 0) {
-                # due to normalization we might find the same variant with different filters - these come from homopolymer regions
-                overlapping.vars <- rbind(overlapping.vars, unique(data.frame(DNAchange = dnachange.hits, caller = c1, FILTER = filt.hits)))
-            }
-        }
+            hits <- GenomicRanges::findOverlaps(query = gr1, subject = gr2, maxgap = 0)
+            n_hits <- length(hits)
+            message(sprintf("[%s vs %s | %s] %d overlaps found", c1, c2, chrom, n_hits))
+            if (n_hits == 0) next  # No overlaps found 
+            dnachange.hits <- muts[[c1]][Chromosome==chrom][queryHits(hits)]$DNAchange
+            filt.hits      <- muts[[c1]][Chromosome==chrom][queryHits(hits)]$FILTER
+            group_name <- paste0(c1, "_vs_", c2, "_", chrom)
+            message("group name: ", group_name)
+            # due to normalization we might find the same variant with different filters - these come from homopolymer regions
+            overlapping.vars.list[[group_name]] <- unique(data.frame(DNAchange = dnachange.hits, caller = c1, FILTER = filt.hits))
+        } 
     }
 }
-
+overlapping.vars <- data.table::rbindlist(overlapping.vars.list, fill = TRUE)
+rm(overlapping.vars.list, mutsGR_by_chr); gc(verbose = FALSE)
 # Finally, extract the set of variants that will be the consensus set
 overlapping.vars <- overlapping.vars[!duplicated(overlapping.vars),]
-overlapping.vars <- as.data.table(overlapping.vars)[, .(caller = paste(caller, collapse = "|"), FILTER = paste(FILTER, collapse = "|")), by = DNAchange]
-overlapping.vars <- as.data.frame(overlapping.vars)
+# Convert to data.table and summarise by DNAchange
+setDT(overlapping.vars)
+overlapping.vars <- overlapping.vars[, .(
+    caller = paste(caller, collapse = "|"),
+    FILTER = paste(FILTER, collapse = "|")
+    ),
+    by = DNAchange
+]
+
 
 # Overlaps that are adjacent, and only SNVs are removed if not DNP
 overlapping.variants.count        <- stringr::str_count(string = overlapping.vars$caller, pattern =  stringr::fixed("|")) + 1
@@ -226,40 +257,37 @@ con.vars.ths <- c(con.vars.ths.snv, con.vars.ths.indel)
 
 # The next steps are for the output
 # To keep the information from the consensus we extract the callers that called each mutation and its correspondent filters.
-what.caller.called <- function(row, consensus, variants){
-    variant <- row["DNAchange"]
-    if (variant %in% consensus){
-        var.callers <- variants[variants$DNAchange==variant,]$caller
-        var.callers <- paste(var.callers, collapse = "|")
-        filters <- variants[variants$DNAchange==variant,]$FILTER
-        filters <- paste(sub(pattern = ";",
-                            replacement = ",",
-                            x =filters),
-                        collapse = "|")
-        if (var.callers == ""){
-        var.callers <- row["Caller"]
-        filters <- row["FILTER"]
-        }
-        list(callers=var.callers, filters=filters)
-    } else {
-        list(callers=row["Caller"], filters=row['FILTER'])
-    }
-}
-
-cpu <- ifelse(is.na(argsL$cpu)| is.null(argsL$cpu), 1, as.integer(argsL$cpu))
-cl <- makeCluster(cpu)
+consensus_map <- overlapping.vars[, .(
+                                        callers_all = paste(caller, collapse = "|"),
+                                        filters_all = paste(FILTER, collapse = "|")
+                                        ), 
+                                    by = DNAchange
+    ]
+# Mark which DNAchanges are consensus
+consensus_map[, is_consensus := DNAchange %in% con.vars.ths]
+setkey(consensus_map, DNAchange)
 
 for (c in callers){
     message("- Annotating calls from ", c)
     if (!is.null(muts[[c]])){
-        values <-  parApply(cl=cl, X = muts[[c]], MARGIN = 1, FUN = what.caller.called, consensus=con.vars.ths, variants=overlapping.vars)
-        muts[[c]] <- cbind( muts[[c]], as.data.frame(do.call(rbind, values)))
-        muts[[c]]$callers <- unlist(muts[[c]]$callers )
-        muts[[c]]$filters <- unlist(muts[[c]]$filters )
+        muts_dt <- as.data.table(muts[[c]])
+        setkey(muts_dt, DNAchange)
+        # Join consensus information
+        muts_dt <- consensus_map[muts_dt, on = "DNAchange"]
+
+        # Replace missing with self information
+        muts_dt[is.na(callers_all), callers_all := Caller]
+        muts_dt[is.na(filters_all), filters_all := FILTER]
+
+        # Rename for consistency with rest of script
+        setnames(muts_dt,
+                old = c("callers_all", "filters_all"),
+                new = c("callers", "filters"))
+
+        muts[[c]] <- as.data.frame(muts_dt)
+        rm(muts_dt); gc(FALSE)
     }
 }
-
-stopCluster(cl)
 
 all.muts <- do.call(rbind.fill, muts)
 
@@ -310,15 +338,15 @@ for ( c in callers){
     write(x = updated_meta, file = vcf.out.caller, ncolumns = 1, append = F)
     # if empty maf/vcf just write empty file with columns
     if(nrow(all.muts[all.muts$Caller==c,][,callers_meta[[c]]$header])==0){
-    empty.df <- data.frame(matrix(ncol = length(callers_meta[[c]]$header), nrow = 0))
-    fwrite(x = empty.df,
-        file = vcf.out.caller,
-        append = T,
-        sep = "\t",
-        col.names = T)
-    next
+        empty.df <- data.frame(matrix(ncol = length(callers_meta[[c]]$header), nrow = 0))
+        fwrite(x = empty.df,
+            file = vcf.out.caller,
+            append = T,
+            sep = "\t",
+            col.names = T)
+        next
     }
-    extra_cols <- c()
+    extra.cols <- c()
     if (is.vcf){
         fields_to_write <- all.muts[all.muts$Caller==c,][,callers_meta[[c]]$header]
         fields_to_write$INFO <- paste(fields_to_write$INFO, all.muts[all.muts$Caller==c,]$INFO_consensus, sep=";")
@@ -384,7 +412,10 @@ for (c in callers){
     variants_list_pass[[c]] <- all.muts[all.muts$Caller==c & all.muts$FILTER_consensus=="PASS",]$DNAchange
 }
 
-if (length(unlist(variants_list)) > 0 & length(unlist(variants_list_pass)) > 0){
+nonempty_variants      <- sum(lengths(variants_list)) > 0
+nonempty_variants_pass <- sum(lengths(variants_list_pass)) > 0
+
+if (nonempty_variants && nonempty_variants_pass){
     m <- make_comb_mat(variants_list)
     comb_order <- order(comb_size(m), decreasing = T)
     u  <- grid.grabExpr(draw(UpSet(m = m, comb_order = comb_order, column_title="All variants"), newpage = FALSE))
@@ -405,12 +436,11 @@ if (length(unlist(variants_list)) > 0 & length(unlist(variants_list_pass)) > 0){
     plot <- ggarrange(g, u, u2,
                         labels = c("A", "B", "C"),
                         ncol = 1, nrow = 3)
-    annotate_figure(plot, top = text_grob(paste("Consensus summary for", sampleid),
-                                            face = "bold", size = 14, family="Courier"))
+    print(annotate_figure(plot, top = text_grob(paste("Consensus summary for", sampleid),
+                                            face = "bold", size = 10, family="Courier")))
 
     dev.off()
     message(" - Output in: ", pdf.out)
-
 }
 
 # check whether the unwanted file exists and remove it
