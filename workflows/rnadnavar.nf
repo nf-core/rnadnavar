@@ -187,8 +187,9 @@ workflow RNADNAVAR {
     if (params.tools && params.tools.split(',').contains('realignment')) {
         // fastq will not be split when realignment
         params.split_fastq = 0
-        // reset intervals to none (realignment files are small)
+        // reset intervals to none (realignment files are smaller)
         PREPARE_INTERVALS_FOR_REALIGNMENT(fasta_fai, null, true)
+        // hisat2 alignment
         PREPARE_REALIGNMENT(
             input_sample,
             filtered_maf,
@@ -201,7 +202,6 @@ workflow RNADNAVAR {
             BAM_PROCESSING.out.dna_consensus_maf,
             BAM_PROCESSING.out.dna_varcall_mafs,
         )
-        // do mapping with hisat2
 
         versions = versions.mix(PREPARE_REALIGNMENT.out.versions)
 
