@@ -215,14 +215,14 @@ for (c1 in callers.names.GR){
             hits <- GenomicRanges::findOverlaps(query = gr1, subject = gr2, maxgap = 0)
             n_hits <- length(hits)
             message(sprintf("[%s vs %s | %s] %d overlaps found", c1, c2, chrom, n_hits))
-            if (n_hits == 0) next  # No overlaps found 
+            if (n_hits == 0) next  # No overlaps found
             dnachange.hits <- muts[[c1]][Chromosome==chrom][queryHits(hits)]$DNAchange
             filt.hits      <- muts[[c1]][Chromosome==chrom][queryHits(hits)]$FILTER
             group_name <- paste0(c1, "_vs_", c2, "_", chrom)
             message("group name: ", group_name)
             # due to normalization we might find the same variant with different filters - these come from homopolymer regions
             overlapping.vars.list[[group_name]] <- unique(data.frame(DNAchange = dnachange.hits, caller = c1, FILTER = filt.hits))
-        } 
+        }
     }
 }
 overlapping.vars <- data.table::rbindlist(overlapping.vars.list, fill = TRUE)
@@ -260,7 +260,7 @@ con.vars.ths <- c(con.vars.ths.snv, con.vars.ths.indel)
 consensus_map <- overlapping.vars[, .(
                                         callers_all = paste(caller, collapse = "|"),
                                         filters_all = paste(FILTER, collapse = "|")
-                                        ), 
+                                        ),
                                     by = DNAchange
     ]
 # Mark which DNAchanges are consensus
