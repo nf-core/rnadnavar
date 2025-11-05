@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed workflow path references and documentation links
 - Fixed consensus module caller value to avoid warnings
 - Fixed VEP cache handling and empty RNA edits processing
+- Fixed issue with run_consensus.R plotting
 
 ### `Changed`
 
@@ -25,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cleaned up code formatting and style across configuration files
 - Updated test configurations and `.nftignore` files
 - Improved subworkflow organization and consistency (typos, remove unused code blocks, spacing, comments, readability)
+- Massive speed up to run_consensus.R
 
 ### `Removed`
 
