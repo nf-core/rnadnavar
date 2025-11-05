@@ -6,7 +6,7 @@ process RUN_CONSENSUS {
     container 'nf-core/rnadnavar_renv_consensus:1.0'
 
     input:
-        tuple val(meta), path(input_file, stageAs: "inputs/*"), val(caller), path(intervals)
+        tuple val(meta), path(input_file, stageAs: "inputs/*"), val(caller)
 
     output:
         tuple val(meta), path('*.consensus.vcf')                , optional:true , emit: vcf
@@ -24,14 +24,7 @@ process RUN_CONSENSUS {
         def prefix = task.ext.prefix ?: "${meta.id}"
 
         """
-        if [ -n "${intervals}" ]; then
-            INTER=\$(awk '{print \$1 ":" \$2 "-" \$3}' ${intervals})
-            interval="--interval=\$INTER"
-        else
-            interval=""
-        fi
-
-        run_consensus.R --input_dir=inputs/ --out_prefix=${prefix}.consensus --cpu=$task.cpus $args \$interval
+        run_consensus.R --input_dir=inputs/ --out_prefix=${prefix}.consensus --cpu=$task.cpus $args
 
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
