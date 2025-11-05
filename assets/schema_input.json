@@ -170,11 +170,9 @@
                     }
                 ],
                 "format": "file-path",
-                "exists": true
-            },
-            "normal_id": {
-                "type": "string",
-                "meta": ["normal_id"]
+                "exists": true,
+                "pattern": "^([\\S\\s]*\\/)?[^\\s\\/]+\\.f(ast)?q\\.gz$",
+                "errorMessage": "FastQ file for reads 2 cannot contain spaces and must have extension '.fq.gz' or '.fastq.gz'"
             }
         },
         "required": ["patient", "sample"]
