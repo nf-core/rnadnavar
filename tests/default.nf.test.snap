@@ -1,7 +1,6 @@
 {
     "-profile test": {
         "content": [
-            118,
             {
                 "BCFTOOLS_STATS": {
                     "bcftools": 1.21
@@ -212,7 +211,6 @@
                 "reports/mosdepth/TCRBOA7-T/TCRBOA7-T.recal.per-base.bed.gz",
                 "reports/mosdepth/TCRBOA7-T/TCRBOA7-T.recal.per-base.bed.gz.csi",
                 "reports/multiqc_data",
-                "reports/multiqc_data/BETA-multiqc.parquet",
                 "reports/multiqc_data/bcftools-stats-subtypes.txt",
                 "reports/multiqc_data/bcftools_stats_indel-lengths.txt",
                 "reports/multiqc_data/bcftools_stats_variant_depths.txt",
@@ -254,6 +252,7 @@
                 "reports/multiqc_data/mosdepth_cumcov_dist.txt",
                 "reports/multiqc_data/mosdepth_perchrom.txt",
                 "reports/multiqc_data/multiqc.log",
+                "reports/multiqc_data/multiqc.parquet",
                 "reports/multiqc_data/multiqc_bcftools_stats.txt",
                 "reports/multiqc_data/multiqc_citations.txt",
                 "reports/multiqc_data/multiqc_data.json",
@@ -267,6 +266,7 @@
                 "reports/multiqc_data/multiqc_star.txt",
                 "reports/multiqc_data/picard_MarkIlluminaAdapters_histogram.txt",
                 "reports/multiqc_data/picard_MeanQualityByCycle_histogram.txt",
+                "reports/multiqc_data/picard_MeanQualityByCycle_histogram_1.txt",
                 "reports/multiqc_data/picard_QualityScoreDistribution_histogram.txt",
                 "reports/multiqc_data/picard_deduplication.txt",
                 "reports/multiqc_data/samtools-stats-dp.txt",
@@ -465,6 +465,10 @@
             [
                 "TCRBOA7-T-RNA_vs_TCRBOA7-N.strelka.maf:md5,954ff0d996607a59669af9bc8dadea56",
                 "TCRBOA7-T_vs_TCRBOA7-N.strelka.maf:md5,fae7532e022765fcbeaf2f1419a2139f",
+                "markduplicates.csv:md5,61da8b8b4ac038c7e7e7b428c24e3140",
+                "markduplicates_no_table.csv:md5,17a5ec4632c7032fc6de766e5f49eb06",
+                "recalibrated.csv:md5,3664bd53da1e194376d4c68168a49f18",
+                "variantcalled.csv:md5,682d69c1894c3036a53b92a9623cf107",
                 "TCRBOA7-T-RNA_vs_TCRBOA7-N.filtered.maf:md5,184db72b9501f2d16e44cf1f478c29f2",
                 "TCRBOA7-T_vs_TCRBOA7-N.filtered.maf:md5,84d4dafe5b00520c66adf090208e8f5c",
                 "TCRBOA7-N.recal.table:md5,4771abf3f2f413562282d88d16fd6ad0",
@@ -535,6 +539,7 @@
                 "mosdepth_cov_dist.txt:md5,66ce1b36012c8157e78990ee7edd60e4",
                 "mosdepth_cumcov_dist.txt:md5,66ce1b36012c8157e78990ee7edd60e4",
                 "mosdepth_perchrom.txt:md5,243084ec9cb79976f423f45ae2de125c",
+                "multiqc.parquet:md5,147ffa9e4be88bc06b971caa5a7936a1",
                 "multiqc_bcftools_stats.txt:md5,be374492fa22704213b3f9abff3093eb",
                 "multiqc_citations.txt:md5,451006f9c45cb544ccd4ff9cdd218ecf",
                 "multiqc_fastp.txt:md5,66184e308a5a8fdf67e971199111c7d5",
@@ -542,6 +547,7 @@
                 "multiqc_picard_dups.txt:md5,115620014ad23162d2d362d865a8690d",
                 "picard_MarkIlluminaAdapters_histogram.txt:md5,d41d8cd98f00b204e9800998ecf8427e",
                 "picard_MeanQualityByCycle_histogram.txt:md5,d41d8cd98f00b204e9800998ecf8427e",
+                "picard_MeanQualityByCycle_histogram_1.txt:md5,d41d8cd98f00b204e9800998ecf8427e",
                 "picard_QualityScoreDistribution_histogram.txt:md5,d41d8cd98f00b204e9800998ecf8427e",
                 "picard_deduplication.txt:md5,0e861a27523f567b6f7eed886d7d645a",
                 "vcftools_tstv_by_count.txt:md5,b4d556d65f2efdb689bc2554d0cc49b7",
@@ -558,6 +564,6 @@
             "nf-test": "0.9.2",
             "nextflow": "25.04.6"
         },
-        "timestamp": "2025-11-05T07:00:21.553687"
+        "timestamp": "2025-11-05T15:42:48.705984"
     }
 }
