@@ -34,7 +34,7 @@ workflow BAM_SPLITNCIGARREADS {
     cram_to_merge = GATK4_SPLITNCIGARREADS.out.cram.map{ meta, crm -> [ groupKey(meta, meta.num_intervals), crm ] }.groupTuple()
 
     // Merge and index the recalibrated cram files
-    CRAM_MERGE_INDEX_SAMTOOLS(cram_to_merge, fasta, fasta_fai)
+    CRAM_MERGE_INDEX_SAMTOOLS(cram_to_merge, fasta.map{_meta, fa -> fa}, fasta_fai.map{_meta, fai -> fai})
 
     cram_recal = CRAM_MERGE_INDEX_SAMTOOLS.out.cram_crai
     // Remove no longer necessary field: num_intervals
