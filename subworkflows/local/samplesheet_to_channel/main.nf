@@ -56,11 +56,22 @@ workflow  SAMPLESHEET_TO_CHANNEL{
                     else {
                         error("Combination error")}
                 } else if (meta.status >= 1){  // either DNA (status=1) or RNA (status=2)
-                    if (meta.normal_id == null){
-                        error("When tool 'realigment' enabled, `normal_id` should be added to the csv for maf files.")
-                        // Need to get the normal id to create the tumour_vs_normal id
+                    if (!meta.normal_id) {
+                        // Extract normal_id from sample name like "SAMPLE_T_vs_SAMPLE_N" as "SAMPLE_N"
+                        if (meta.sample.contains('_vs_')) {
+                            def parts = meta.sample.split('_vs_')
+                            if (parts.size() == 2) {
+                                def normal_id = parts[1]
+                                meta = meta + [normal_id: normal_id]
+                                }
+                        } else if (meta.sample.endsWith('_T')) {
+                            // For tumor samples, derive normal_id from patient
+                            meta = meta + [normal_id: "${meta.patient}_N"]
+                        } else{
+                            error("When the `realignment` step/tool is enabled, each MAF entry must include a `normal_id column. Alternatively, include the normal sample ID in the file name as SAMPLE_T_vs_SAMPLE_N. If neither is provided, normal_id will be inferred automatically, which may lead to incorrect pairing")
+                        } 
                     } else {
-                        meta = meta + [id: meta.sample + "_vs_" + meta.normal_id, data_type: 'maf', variantcaller: variantcaller ?: '']
+                        meta = meta + [id: meta.sample + "_vs_" + meta.normal_id, data_type: 'maf', variantcaller: variantcaller ?: 'unknown']
                         return [ meta, maf ]
                     }
                 }
@@ -210,11 +221,10 @@ workflow  SAMPLESHEET_TO_CHANNEL{
         error("Please specify at least one tool when using `--step ${params.step}`.\nhttps://nf-co.re/rnadnavar/parameters#tools")
     }
 
-
     if ((params.download_cache) && (params.vep_cache)) {
         error("Please specify either `--download_cache` or `--vep_cache`.\nhttps://nf-co.re/rnadnavar/usage#how-to-customise-vep-annotation")
     }
-
+    input_sample.dump(tag:"input_sample_final")
     emit:
     input_sample
 }
