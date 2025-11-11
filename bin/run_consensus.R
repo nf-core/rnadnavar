@@ -402,47 +402,51 @@ write(x = meta, file = vcf.out, ncolumns = 1)
 fwrite(x = to.vcf, file = vcf.out, append = T, sep = "\t", col.names = T)
 message("- Output in: ", vcf.out)
 
+if (nrow(to.vcf) > 1e6){
+    message("Too many variants (+1M!), plotting is skipped.")
+} else {
 
-## PLOTTING
-variants_list <- list()
-variants_list_pass <- list()
+    ## PLOTTING
+    variants_list <- list()
+    variants_list_pass <- list()
 
-for (c in callers){
-    variants_list[[c]]      <- all.muts[all.muts$Caller==c,]$DNAchange
-    variants_list_pass[[c]] <- all.muts[all.muts$Caller==c & all.muts$FILTER_consensus=="PASS",]$DNAchange
+    for (c in callers){
+        variants_list[[c]]      <- all.muts[all.muts$Caller==c,]$DNAchange
+        variants_list_pass[[c]] <- all.muts[all.muts$Caller==c & all.muts$FILTER_consensus=="PASS",]$DNAchange
+    }
+
+    nonempty_variants      <- sum(lengths(variants_list)) > 0
+    nonempty_variants_pass <- sum(lengths(variants_list_pass)) > 0
+
+    if (nonempty_variants && nonempty_variants_pass){
+        m <- make_comb_mat(variants_list)
+        comb_order <- order(comb_size(m), decreasing = T)
+        u  <- grid.grabExpr(draw(UpSet(m = m, comb_order = comb_order, column_title="All variants"), newpage = FALSE))
+
+
+        m2 <- make_comb_mat(variants_list_pass)
+        comb_order2 <- order(comb_size(m2), decreasing = T)
+        g <- ggplot(all.muts, aes(Caller, fill=isconsensus)) +
+            geom_bar() +
+            coord_flip() +
+            scale_fill_manual(values = c(`TRUE`='#247671', `FALSE`='#92C2B5')) +
+            geom_text_repel(stat='count', aes(label=prettyNum(..count.., big.mark = ","))) +
+            ggtitle(subtitle = "PASS=All filters passed (note that '.' will be considered FAIL)", label = "") +
+            facet_grid(.~FILTER_consensus, scales="free")  + theme(title = element_text(color="grey40"))
+        u2 <- grid.grabExpr(draw(UpSet(m = m2, comb_order = comb_order2, column_title="PASS variants"), newpage = FALSE))
+        # 8.27 x 11.69
+        pdf(pdf.out, width = 8.3, height = 11.7, paper = "A4")
+        plot <- ggarrange(g, u, u2,
+                            labels = c("A", "B", "C"),
+                            ncol = 1, nrow = 3)
+        print(annotate_figure(plot, top = text_grob(paste("Consensus summary for", sampleid),
+                                                face = "bold", size = 10, family="Courier")))
+
+        dev.off()
+        message(" - Output in: ", pdf.out)
+    }
+
+    # check whether the unwanted file exists and remove it
+    file.exists("Rplots.pdf")
+    file.remove("Rplots.pdf")
 }
-
-nonempty_variants      <- sum(lengths(variants_list)) > 0
-nonempty_variants_pass <- sum(lengths(variants_list_pass)) > 0
-
-if (nonempty_variants && nonempty_variants_pass){
-    m <- make_comb_mat(variants_list)
-    comb_order <- order(comb_size(m), decreasing = T)
-    u  <- grid.grabExpr(draw(UpSet(m = m, comb_order = comb_order, column_title="All variants"), newpage = FALSE))
-
-
-    m2 <- make_comb_mat(variants_list_pass)
-    comb_order2 <- order(comb_size(m2), decreasing = T)
-    g <- ggplot(all.muts, aes(Caller, fill=isconsensus)) +
-        geom_bar() +
-        coord_flip() +
-        scale_fill_manual(values = c(`TRUE`='#247671', `FALSE`='#92C2B5')) +
-        geom_text_repel(stat='count', aes(label=prettyNum(..count.., big.mark = ","))) +
-        ggtitle(subtitle = "PASS=All filters passed (note that '.' will be considered FAIL)", label = "") +
-        facet_grid(.~FILTER_consensus, scales="free")  + theme(title = element_text(color="grey40"))
-    u2 <- grid.grabExpr(draw(UpSet(m = m2, comb_order = comb_order2, column_title="PASS variants"), newpage = FALSE))
-    # 8.27 x 11.69
-    pdf(pdf.out, width = 8.3, height = 11.7, paper = "A4")
-    plot <- ggarrange(g, u, u2,
-                        labels = c("A", "B", "C"),
-                        ncol = 1, nrow = 3)
-    print(annotate_figure(plot, top = text_grob(paste("Consensus summary for", sampleid),
-                                            face = "bold", size = 10, family="Courier")))
-
-    dev.off()
-    message(" - Output in: ", pdf.out)
-}
-
-# check whether the unwanted file exists and remove it
-file.exists("Rplots.pdf")
-file.remove("Rplots.pdf")
