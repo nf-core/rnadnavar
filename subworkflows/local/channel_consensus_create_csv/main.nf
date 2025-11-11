@@ -13,7 +13,8 @@ workflow CHANNEL_CONSENSUS_CREATE_CSV {
             def patient       = meta.patient
             def sample        = meta.id
             def status        = meta.status
-            maf = "${params.outdir}/consensus/${variantcaller}/${meta.id}/${maf.getName()}"
+            def subfolder = maf.getName().contains('consensus') ? 'consensus' : 'vcf2maf'
+            maf = "${params.outdir}/consensus/${subfolder}/${meta.id}/${maf.getName()}"
             ["${csv_name}.csv", "patient,sample,status,variantcaller,maf\n${patient},${sample},${status},${variantcaller},${maf}\n"]
         }
 }

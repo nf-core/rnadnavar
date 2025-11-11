@@ -28,7 +28,6 @@ workflow VCF_CONSENSUS {
 
     if (params.step == 'consensus' && !realignment) vcf_to_consensus = input_sample
 
-
     if ((params.step in ['mapping', 'markduplicates', 'splitncigar',
                         'prepare_recalibration', 'recalibrate', 'variant_calling', 'annotate',
                         'norm', 'consensus'] &&
@@ -93,7 +92,7 @@ workflow VCF_CONSENSUS {
                                         .mix(mafs_from_varcal_dna)
                                         .mix(mafs_from_varcal_rna)
                                         .transpose(),
-                                        "consensus"
+                                        !realignment? "consensus" : "consensus_realigned"
                                         )
 
         // RESCUE STEP: cross dna / rna for a crossed second consensus
@@ -170,7 +169,7 @@ workflow VCF_CONSENSUS {
                                         .mix(mafs_from_varcal_dna)
                                         .mix(mafs_from_varcal_rna)
                                         .transpose(),
-                                        "rescued"
+                                        !realignment? "rescued" : "rescued_realigned"
                                         )
         }
     } else {
