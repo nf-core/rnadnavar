@@ -158,11 +158,11 @@
                 "type": "string"
             },
             "maf": {
-                "errorMessage": "MAF file for reads 1 cannot contain spaces and must have extension '.maf'",
+                "errorMessage": "MAF file cannot contain spaces and must have extension '.maf' or '.maf.gz'",
                 "anyOf": [
                     {
                         "type": "string",
-                        "pattern": "^\\S+\\.maf$"
+                        "pattern": "^\\S+\\.maf(\\.gz)?$"
                     },
                     {
                         "type": "string",
@@ -170,8 +170,13 @@
                     }
                 ],
                 "format": "file-path",
-                "exists": true,
-                "pattern": "^([\\S\\s]*\\/)?[^\\s\\/]+\\.f(ast)?q\\.gz$"
+                "exists": true
+            },
+            "normal_id": {
+                "type": "string",
+                "pattern": "^\\S+$",
+                "errorMessage": "Normal ID must be provided when starting after paired `variant_calling` step and requesting `realignment` step in `tools`.",
+                "meta": ["normal_id"]
             }
         },
         "required": ["patient", "sample"]
