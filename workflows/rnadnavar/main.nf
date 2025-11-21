@@ -95,7 +95,7 @@ workflow RNADNAVAR {
     else {
         // Assuming that if the cache is provided, the user has already downloaded it
         ANNOTATION_CACHE_INITIALISATION(
-            (params.vep_cache && params.tools && params.tools.split(',').contains("vep")),
+            (params.vep_cache && (params.tools && params.tools.split(',').contains("vep") || params.tools && params.tools.split(',').contains("realignment"))),
             params.vep_cache,
             params.vep_species,
             params.vep_cache_version,
