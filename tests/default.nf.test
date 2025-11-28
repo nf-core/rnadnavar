@@ -16,12 +16,12 @@ nextflow_pipeline {
             // stable_name: All files + folders in ${params.outdir}/ with a stable name
             def stable_name = getAllFilesFromDir(params.outdir, relative: true, includeDir: true, ignore: ['pipeline_info/*.{html,json,txt}'])
             // stable_path: All files in ${params.outdir}/ with stable content
-            def stable_path = getAllFilesFromDir(params.outdir, ignoreFile: ['tests/.nftignore', 'csv/**'])
+            def stable_path = getAllFilesFromDir(params.outdir, ignoreFile: 'tests/.nftignore')
             assertAll(
-                { assert workflow.success},
+                { assert workflow.success },
                 { assert snapshot(
                     // pipeline versions.yml file for multiqc from which Nextflow version is removed because we test pipelines on multiple Nextflow versions
-                    removeFromYamlMap("$outputDir/pipeline_info/nf_core_rnadnavar_software_mqc_versions.yml", "Workflow"),
+                    removeFromYamlMap("${params.outdir}/pipeline_info/nf_core_rnadnavar_software_mqc_versions.yml", "Workflow"),
                     // All stable path name, with a relative path
                     stable_name,
                     // All files with stable contents

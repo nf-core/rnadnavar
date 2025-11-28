@@ -536,7 +536,6 @@
                 "mosdepth_cov_dist.txt:md5,66ce1b36012c8157e78990ee7edd60e4",
                 "mosdepth_cumcov_dist.txt:md5,66ce1b36012c8157e78990ee7edd60e4",
                 "mosdepth_perchrom.txt:md5,243084ec9cb79976f423f45ae2de125c",
-                "multiqc.parquet:md5,962474368013c8519724743025ba7e62",
                 "multiqc_bcftools_stats.txt:md5,be374492fa22704213b3f9abff3093eb",
                 "multiqc_citations.txt:md5,451006f9c45cb544ccd4ff9cdd218ecf",
                 "multiqc_fastp.txt:md5,66184e308a5a8fdf67e971199111c7d5",
@@ -561,6 +560,6 @@
             "nf-test": "0.9.2",
             "nextflow": "25.04.6"
         },
-        "timestamp": "2025-11-06T08:58:07.325824"
+        "timestamp": "2025-11-27T16:44:27.124359"
     }
 }
