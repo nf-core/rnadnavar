@@ -69,7 +69,7 @@ workflow  SAMPLESHEET_TO_CHANNEL{
                             meta = meta + [normal_id: "${meta.patient}_N"]
                         } else{
                             error("When the `realignment` step/tool is enabled, each MAF entry must include a `normal_id column. Alternatively, include the normal sample ID in the file name as SAMPLE_T_vs_SAMPLE_N. If neither is provided, normal_id will be inferred automatically, which may lead to incorrect pairing")
-                        } 
+                        }
                     } else {
                         meta = meta + [id: meta.sample + "_vs_" + meta.normal_id, data_type: 'maf', variantcaller: variantcaller ?: 'unknown']
                         return [ meta, maf ]
