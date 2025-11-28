@@ -1,6 +1,6 @@
 .DS_Store
 pipeline_info/*.{html,json,txt,yml}
-csv/
+csv/*.csv
 preprocessing/*/*/*.cram
 preprocessing/*/*/*.cram.crai
 reports/fastp/*/*.fastp.html

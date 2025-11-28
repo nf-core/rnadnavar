@@ -462,10 +462,6 @@
             [
                 "TCRBOA7-T-RNA_vs_TCRBOA7-N.strelka.maf:md5,954ff0d996607a59669af9bc8dadea56",
                 "TCRBOA7-T_vs_TCRBOA7-N.strelka.maf:md5,fae7532e022765fcbeaf2f1419a2139f",
-                "markduplicates.csv:md5,61da8b8b4ac038c7e7e7b428c24e3140",
-                "markduplicates_no_table.csv:md5,17a5ec4632c7032fc6de766e5f49eb06",
-                "recalibrated.csv:md5,3664bd53da1e194376d4c68168a49f18",
-                "variantcalled.csv:md5,682d69c1894c3036a53b92a9623cf107",
                 "TCRBOA7-T-RNA_vs_TCRBOA7-N.filtered.maf:md5,184db72b9501f2d16e44cf1f478c29f2",
                 "TCRBOA7-T_vs_TCRBOA7-N.filtered.maf:md5,84d4dafe5b00520c66adf090208e8f5c",
                 "TCRBOA7-N.recal.table:md5,4771abf3f2f413562282d88d16fd6ad0",
@@ -557,9 +553,9 @@
             ]
         ],
         "meta": {
-            "nf-test": "0.9.2",
-            "nextflow": "25.04.6"
+            "nf-test": "0.9.3",
+            "nextflow": "25.10.0"
         },
-        "timestamp": "2025-11-27T16:44:27.124359"
+        "timestamp": "2025-11-28T12:43:28.931802"
     }
 }
