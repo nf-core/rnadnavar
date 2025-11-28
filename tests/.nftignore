@@ -9,7 +9,6 @@ reports/fastp/*/*.fastp.log
 reports/fastqc/*/*.html
 reports/fastqc/*/*.zip
 reports/markduplicates/*/*.cram.metrics
-reports/multiqc_data/BETA-multiqc.parquet
 reports/multiqc_data/fastqc_top_overrepresented_sequences_table.txt
 reports/multiqc_data/llms-full.txt
 reports/multiqc_data/multiqc.log
