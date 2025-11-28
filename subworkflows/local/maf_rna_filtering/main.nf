@@ -31,13 +31,13 @@ workflow MAF_FILTERING_RNA {
                                             .map{meta, maf -> [meta.patient, meta, maf]}
 
 
-                maf_to_cross_first_pass.dump(tag:"[STEP9: FILTERING] maf_to_cross_first_pass")
+                maf_to_cross_first_pass.dump(tag:"maf_to_cross_first_pass")
 
                 maf_to_cross_realignment = maf_to_filter_realigned
                                             .map{meta, maf -> [meta.patient, meta, maf]}
-                maf_to_cross_realignment.dump(tag:"[STEP9: FILTERING] maf_to_cross_realignment")
+                maf_to_cross_realignment.dump(tag:"maf_to_cross_realignment")
                 maf_to_cross_first_pass
-                                .cross(maf_to_cross_realignment).dump(tag:"[STEP9: FILTERING] maf_to_cross_crossed_pass")
+                                .cross(maf_to_cross_realignment).dump(tag:"maf_to_cross_crossed_pass")
                 maf_crossed = maf_to_cross_first_pass
                                 .cross(maf_to_cross_realignment)
                                 .map{first, second ->

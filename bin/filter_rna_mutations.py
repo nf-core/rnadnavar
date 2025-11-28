@@ -248,11 +248,10 @@ def main():
         if args.pon:
             calls = run_capy(M=calls, pon=args.pon,  ref=args.ref,  thr=args.thr, suffix='_'+args.refname, chroms=chroms, refname2=False)
         # Annotate known RNA editing
-        rnadbs = pd.DataFrame()
         if args.rnaedits:
             rnadbs = check_rnaediting(args.rnaedits)
         else:
-            rnadbs = args.rnaedits
+            rnadbs = pd.DataFrame()
         calls = add_filters(maf=calls, rnaeditingsites=rnadbs, realignment=didrealignment, whitelist=args.whitelist)
         results[idx] = calls
     # write maf files

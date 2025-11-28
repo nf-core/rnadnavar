@@ -4,12 +4,12 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-include { MULTIQC                                                   } from '../modules/nf-core/multiqc'
+include { MULTIQC                                                   } from '../../modules/nf-core/multiqc'
 include { samplesheetToList                                         } from 'plugin/nf-schema'
 include { paramsSummaryMap                                          } from 'plugin/nf-schema'
-include { paramsSummaryMultiqc                                      } from '../subworkflows/nf-core/utils_nfcore_pipeline'
-include { softwareVersionsToYAML                                    } from '../subworkflows/nf-core/utils_nfcore_pipeline'
-include { methodsDescriptionText                                    } from '../subworkflows/local/utils_nfcore_rnadnavar_pipeline'
+include { paramsSummaryMultiqc                                      } from '../../subworkflows/nf-core/utils_nfcore_pipeline'
+include { softwareVersionsToYAML                                    } from '../../subworkflows/nf-core/utils_nfcore_pipeline'
+include { methodsDescriptionText                                    } from '../../subworkflows/local/utils_nfcore_rnadnavar_pipeline'
 
 
 /*
@@ -21,26 +21,26 @@ include { methodsDescriptionText                                    } from '../s
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
 //
 // Build the genome index and other reference files
-include { SAMPLESHEET_TO_CHANNEL                                    } from '../subworkflows/local/samplesheet_to_channel'
-include { PREPARE_REFERENCE_AND_INTERVALS                           } from '../subworkflows/local/prepare_reference_and_intervals'
-include { PREPARE_INTERVALS as PREPARE_INTERVALS_FOR_REALIGNMENT    } from '../subworkflows/local/prepare_intervals'
+include { SAMPLESHEET_TO_CHANNEL                                    } from '../../subworkflows/local/samplesheet_to_channel'
+include { PREPARE_REFERENCE_AND_INTERVALS                           } from '../../subworkflows/local/prepare_reference_and_intervals'
+include { PREPARE_INTERVALS as PREPARE_INTERVALS_FOR_REALIGNMENT    } from '../../subworkflows/local/prepare_intervals'
 // Download annotation cache if needed
-include { ENSEMBLVEP_DOWNLOAD                                       } from '../modules/nf-core/ensemblvep/download'
-include { UNZIP as UNZIP_VEP_CACHE                                  } from '../modules/nf-core/unzip'
-include { ANNOTATION_CACHE_INITIALISATION                           } from '../subworkflows/local/annotation_cache_initialisation'
+include { ENSEMBLVEP_DOWNLOAD                                       } from '../../modules/nf-core/ensemblvep/download'
+include { UNZIP as UNZIP_VEP_CACHE                                  } from '../../modules/nf-core/unzip'
+include { ANNOTATION_CACHE_INITIALISATION                           } from '../../subworkflows/local/annotation_cache_initialisation'
 
 // Alignment
-include { BAM_ALIGN                                                 } from '../subworkflows/local/bam_align'
+include { BAM_ALIGN                                                 } from '../../subworkflows/local/bam_align'
 
 // Core subworkflows of the pipeline
-include { BAM_VARIANT_CALLING_PRE_POST_PROCESSING as BAM_PROCESSING } from '../subworkflows/local/bam_variant_calling_pre_post_processing'
+include { BAM_VARIANT_CALLING_PRE_POST_PROCESSING as BAM_PROCESSING } from '../../subworkflows/local/bam_variant_calling_pre_post_processing'
 
 // Second run
-include { BAM_EXTRACT_READS_HISAT2_ALIGN as PREPARE_REALIGNMENT     } from '../subworkflows/local/prepare_realignment'
-include { BAM_VARIANT_CALLING_PRE_POST_PROCESSING as REALIGNMENT    } from '../subworkflows/local/bam_variant_calling_pre_post_processing'
+include { BAM_EXTRACT_READS_HISAT2_ALIGN as PREPARE_REALIGNMENT     } from '../../subworkflows/local/prepare_realignment'
+include { BAM_VARIANT_CALLING_PRE_POST_PROCESSING as REALIGNMENT    } from '../../subworkflows/local/bam_variant_calling_pre_post_processing'
 
 // Filter RNA
-include { MAF_FILTERING_RNA                                         } from '../subworkflows/local/maf_rna_filtering'
+include { MAF_FILTERING_RNA                                         } from '../../subworkflows/local/maf_rna_filtering'
 
 
 /*
@@ -95,16 +95,16 @@ workflow RNADNAVAR {
     else {
         // Assuming that if the cache is provided, the user has already downloaded it
         ANNOTATION_CACHE_INITIALISATION(
-            (params.vep_cache && params.tools && (params.tools.split(',').contains("vep") || params.tools.split(',').contains('merge'))),
+            (params.vep_cache && (params.tools && params.tools.split(',').contains("vep") || params.tools && params.tools.split(',').contains("realignment"))),
             params.vep_cache,
             params.vep_species,
             params.vep_cache_version,
             params.vep_genome,
             params.vep_custom_args,
-            "Please refer to https://nf-co.re/sarek/docs/usage/#how-to-customise-vep-annotation for more information.",
-        )
-        vep_cache = ANNOTATION_CACHE_INITIALISATION.out.ensemblvep_cache.map { it[1] }
+            "Please refer to https://nf-co.re/rnadnavar/docs/usage/#how-to-customise-vep-annotation for more information.")
+            vep_cache = ANNOTATION_CACHE_INITIALISATION.out.ensemblvep_cache
     }
+
 
     // STEP 0: Build reference and indices if needed
     PREPARE_REFERENCE_AND_INTERVALS()
@@ -187,8 +187,9 @@ workflow RNADNAVAR {
     if (params.tools && params.tools.split(',').contains('realignment')) {
         // fastq will not be split when realignment
         params.split_fastq = 0
-        // reset intervals to none (realignment files are small)
+        // reset intervals to none (realignment files are smaller)
         PREPARE_INTERVALS_FOR_REALIGNMENT(fasta_fai, null, true)
+        // hisat2 alignment
         PREPARE_REALIGNMENT(
             input_sample,
             filtered_maf,
@@ -201,7 +202,6 @@ workflow RNADNAVAR {
             BAM_PROCESSING.out.dna_consensus_maf,
             BAM_PROCESSING.out.dna_varcall_mafs,
         )
-        // do mapping with hisat2
 
         versions = versions.mix(PREPARE_REALIGNMENT.out.versions)
 
@@ -261,7 +261,8 @@ workflow RNADNAVAR {
     //
     version_yaml = Channel.empty()
     if (!(params.skip_tools && params.skip_tools.split(',').contains('versions'))) {
-        version_yaml = softwareVersionsToYAML(versions).collectFile(storeDir: "${params.outdir}/pipeline_info", name: 'nf_core_rnadnavar_software_mqc_versions.yml', sort: true, newLine: true)
+        version_yaml = softwareVersionsToYAML(versions)
+            .collectFile(storeDir: "${params.outdir}/pipeline_info", name: 'nf_core_rnadnavar_software_mqc_versions.yml', sort: true, newLine: true)
     }
 
     if (!(params.skip_tools && params.skip_tools.split(',').contains('multiqc'))) {

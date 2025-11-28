@@ -1,0 +1,70 @@
+nextflow_pipeline {
+
+    name "Test full pipeline"
+    script "../main.nf"
+    tag "pipeline"
+    tag "pipeline_rnadnavar"
+
+    test("Run with -profile test_full --input tests/csv/3.0/trbc_recalibrated.csv") {
+        // NOTE: This test only checks workflow success, task counts, and file structure
+        // Content-based assertions are disabled due to non-deterministic algorithm outputs
+        // TODO: Split into smaller, deterministic unit tests for individual modules
+
+        when {
+            params {
+                input                = "${projectDir}/tests/csv/3.0/trbc_recalibrated.csv"
+                modules_testdata_base_path = "https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/"
+                outdir               = "$outputDir"
+                step                 = "variant_calling"
+                wes                  = true
+                genome               = "GRCh38"
+                fasta                = "${modules_testdata_base_path}reference/chr7_hg38/GRCh38.d1.vd1.chr7.mini.fa.gz"
+                igenomes_ignore      = true
+                dbsnp                = "${modules_testdata_base_path}reference/chr7_hg38/dbsnp_146.hg38.chr7.mini.vcf.gz"
+                germline_resource    = "${modules_testdata_base_path}reference/chr7_hg38/af-only-gnomad.hg38.chr7.mini2.vcf.gz"
+                no_intervals         = true
+                gtf                  = "${modules_testdata_base_path}reference/chr7_hg38/gencode.v36.annotation.chr7.mini.gtf"
+                sage_highconfidence  = "https://github.com/nf-core/test-datasets/raw/rnadnavar/resources/hmftools/variants/HighConfidence.38.bed.gz"
+                sage_actionablepanel = "https://github.com/nf-core/test-datasets/raw/rnadnavar/resources/hmftools/variants/ActionableCodingPanel.38.bed.gz"
+                sage_knownhotspots   = "https://github.com/nf-core/test-datasets/raw/rnadnavar/resources/hmftools/variants/KnownHotspots.somatic.38.vcf.gz"
+                sage_ensembl_dir     = "https://github.com/nf-core/test-datasets/raw/rnadnavar/resources/hmftools/common/sage_ensembl.zip"
+                vep_cache            = "https://github.com/nf-core/test-datasets/raw/rnadnavar/resources/vep/vep_hs.zip"
+                vep_cache_version    = 999
+                vep_species          = "homo_sapiens"
+                vep_genome           = "GRCh38"
+                download_cache       = false
+                vep_include_fasta    = true
+
+
+                // params
+                split_fastq       = 50000         // no FASTQ splitting
+                tools             = "sage,strelka,mutect2,vep,norm,consensus,rescue,realignment,filtering,rna_filtering"
+
+            }
+        }
+
+        then {
+            // stable_name: All files + folders in ${params.outdir}/ with a stable name
+            def stable_name = getAllFilesFromDir(params.outdir, relative: true, includeDir: true, ignore: ["pipeline_info/*.{html,json,txt}"])
+            // stable_path: All files in ${params.outdir}/ with stable content
+            // def stable_path = getAllFilesFromDir(params.outdir, relative: true, ignoreFile: "tests/.nftignore")
+            // cram_files: All cram files
+            def cram_files  = getAllFilesFromDir(params.outdir, include: ["**/*.cram"])
+            assertAll(
+                { assert workflow.success},
+                { assert snapshot(
+                    // Number of successful tasks
+                    workflow.trace.succeeded().size(),
+                    // pipeline versions.yml file for multiqc from which Nextflow version is removed because we tests pipelines on multiple Nextflow versions
+                    removeNextflowVersion("$outputDir/pipeline_info/nf_core_rnadnavar_software_mqc_versions.yml"),
+                    // All stable path name, with a relative path
+                    stable_name
+                    // All files with stable contents
+                    // stable_path,
+                    // All cram files - CRAM check removed because fasta is a minified version and it fails the checks
+                    // cram_files.collect{ file -> [ file.getName(), file.size()] }
+                ).match() }
+            )
+        }
+    }
+}

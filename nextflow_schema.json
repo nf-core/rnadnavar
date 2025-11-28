@@ -14,7 +14,7 @@
             "properties": {
                 "input": {
                     "description": "Path to comma-separated file containing information about the samples in the experiment.",
-                    "help_text": "A design file with information about the samples in your experiment. Use this parameter to specify the location of the input files. It has to be a comma-separated file with a header row. See [usage docs](https://nf-co.re/sarek/usage#input).\n\nIf no input file is specified, sarek will attempt to locate one in the `{outdir}` directory. If no input should be supplied, i.e. when --step is supplied or --build_from_index, then set --input false",
+                    "help_text": "A design file with information about the samples in your experiment. Use this parameter to specify the location of the input files. It has to be a comma-separated file with a header row. See [usage docs](https://nf-co.re/rnadnavar/usage#input).\n\nIf no input file is specified, rnadnavar will attempt to locate one in the `{outdir}` directory. If no input should be supplied, i.e. when --step is supplied or --build_from_index, then set --input false",
                     "fa_icon": "fas fa-file-csv",
                     "schema": "assets/schema_input.json",
                     "type": "string",
@@ -459,7 +459,7 @@
                     "fa_icon": "fas fa-puzzle-piece",
                     "enum": ["bwa-mem", "bwa-mem2", "dragmap"],
                     "description": "Specify aligner to be used to map reads to reference genome.",
-                    "help_text": "Sarek will build missing indices automatically if not provided. Set `--bwa false` if indices should be (re-)built.\nIf DragMap is selected as aligner, it is recommended to skip baserecalibration with `--skip_tools baserecalibrator`. For more info see [here](https://gatk.broadinstitute.org/hc/en-us/articles/4407897446939--How-to-Run-germline-single-sample-short-variant-discovery-in-DRAGEN-mode)."
+                    "help_text": "rnadnavar will build missing indices automatically if not provided. Set `--bwa false` if indices should be (re-)built.\nIf DragMap is selected as aligner, it is recommended to skip baserecalibration with `--skip_tools baserecalibrator`. For more info see [here](https://gatk.broadinstitute.org/hc/en-us/articles/4407897446939--How-to-Run-germline-single-sample-short-variant-discovery-in-DRAGEN-mode)."
                 },
                 "save_unaligned": {
                     "type": "boolean",
@@ -955,6 +955,18 @@
                     "fa_icon": "far calendar",
                     "description": "Suffix to add to the trace report filename. Default is the date and time in the format yyyy-MM-dd_HH-mm-ss.",
                     "hidden": true
+                },
+                "help": {
+                    "type": ["boolean", "string"],
+                    "description": "Display the help message."
+                },
+                "help_full": {
+                    "type": "boolean",
+                    "description": "Display the full detailed help message."
+                },
+                "show_hidden": {
+                    "type": "boolean",
+                    "description": "Display hidden parameters in the help message (only works when --help or --help_full are provided)."
                 }
             }
         }

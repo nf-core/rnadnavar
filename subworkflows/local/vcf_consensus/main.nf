@@ -7,8 +7,8 @@ include { VCF2MAF                                  } from '../../../modules/loca
 include { RUN_CONSENSUS                            } from '../../../modules/local/consensus/main'
 include { RUN_CONSENSUS as RUN_CONSENSUS_RESCUE    } from '../../../modules/local/consensus/main'
 // Create samplesheets to restart from consensus
-include { CHANNEL_CONSENSUS_CREATE_CSV                 } from '../channel_consensus_create_csv/main'
-include { CHANNEL_CONSENSUS_CREATE_CSV as CHANNEL_RESCUE_CREATE_CSV                 } from '../channel_consensus_create_csv/main'
+include { CHANNEL_CONSENSUS_CREATE_CSV                              } from '../channel_consensus_create_csv/main'
+include { CHANNEL_CONSENSUS_CREATE_CSV as CHANNEL_RESCUE_CREATE_CSV } from '../channel_consensus_create_csv/main'
 
 workflow VCF_CONSENSUS {
     take:
@@ -28,7 +28,6 @@ workflow VCF_CONSENSUS {
 
     if (params.step == 'consensus' && !realignment) vcf_to_consensus = input_sample
 
-
     if ((params.step in ['mapping', 'markduplicates', 'splitncigar',
                         'prepare_recalibration', 'recalibrate', 'variant_calling', 'annotate',
                         'norm', 'consensus'] &&
@@ -39,6 +38,12 @@ workflow VCF_CONSENSUS {
                                 vcf: it[0].data_type == "vcf"
                                 maf: it[0].data_type == "maf"
                                 }
+        def tools_list
+        if (realignment || (params.step in ['consensus', 'annotate','filtering', 'rna_filtering'] && params.tools && params.tools.split(',').contains("realignment")) ) {
+            tools_list = params.defaultvariantcallers.split(',').toList().unique()
+        } else {
+            tools_list = params.tools.split(',').toList().findAll { it in ['sage', 'strelka', 'mutect2'] }.unique()
+        }
         // First we transform the maf to MAF
         VCF2MAF(vcf_to_consensus_type.vcf.map{metaVCF -> [metaVCF[0], metaVCF[1]]},
                 fasta)
@@ -48,26 +53,12 @@ workflow VCF_CONSENSUS {
                                                 // selectdata type
                                                 key = key.subMap('id', 'patient', 'status', 'data_type')
                                                 [key, maf, meta.variantcaller]
-                                            }.groupTuple() // [meta, maf, variantcaller]
+                                            }.groupTuple(size: tools_list ? tools_list.size() : 1) // [meta, maf, variantcaller]
         versions         = versions.mix(VCF2MAF.out.versions)
 
 //        maf_to_consensus.dump(tag:"maf_to_consensus")
         // count number of callers to generate groupKey
-        if (realignment || (params.step in ['consensus', 'annotate','filtering', 'rna_filtering'] && params.tools && params.tools.split(',').contains("realignment")) ) {
-            tools_list = params.defaultvariantcallers.split(',') // TODO: testing is necessary if this changes
-        } else {
-            tools_list = params.tools.split(',').findAll { it in ['sage', 'strelka', 'mutect2'] }
-        }
         maf_to_consensus.dump(tag:"maf_to_consensus0")
-        // convert [meta,maf] to [meta, maf, variantcaller]
-        // maf_to_consensus = maf_to_consensus.map{ meta, maf ->
-        //                             def ncallers   = tools_list.unique().size()
-        //                             def key = groupKey(meta.subMap('id', 'patient', 'status') +
-        //                                         [ncallers : ncallers], ncallers)
-        //                             [key, maf, meta.variantcaller]}
-        //                             .groupTuple()
-        // maf_to_consensus.dump(tag:"maf_to_consensus1")
-        // Run consensus on VCF with same id
         RUN_CONSENSUS ( maf_to_consensus )
 
         consensus_maf = RUN_CONSENSUS.out.maf  // 1 consensus_maf from all callers
@@ -101,7 +92,7 @@ workflow VCF_CONSENSUS {
                                         .mix(mafs_from_varcal_dna)
                                         .mix(mafs_from_varcal_rna)
                                         .transpose(),
-                                        "consensus"
+                                        !realignment? "consensus" : "consensus_realigned"
                                         )
 
         // RESCUE STEP: cross dna / rna for a crossed second consensus
@@ -151,13 +142,19 @@ workflow VCF_CONSENSUS {
                                                 [meta, rna[2] + dna[2], rna[3] + dna[3]]
                                             }
 
-            mafs_dna_crossed_with_rna_rescue.mix(mafs_rna_crossed_with_dna_rescue).dump(tag:"mafs_to_rescue")
-            RUN_CONSENSUS_RESCUE ( mafs_dna_crossed_with_rna_rescue.mix(mafs_rna_crossed_with_dna_rescue) )
+            mafs_to_rescue = mafs_dna_crossed_with_rna_rescue.mix(mafs_rna_crossed_with_dna_rescue)
+                        RUN_CONSENSUS_RESCUE ( mafs_dna_crossed_with_rna_rescue.mix(mafs_rna_crossed_with_dna_rescue) )
 
             maf_from_rescue = RUN_CONSENSUS_RESCUE.out.maf.branch{
                                 dna: it[0].status <= 1
                                 rna: it[0].status == 2
                                 }
+
+
+            run_rescue_out = RUN_CONSENSUS_RESCUE.out.maf.branch{
+                intervals:    it[0].num_intervals > 1
+                no_intervals: it[0].num_intervals <= 1
+            }
 
             maf_from_consensus_dna = maf_from_rescue.dna.map{meta, maf -> [meta, maf, ['ConsensusDNA']]}
             maf_from_consensus_rna = maf_from_rescue.rna.map{meta, maf -> [meta, maf, ['ConsensusRNA']]}
@@ -172,7 +169,7 @@ workflow VCF_CONSENSUS {
                                         .mix(mafs_from_varcal_dna)
                                         .mix(mafs_from_varcal_rna)
                                         .transpose(),
-                                        "rescued"
+                                        !realignment? "rescued" : "rescued_realigned"
                                         )
         }
     } else {
@@ -182,7 +179,7 @@ workflow VCF_CONSENSUS {
                                 vcf: it[0].data_type == "vcf"
                                 maf: it[0].data_type == "maf"
                                 }
-            // First we transform the maf to MAF
+            // First we transform the vcf to MAF
             VCF2MAF(vcf_to_consensus_type.vcf.map{metaVCF -> [metaVCF[0], metaVCF[1]]},
                     fasta)
             consensus_maf    = VCF2MAF.out.maf.mix(vcf_to_consensus_type.maf)

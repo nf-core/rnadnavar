@@ -80,7 +80,7 @@ process SAGE {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        SAGE: \$(grep 'Sage version' .command.log | cut -d " " -f6)
+        SAGE: \$(SAGE 2>&1 | grep 'Sage version' | cut -d " " -f6)
     END_VERSIONS
     """
     }
@@ -92,7 +92,7 @@ process SAGE {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        SAGE: \$(SAGE | grep 'Sage version' .command.log | cut -d " " -f6)
+        SAGE: \$(SAGE 2>&1 | grep 'Sage version' | cut -d " " -f6)
     END_VERSIONS
     """
 

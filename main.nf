@@ -38,7 +38,7 @@ params.vep_species       = getGenomeAttribute('vep_species')
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-include { RNADNAVAR               } from './workflows/rnadnavar'
+include { RNADNAVAR               } from './workflows/rnadnavar/main'
 include { PIPELINE_INITIALISATION } from './subworkflows/local/utils_nfcore_rnadnavar_pipeline'
 include { PIPELINE_COMPLETION     } from './subworkflows/local/utils_nfcore_rnadnavar_pipeline'
 
@@ -84,6 +84,9 @@ workflow {
         args,
         params.outdir,
         params.input,
+        params.help,
+        params.help_full,
+        params.show_hidden
     )
 
     //

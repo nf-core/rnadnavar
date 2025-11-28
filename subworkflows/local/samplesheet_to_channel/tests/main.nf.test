@@ -10,7 +10,6 @@ nextflow_workflow {
             params {
                 // define parameters here. Example:
                 skip_tools = 'baserecalibrator'
-
             }
             workflow {
                 """
