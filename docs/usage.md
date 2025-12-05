@@ -141,11 +141,11 @@ The pipeline has the flexibility to start from different steps but `tools` need 
   - `tools` is set to null by default but all GATK pre-processing will run regardless unless skipped with `skip_tools`.
 
 - `variant_calling` will require: `patient,status,sample,lane,bam,bai` or `patient,status,sample,lane,cram,crai` or `patient,status,sample,lane,bam,bai,cram,crai`. When BAM and CRAM files are mixed BAMs will be converted to CRAMs to save on space.
-  - we recommend adding `mutect2,strelka,sage` to `tools` option for this step. 
+  - we recommend adding `mutect2,strelka,sage` to `tools` option for this step.
 
 - `consensus` will requite: `patient,status,sample,maf,variantcaller` if not realignment step in tools.
   - `normal_id` is needed to properly create the id tag when `realignment` is in `tools`, which is going to be tumour_vs_normal style to match it with the rest of the pipeline (note that this will be simplified in the future to just id but it is not yet implemented).
-  - if `realignment` alignment files must be included and therefore `bam,bai` or `cram,crai` should be added to the csv as well. Each sample will then have a line per maf/variantcaller and a line per alignment file (`maf` value will be empty for the alignment files and *vice versa*).
+  - if `realignment` alignment files must be included and therefore `bam,bai` or `cram,crai` should be added to the csv as well. Each sample will then have a line per maf/variantcaller and a line per alignment file (`maf` value will be empty for the alignment files and _vice versa_).
 
 - `filtering`
   - If you use other variant callers that are not mutect2, strelka or SAGE you will need to change in `config/modules/filtering/maf_filtering.config` and add to args `--vc_priority caller1 caller2 caller3`

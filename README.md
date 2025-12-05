@@ -40,7 +40,6 @@ much easier to maintain and update software
 dependencies. Where possible, these processes have been
 submitted to and installed from [nf-core/modules](https://github.com/nf-core/modules) in order to make them available to all nf-core pipelines, and to everyone within the Nextflow community!
 
-
 ## Pipeline summary
 
 Depending on the options and samples provided, the
@@ -122,8 +121,7 @@ Essential columns are:
 - `status` - Sample type (0/1/2)
 - `sample` - Unique sample identifier
 - And one of these options:
- 
-  - if variant calling is going to be performed of these three options should be an input (*note that this is included in the `realignment` step by default*): 
+  - if variant calling is going to be performed of these three options should be an input (_note that this is included in the `realignment` step by default_):
     - `fastq_1`, `fastq_2` - Paths to paired-end FASTQ files (for raw data) (this also needs `lane` column)
     - `bam`,`bai` - Paths to BAM files and indices (for pre-aligned data)
     - `cram`,`crai` - Paths to CRAM files and indices (for pre-aligned data)
@@ -188,7 +186,6 @@ For further information or help, don't hesitate to get in touch on the [Slack `#
 
 <!-- TODO nf-core: Add citation for pipeline after first release. Uncomment lines below and update Zenodo doi and badge at the top of this file. -->
 <!-- If you use nf-core/rnadnavar for your analysis, please cite it using the following doi: [10.5281/zenodo.XXXXXX](https://doi.org/10.5281/zenodo.XXXXXX) -->
-
 
 An extensive list of references for the tools used by the pipeline can be found in the [`CITATIONS.md`](CITATIONS.md) file.
 
