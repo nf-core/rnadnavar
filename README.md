@@ -40,12 +40,6 @@ much easier to maintain and update software
 dependencies. Where possible, these processes have been
 submitted to and installed from [nf-core/modules](https://github.com/nf-core/modules) in order to make them available to all nf-core pipelines, and to everyone within the Nextflow community!
 
-<!-- TODO nf-core:
-  Complete this sentence with a 2-3 sentence summary of what types of data the pipeline ingests, a brief overview of the
-  major pipeline sections and the types of output it produces. You're giving an overview to someone new
-  to nf-core here, in 15-20 seconds. For an example, see https://github.com/nf-core/rnaseq/blob/master/README.md#introduction
--->
-
 ## Pipeline summary
 
 Depending on the options and samples provided, the
@@ -93,34 +87,71 @@ src="docs/images/rnadnavar_schemav3.png">
 > [!NOTE]
 > If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/usage/installation) on how to set-up Nextflow. Make sure to [test your setup](https://nf-co.re/docs/usage/introduction#how-to-run-a-pipeline) with `-profile test` before running the workflow on actual data.
 
-<!-- TODO nf-core: Describe the minimum required steps to execute the pipeline, e.g. how to prepare samplesheets.
-    Explain what rows and columns represent. For instance (please edit as appropriate):
+### Key requirements for the analysis
 
-First, prepare a samplesheet with your input data that looks as follows:
+- RNA tumor samples must be associated with a DNA normal sample using the same patient ID. DNA tumour sample is optional.
+- Sample types are specified with status: 0 (normal DNA), 1 (tumor DNA), 2 (tumor RNA)
+- Reference files are required for the analysis.
 
-`samplesheet.csv`:
+### Quick Start
 
-
-```csv
-sample,lane,fastq_1,fastq_2
-CONTROL_REP1,LX,AEG588A1_S1_L002_R1_001.fastq.gz,
-AEG588A1_S1_L002_R2_001.fastq.gz
-```
-
-Each row represents a fastq file (single-end) or a pair of fastq files (paired end).
-
--->
-
-Now, you can run the pipeline using:
-
-<!-- TODO nf-core: update the following command to include all required parameters for a minimal example -->
+The typical command for running the pipeline is:
 
 ```bash
 nextflow run nf-core/rnadnavar \
-  -profile <docker/singularity/.../institute> \
-  --input samplesheet.csv \
-  --outdir <OUTDIR>
+   -r <VERSION> \
+   -profile <PROFILE> \
+   --input samplesheet.csv \
+   --outdir <OUTDIR> \
+   --genome <GENOME> \
+   --tools <TOOLS>
 ```
+
+### Pipeline Steps
+
+The pipeline can start from different entry points but `tools` need to be specified to run. If you are planning to run the pipeline by stages please read [usage](docs/usage.md#starting-from-different-steps).
+
+### Input requirements
+
+You will need to create a samplesheet with information about the samples you want to analyze. The samplesheet must be a comma-separated file with a header row.
+
+Essential columns are:
+
+- `patient` - Unique patient identifier
+- `status` - Sample type (0/1/2)
+- `sample` - Unique sample identifier
+- And one of these options:
+  - if variant calling is going to be performed of these three options should be an input (_note that this is included in the `realignment` step by default_):
+    - `fastq_1`, `fastq_2` - Paths to paired-end FASTQ files (for raw data) (this also needs `lane` column)
+    - `bam`,`bai` - Paths to BAM files and indices (for pre-aligned data)
+    - `cram`,`crai` - Paths to CRAM files and indices (for pre-aligned data)
+  - if the starting step is from `consensus` and no `realignment` will be performed (add `--skip_tools 'realignment'` to your command or params file) then the input are VCF/MAF:
+    - `caller` - Caller used to generate that MAF (to annotate it during the consensus approach)
+    - `maf` - Paths to MAF file
+  - if `realignment` is desired then please add `normal_id` and take a look to [usage](docs/usage.md#starting-from-different-steps).
+
+Examples CSVs:
+
+Starting from `mapping`:
+
+```csv
+patient,sample,status,lane,fastq_1,fastq_2
+PT1,DNA_NORMAL_SAMPLE,0,LX,DNA_NORMAL_SAMPLE_L002_R1_001.fastq.gz,DNA_NORMAL_SAMPLE1_L002_R2_001.fastq.gz
+PT1,DNA_TUMOUR_SAMPLE,1,LX,DNA_TUMOUR_SAMPLE_L002_R1_001.fastq.gz,DNA_TUMOUR_SAMPLE_L002_R2_001.fastq.gz
+PT1,RNA_TUMOUR_SAMPLE,2,LX,RNA_TUMOUR_SAMPLE_L002_R1_001.fastq.gz,RNA_TUMOUR_SAMPLE_L002_R2_001.fastq.gz
+```
+
+Starting from `consensus` no realignment:
+
+```csv
+patient,sample,status,caller,maf
+PT1,RNA_TUMOUR_SAMPLE_1,2,mutect,DNA_TUMOUR_SAMPLE_1.mutect.maf
+PT1,RNA_TUMOUR_SAMPLE_1,2,strelka,RNA_TUMOUR_SAMPLE_1.strelka.maf
+PT1,RNA_TUMOUR_SAMPLE_2,2,mutect,DNA_TUMOUR_SAMPLE_2.mutect.maf
+PT1,RNA_TUMOUR_SAMPLE_2,2,strelka,RNA_TUMOUR_SAMPLE_2.strelka.maf
+```
+
+### Parameters
 
 > [!WARNING]
 > Please provide pipeline parameters via the CLI or Nextflow `-params-file` option. Custom config files including those provided by the `-c` Nextflow option can be used to provide any configuration _**except for parameters**_; see [docs](https://nf-co.re/docs/usage/getting_started/configuration#custom-configuration-files).
@@ -145,8 +176,6 @@ originally published by [Yizhak, _et al_ 2019 (Science)](https://www.science.org
 We thank the following people for their assistance in the development of this pipeline:
 TBC
 
-<!-- TODO nf-core: If applicable, make list of people who have also contributed -->
-
 ## Contributions and Support
 
 If you would like to contribute to this pipeline, please see the [contributing guidelines](.github/CONTRIBUTING.md).
@@ -157,8 +186,6 @@ For further information or help, don't hesitate to get in touch on the [Slack `#
 
 <!-- TODO nf-core: Add citation for pipeline after first release. Uncomment lines below and update Zenodo doi and badge at the top of this file. -->
 <!-- If you use nf-core/rnadnavar for your analysis, please cite it using the following doi: [10.5281/zenodo.XXXXXX](https://doi.org/10.5281/zenodo.XXXXXX) -->
-
-<!-- TODO nf-core: Add bibliography of tools and data used in your pipeline -->
 
 An extensive list of references for the tools used by the pipeline can be found in the [`CITATIONS.md`](CITATIONS.md) file.
 
