@@ -207,7 +207,7 @@ def toolCitationText() {
     // Build text sections for different pipeline components
     def text_preprocessing = [
         "Raw read quality control was performed with FastQC (Andrews 2010)",
-        params.trimmer == "fastp" ? "and preprocessing with fastp (Chen et al. 2018)." : "."
+        params.params.trim_fastq || params.split_fastq > 0 ? "and preprocessing with fastp (Chen et al. 2018)." : "."
     ].join(' ').trim()
 
     def text_alignment = [
@@ -274,7 +274,7 @@ def toolBibliographyText() {
     // Quality control and preprocessing
     def qc_preprocessing_citations = [
         "<li>Andrews, S. (2010). FastQC: A Quality Control Tool for High Throughput Sequence Data [Online]. Available: https://www.bioinformatics.babraham.ac.uk/projects/fastqc/</li>",
-        params.trimmer == "fastp" ? "<li>Chen S, Zhou Y, Chen Y, Gu J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics. 2018 Sep 1;34(17):i884-i890. <a href=\"https://doi.org/10.1093/bioinformatics/bty560\">10.1093/bioinformatics/bty560</a></li>" : ""
+        params.trim_fastq || params.split_fastq > 0 ? "<li>Chen S, Zhou Y, Chen Y, Gu J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics. 2018 Sep 1;34(17):i884-i890. <a href=\"https://doi.org/10.1093/bioinformatics/bty560\">10.1093/bioinformatics/bty560</a></li>" : ""
     ].join(' ').trim()
 
     // Alignment tools
