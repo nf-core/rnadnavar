@@ -207,7 +207,7 @@ def toolCitationText() {
     // Build text sections for different pipeline components
     def text_preprocessing = [
         "Raw read quality control was performed with FastQC (Andrews 2010)",
-        params.params.trim_fastq || params.split_fastq > 0 ? "and preprocessing with fastp (Chen et al. 2018)." : "."
+        params.trim_fastq || params.split_fastq > 0 ? "and preprocessing with fastp (Chen et al. 2018)." : "."
     ].join(' ').trim()
 
     def text_alignment = [
