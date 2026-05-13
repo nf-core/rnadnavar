@@ -26,7 +26,7 @@ process MAF_FILTERING {
     filter_mutations.py -i $maf --output ${prefix}.maf --ref $fasta $args
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        python: \$(echo \$(python --version 2>&1) | sed 's/^.*Python (//;s/).*//')
+        python: \$(echo \$(python --version 2>&1) | sed -e "s/Python //g")
     END_VERSIONS
     """
 

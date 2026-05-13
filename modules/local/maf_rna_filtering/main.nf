@@ -30,7 +30,7 @@ process RNA_FILTERING {
             $args
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
-            python: \$(echo \$(python --version 2>&1) | sed 's/^.*Python (//;s/).*//')
+            python: \$(echo \$(python --version 2>&1) | sed -e "s/Python //g")
         END_VERSIONS
         """
 
