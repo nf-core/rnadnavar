@@ -11,7 +11,7 @@
                             "lane": "test_L1",
                             "id": "test-test_L1",
                             "num_lanes": 2,
-                            "read_group": "\"@RG\\tID:null.test.test_L1\\tPU:test_L1\\tSM:test\\tLB:test\\tDS:null\\tPL:ILLUMINA\"",
+                            "read_group": "\"@RG\\tID:null.test.test_L1\\tPU:test_L1\\tSM:test\\tLB:test\\tDS:https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/reference/chr7_hg38/GRCh38.d1.vd1.chr7.mini.fa\\tPL:ILLUMINA\"",
                             "data_type": "fastq",
                             "size": 1
                         },
@@ -28,7 +28,7 @@
                             "lane": "test_L2",
                             "id": "test-test_L2",
                             "num_lanes": 2,
-                            "read_group": "ID:null.test.test_L2 PU:test_L2 SM:test LB:test DS:null PL:ILLUMINA",
+                            "read_group": "ID:null.test.test_L2 PU:test_L2 SM:test LB:test DS:https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/reference/chr7_hg38/GRCh38.d1.vd1.chr7.mini.fa PL:ILLUMINA",
                             "data_type": "fastq",
                             "size": 1
                         },
@@ -47,7 +47,7 @@
                             "lane": "test_L1",
                             "id": "test-test_L1",
                             "num_lanes": 2,
-                            "read_group": "\"@RG\\tID:null.test.test_L1\\tPU:test_L1\\tSM:test\\tLB:test\\tDS:null\\tPL:ILLUMINA\"",
+                            "read_group": "\"@RG\\tID:null.test.test_L1\\tPU:test_L1\\tSM:test\\tLB:test\\tDS:https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/reference/chr7_hg38/GRCh38.d1.vd1.chr7.mini.fa\\tPL:ILLUMINA\"",
                             "data_type": "fastq",
                             "size": 1
                         },
@@ -64,7 +64,7 @@
                             "lane": "test_L2",
                             "id": "test-test_L2",
                             "num_lanes": 2,
-                            "read_group": "ID:null.test.test_L2 PU:test_L2 SM:test LB:test DS:null PL:ILLUMINA",
+                            "read_group": "ID:null.test.test_L2 PU:test_L2 SM:test LB:test DS:https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/reference/chr7_hg38/GRCh38.d1.vd1.chr7.mini.fa PL:ILLUMINA",
                             "data_type": "fastq",
                             "size": 1
                         },
@@ -80,6 +80,6 @@
             "nf-test": "0.9.3",
             "nextflow": "25.10.0"
         },
-        "timestamp": "2026-05-14T10:12:38.852104"
+        "timestamp": "2026-05-20T11:41:16.553384"
     }
 }

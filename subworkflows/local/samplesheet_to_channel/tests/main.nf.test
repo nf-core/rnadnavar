@@ -10,6 +10,7 @@ nextflow_workflow {
             params {
                 // define parameters here. Example:
                 skip_tools = 'baserecalibrator'
+                fasta      = 'https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/reference/chr7_hg38/GRCh38.d1.vd1.chr7.mini.fa'
             }
             workflow {
                 """
