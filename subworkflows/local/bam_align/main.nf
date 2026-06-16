@@ -35,6 +35,7 @@ workflow BAM_ALIGN {
     main:
     reports   = Channel.empty()
     versions  = Channel.empty()
+    fasta_with_fai = fasta.combine(fasta_fai).map { meta, fa, fai -> [meta, fa, fai] }
 
     // Initialize outputs to emit
     bam_mapped_rna   = Channel.empty()
@@ -211,14 +212,14 @@ workflow BAM_ALIGN {
             // bams are merged (when multiple lanes from the same sample), indexed and then converted to cram
             BAM_MERGE_INDEX_SAMTOOLS(bam_mapped)
 
-            BAM_TO_CRAM_MAPPING(BAM_MERGE_INDEX_SAMTOOLS.out.bam_bai, fasta, fasta_fai)
+            BAM_TO_CRAM_MAPPING(BAM_MERGE_INDEX_SAMTOOLS.out.bam_bai, fasta_with_fai)
             // Create CSV to restart from this step
             if (params.save_output_as_bam) CHANNEL_ALIGN_CREATE_CSV(BAM_MERGE_INDEX_SAMTOOLS.out.bam_bai, params.outdir, params.save_output_as_bam)
             else CHANNEL_ALIGN_CREATE_CSV(BAM_TO_CRAM_MAPPING.out.cram.join(BAM_TO_CRAM_MAPPING.out.crai, failOnDuplicate: true, failOnMismatch: true), params.outdir, params.save_output_as_bam)
 
             // Gather used softwares versions
             versions = versions.mix(BAM_MERGE_INDEX_SAMTOOLS.out.versions)
-            versions = versions.mix(BAM_TO_CRAM_MAPPING.out.versions)
+            versions = versions.mix(BAM_TO_CRAM_MAPPING.out.versions_samtools)
         }
 
         // Gather used softwares versions

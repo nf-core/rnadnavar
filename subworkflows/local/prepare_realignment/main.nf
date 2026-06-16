@@ -30,6 +30,7 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
     main:
         versions   = Channel.empty()
         bam_mapped = Channel.empty()
+        fasta_with_fai = fasta.combine(fasta_fai).map { meta, fa, fai -> [meta, fa, fai] }
 
         if (params.step in ['mapping', 'markduplicates', 'splitncigar',
         'prepare_recalibration', 'recalibrate', 'variant_calling', 'norm', 'consensus',
@@ -108,7 +109,7 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
             // Extract reads
             cram_to_convert = SAMTOOLS_EXTRACT_READ_IDS.out.read_ids.map{meta, readsid -> [meta + [readsid_file:readsid], meta.cram_file, meta.crai_file]}
             // 1) Convert cram 2 bam
-            CONVERT_CRAM2BAM(cram_to_convert, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
+            CONVERT_CRAM2BAM(cram_to_convert, fasta_with_fai)
             bam_to_filter = CONVERT_CRAM2BAM.out.bam.map{meta, bam -> [meta, bam, meta.readsid_file]}
             // 2) Apply picard filtersamreads
             PICARD_FILTERSAMREADS(bam_to_filter, fasta,'includeReadList') // bam -> filtered_bam
