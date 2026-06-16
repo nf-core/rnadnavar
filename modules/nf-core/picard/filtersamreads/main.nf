@@ -9,10 +9,12 @@ process PICARD_FILTERSAMREADS {
 
     input:
     tuple val(meta), path(bam), path(readlist)
+    tuple val(meta1), path(fasta)
     val filter
 
     output:
     tuple val(meta), path("*.bam"), emit: bam
+    tuple val(meta), path("*.bai"), emit: bai
     tuple val("${task.process}"), val('picard'), eval("picard FilterSamReads --version 2>&1 | sed -n 's/.*Version://p'"), topic: versions, emit: versions_picard
 
     when:
@@ -38,10 +40,13 @@ process PICARD_FILTERSAMREADS {
         picard \\
             -Xmx${avail_mem}M \\
             FilterSamReads \\
+            -R ${fasta} \\
             --INPUT ${bam} \\
             --OUTPUT ${prefix}.bam \\
             --FILTER ${filter} \\
             ${args}
+
+        samtools index ${prefix}.bam
         """
     }
     else if (filter == 'includeReadList' || filter == 'excludeReadList') {
@@ -49,11 +54,14 @@ process PICARD_FILTERSAMREADS {
         picard \\
             -Xmx${avail_mem}M \\
             FilterSamReads \\
+            -R ${fasta} \\
             --INPUT ${bam} \\
             --OUTPUT ${prefix}.bam \\
             --FILTER ${filter} \\
             --READ_LIST_FILE ${readlist} \\
             ${args}
+
+        samtools index ${prefix}.bam
         """
     }
 
@@ -64,5 +72,6 @@ process PICARD_FILTERSAMREADS {
     }
     """
     touch ${prefix}.bam
+    touch ${prefix}.bam.bai
     """
 }

@@ -112,7 +112,7 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
             CONVERT_CRAM2BAM(cram_to_convert, fasta_with_fai)
             bam_to_filter = CONVERT_CRAM2BAM.out.bam.map{meta, bam -> [meta, bam, meta.readsid_file]}
             // 2) Apply picard filtersamreads
-            PICARD_FILTERSAMREADS(bam_to_filter, fasta,'includeReadList') // bam -> filtered_bam
+            PICARD_FILTERSAMREADS(bam_to_filter, fasta, 'includeReadList') // bam -> filtered_bam
             // Conver to FQ
             bam_to_fq = PICARD_FILTERSAMREADS.out.bam.join(PICARD_FILTERSAMREADS.out.bai)
             interleave_input = false // Currently don't allow interleaved input
@@ -138,6 +138,9 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
                                 splicesites,
                                 fasta_fai_for_hisat2
                                 )
+            versions = versions.mix(CONVERT_CRAM2BAM.out.versions_samtools)
+            versions = versions.mix(PICARD_FILTERSAMREADS.out.versions_picard)
+            versions = versions.mix(CONVERT_FASTQ_INPUT.out.versions)
             // The updated nf-core subworkflow emits a generic `index` channel instead of `bai`.
             bam_mapped = FASTQ_ALIGN_HISAT2.out.bam.join(FASTQ_ALIGN_HISAT2.out.index).map{meta, bam, index -> [meta + [ id:meta.sample, data_type:"bam"], bam, index]}
     }

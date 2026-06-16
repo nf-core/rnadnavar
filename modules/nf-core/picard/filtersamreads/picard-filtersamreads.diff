@@ -14,17 +14,45 @@ Changes in 'picard/filtersamreads/main.nf':
      output:
      tuple val(meta), path("*.bam"), emit: bam
 +    tuple val(meta), path("*.bai"), emit: bai
-     path "versions.yml"           , emit: versions
+     tuple val("${task.process}"), val('picard'), eval("picard FilterSamReads --version 2>&1 | sed -n 's/.*Version://p'"), topic: versions, emit: versions_picard
  
      when:
-@@ -50,6 +52,7 @@
+@@ -38,10 +40,13 @@
          picard \\
-             FilterSamReads \\
              -Xmx${avail_mem}M \\
-+            -R $fasta \\
-             --INPUT $bam \\
+             FilterSamReads \\
++            -R ${fasta} \\
+             --INPUT ${bam} \\
              --OUTPUT ${prefix}.bam \\
-             --FILTER $filter \\
+             --FILTER ${filter} \\
+             ${args}
++
++        samtools index ${prefix}.bam
+         """
+     }
+     else if (filter == 'includeReadList' || filter == 'excludeReadList') {
+@@ -49,11 +54,14 @@
+         picard \\
+             -Xmx${avail_mem}M \\
+             FilterSamReads \\
++            -R ${fasta} \\
+             --INPUT ${bam} \\
+             --OUTPUT ${prefix}.bam \\
+             --FILTER ${filter} \\
+             --READ_LIST_FILE ${readlist} \\
+             ${args}
++
++        samtools index ${prefix}.bam
+         """
+     }
+ 
+@@ -64,5 +72,6 @@
+     }
+     """
+     touch ${prefix}.bam
++    touch ${prefix}.bam.bai
+     """
+ }
 
 'modules/nf-core/picard/filtersamreads/tests/main.nf.test.snap' is unchanged
 'modules/nf-core/picard/filtersamreads/tests/nextflow.config' is unchanged
