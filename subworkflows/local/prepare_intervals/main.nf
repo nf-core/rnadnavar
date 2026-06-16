@@ -93,9 +93,9 @@ workflow PREPARE_INTERVALS {
 
 
         intervals_bed_gz_tbi_combined = TABIX_BGZIPTABIX_INTERVAL_COMBINED.out.gz_tbi.map{meta, gz, tbi -> [gz, tbi] }.collect()
-        intervals_bed_gz_tbi_and_num_intervals = intervals_bed_gz_tbi.map{ intervals, num_intervals ->
+        intervals_bed_gz_tbi_and_num_intervals = intervals_bed_gz_tbi.map{ interval_pair, num_intervals ->
         if ( num_intervals < 1 ) [ [], [], num_intervals ]
-        else [ intervals[0], intervals[1], num_intervals ]
+        else [ interval_pair[0], interval_pair[1], num_intervals ]
         }
     }
 

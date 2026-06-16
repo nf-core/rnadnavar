@@ -76,8 +76,6 @@ workflow PREPARE_REFERENCE_AND_INTERVALS {
     dbsnp_tbi
     pon
     pon_tbi
-    germline_resource
-    germline_resource_tbi
     hisat2_index
     splicesites
     known_sites_indels
