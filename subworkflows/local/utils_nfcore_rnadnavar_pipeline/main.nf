@@ -7,7 +7,7 @@
     IMPORT FUNCTIONS / MODULES / SUBWORKFLOWS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-include {SAMPLESHEET_TO_CHANNEL     } from '../samplesheet_to_channel/main.nf'
+include { SAMPLESHEET_TO_CHANNEL    } from '../samplesheet_to_channel/main.nf'
 include { UTILS_NFSCHEMA_PLUGIN     } from '../../nf-core/utils_nfschema_plugin'
 include { paramsSummaryMap          } from 'plugin/nf-schema'
 include { samplesheetToList         } from 'plugin/nf-schema'

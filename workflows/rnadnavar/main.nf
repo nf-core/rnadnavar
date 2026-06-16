@@ -20,7 +20,6 @@ include { methodsDescriptionText                                    } from '../.
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
 //
 // Build the genome index and other reference files
-include { SAMPLESHEET_TO_CHANNEL                                    } from '../../subworkflows/local/samplesheet_to_channel'
 include { PREPARE_REFERENCE_AND_INTERVALS                           } from '../../subworkflows/local/prepare_reference_and_intervals'
 include { PREPARE_INTERVALS as PREPARE_INTERVALS_FOR_REALIGNMENT    } from '../../subworkflows/local/prepare_intervals'
 // Download annotation cache if needed
@@ -60,10 +59,8 @@ workflow RNADNAVAR {
     // To gather used softwares versions for MultiQC
     versions = Channel.empty()
 
-    // The parsed samplesheet is produced and globally validated during pipeline initialisation.
-    SAMPLESHEET_TO_CHANNEL(ch_samplesheet)
-
-    input_sample = SAMPLESHEET_TO_CHANNEL.out.input_sample
+    // The samplesheet channel was already parsed and validated during pipeline initialisation.
+    input_sample = ch_samplesheet
 
 
     // Initialise MULTIQC
