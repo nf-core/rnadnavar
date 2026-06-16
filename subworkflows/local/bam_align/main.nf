@@ -72,7 +72,7 @@ workflow BAM_ALIGN {
             FASTQC(input_fastq)
 
             reports = reports.mix(FASTQC.out.zip.collect{ meta, logs -> logs })
-            versions = versions.mix(FASTQC.out.versions.first())
+            versions = versions.mix(FASTQC.out.versions_fastqc)
         }
         //  Trimming and/or splitting
         if (params.trim_fastq || params.split_fastq > 0) {

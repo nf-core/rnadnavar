@@ -37,8 +37,8 @@ workflow CRAM_MERGE_INDEX_SAMTOOLS {
     cram_crai = cram_all.join(INDEX_CRAM.out.crai, failOnDuplicate: true, failOnMismatch: true)
 
     // Gather versions of all tools used
-    versions = versions.mix(INDEX_CRAM.out.versions.first())
-    versions = versions.mix(MERGE_CRAM.out.versions.first())
+    versions = versions.mix(INDEX_CRAM.out.versions)
+    versions = versions.mix(MERGE_CRAM.out.versions)
 
     emit:
     cram_crai
