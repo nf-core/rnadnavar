@@ -91,8 +91,10 @@ workflow BAM_ALIGN {
             reports = reports.mix(FASTP.out.html.collect{ _meta, html -> html })
 
             if (params.split_fastq) {
-                reads_for_alignment = FASTP.out.reads.map{ meta, reads ->
-                    def read_files = reads.sort(false) { a,b -> a.getName().tokenize('.')[0] <=> b.getName().tokenize('.')[0] }.collate(2)
+                reads_for_alignment = FASTP.out.reads.map { item ->
+                    def meta = item[0]
+                    def reads = item[1]
+                    def read_files = reads.sort(false) { a, b -> a.getName().tokenize('.')[0] <=> b.getName().tokenize('.')[0] }.collate(2)
                     [ meta + [ n_fastq: read_files.size() ], read_files ]
                 }.transpose()
             } else reads_for_alignment = FASTP.out.reads
@@ -110,16 +112,22 @@ workflow BAM_ALIGN {
         // First, we must calculate number of lanes for each sample (meta.n_fastq)
         // This is needed to group reads from the same sample together using groupKey to avoid stalling the workflow
         // when reads from different samples are mixed together
-        reads_for_alignment.map { meta, reads ->
+        reads_for_alignment.map { item ->
+                def meta = item[0]
+                def reads = item[1]
                 [ meta.subMap('patient', 'sample', 'status'), reads ]
             }
             .groupTuple()
-            .map { meta, reads ->
+            .map { item ->
+                def meta = item[0]
+                def reads = item[1]
                 meta + [ n_fastq: reads.size() ] // We can drop the FASTQ files now that we know how many there are
             }
             .set { reads_grouping_key }
 
-        reads_for_alignment = reads_for_alignment.map{ meta, reads ->
+        reads_for_alignment = reads_for_alignment.map { item ->
+            def meta = item[0]
+            def reads = item[1]
             // Update meta.id to meta.sample no multiple lanes or splitted fastqs
             if (meta.size * meta.num_lanes == 1) [ meta + [ id:meta.sample ], reads ]
             else [ meta, reads ]
