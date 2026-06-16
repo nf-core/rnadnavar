@@ -7,7 +7,7 @@
     IMPORT FUNCTIONS / MODULES / SUBWORKFLOWS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-include {SAMPLESHEET_TO_CHANNEL     } from '../samplesheet_to_channel/main.nf'
+include { SAMPLESHEET_TO_CHANNEL    } from '../samplesheet_to_channel/main.nf'
 include { UTILS_NFSCHEMA_PLUGIN     } from '../../nf-core/utils_nfschema_plugin'
 include { paramsSummaryMap          } from 'plugin/nf-schema'
 include { samplesheetToList         } from 'plugin/nf-schema'
@@ -33,6 +33,7 @@ workflow PIPELINE_INITIALISATION {
     help              // boolean: Display help message and exit
     help_full         // boolean: Show the full help message
     show_hidden       // boolean: Show hidden parameters in the help message
+    monochrome_logs   // boolean: Disable ANSI colour codes in log output
 
     main:
 
@@ -131,11 +132,19 @@ workflow PIPELINE_INITIALISATION {
 
     params.input_restart = retrieveInput((!params.build_only_index && !input), params.step, params.outdir)
 
+    def samplesheet_path = input ?: params.input_restart
+    // Validate sample composition before channel creation so the logic does not depend on
+    // queue-channel consumer order. This is also the intended extension point for a future
+    // tumour-only release mode, while the current release remains tumour-normal matched.
+    def parsed_samplesheet = params.build_only_index
+        ? []
+        : samplesheetToList(samplesheet_path, "${projectDir}/assets/schema_input.json")
+
+    validateSamplesheetComposition(parsed_samplesheet, params.step, params.tools, params.build_only_index)
+
     ch_from_samplesheet = params.build_only_index
         ? Channel.empty()
-        : input
-            ? Channel.fromList(samplesheetToList(input, "${projectDir}/assets/schema_input.json"))
-            : Channel.fromList(samplesheetToList(params.input_restart, "${projectDir}/assets/schema_input.json"))
+        : Channel.fromList(parsed_samplesheet)
 
     SAMPLESHEET_TO_CHANNEL(ch_from_samplesheet)
 
@@ -194,6 +203,86 @@ workflow PIPELINE_COMPLETION {
 // Check and validate pipeline parameters
 def validateInputParameters() {
     genomeExistsError()
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    SAMPLE SHEET VALIDATION
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+
+// Summarise the global tumour/normal composition of the parsed samplesheet before
+// converting it into a queue channel. Keeping this logic list-based avoids consumer-order
+// bugs and provides one central policy point for future tumour-only enablement.
+def getSamplesheetCompositionState(rows, step, tools, build_only_index) {
+    def requested_tools = normaliseRequestedTools(tools)
+    def sample_type_tools = requested_tools.intersect(['mutect2', 'strelka', 'sage'])
+    def should_validate = !build_only_index && step != 'annotate' && !sample_type_tools.isEmpty()
+
+    def statuses = rows.collect { row ->
+        def meta = row[0]
+        (meta.status == null ? 0 : meta.status) as Integer
+    }
+    def tumor_patients = rows
+        .findAll { row -> ((row[0].status == null ? 0 : row[0].status) as Integer) >= 1 }
+        .collect { row -> row[0].patient }
+        .findAll { patient -> patient != null }
+        .unique()
+        .sort()
+    def normal_patients = rows
+        .findAll { row -> ((row[0].status == null ? 0 : row[0].status) as Integer) == 0 }
+        .collect { row -> row[0].patient }
+        .findAll { patient -> patient != null }
+        .unique()
+        .sort()
+    def patients_missing_normal = tumor_patients.findAll { patient -> !normal_patients.contains(patient) }
+
+    [
+        should_validate       : should_validate,
+        requested_tools       : requested_tools,
+        sample_type_tools     : sample_type_tools,
+        has_tumor             : statuses.any { status -> status >= 1 },
+        has_normal            : statuses.any { status -> status == 0 },
+        tumor_patients        : tumor_patients,
+        normal_patients       : normal_patients,
+        patients_missing_normal: patients_missing_normal,
+    ]
+}
+
+// Enforce the current first-release policy for sample composition. Tumour-only routing
+// exists downstream, but it is intentionally not enabled here yet. When tumour-only mode
+// is supported for a caller, relax the matched-normal branch below instead of reintroducing
+// channel-based validation in downstream subworkflows.
+def validateSamplesheetComposition(rows, step, tools, build_only_index) {
+    def state = getSamplesheetCompositionState(rows, step, tools, build_only_index)
+
+    if (!state.should_validate) {
+        return
+    }
+
+    if (!state.has_tumor) {
+        error('The sample-sheet only contains normal-samples, but the following tools, which were requested with "--tools", expect at least one tumor-sample: ' + state.sample_type_tools.join(", "))
+    }
+
+    if (!state.has_normal) {
+        error('The sample-sheet only contains tumor-samples, but the following tools, which were requested with "--tools", expect at least one matched normal-sample in the current release: ' + state.sample_type_tools.join(", "))
+    }
+
+    if (!state.patients_missing_normal.isEmpty()) {
+        error('The current release requires a matched normal sample for each tumor patient when running the following tools: ' + state.sample_type_tools.join(", ") + '. Missing matched normal for patient(s): ' + state.patients_missing_normal.join(", "))
+    }
+}
+
+def normaliseRequestedTools(tools) {
+    if (!tools) {
+        return []
+    }
+
+    tools
+        .split(',')
+        .collect { tool -> tool.trim() }
+        .findAll { tool -> tool }
+        .unique()
 }
 
 // Exit pipeline if incorrect --genome key provided

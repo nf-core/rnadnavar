@@ -15,3 +15,5 @@ node_modules/
 .vscode*
 null/
 .lineage/
+rnadnavar_test/
+rnadnavar_ful_test/

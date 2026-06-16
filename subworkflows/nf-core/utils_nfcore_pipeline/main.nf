@@ -79,8 +79,27 @@ def getWorkflowVersion() {
 //
 def processVersionsFromYAML(yaml_file) {
     def yaml = new org.yaml.snakeyaml.Yaml()
-    def versions = yaml.load(yaml_file).collectEntries { k, v -> [k.tokenize(':')[-1], v] }
+    def yaml_text = yaml_file instanceof java.nio.file.Path || yaml_file instanceof File ? yaml_file.text : yaml_file.toString()
+    def versions = yaml.load(yaml_text).collectEntries { k, v -> [k.tokenize(':')[-1], v] }
     return yaml.dumpAsMap(versions).trim()
+}
+
+//
+// Normalize software version records coming from either classic `versions.yml`
+// files or newer tuple-based module outputs emitted via `topic: versions`.
+// Keep this compatibility layer until the pipeline versions aggregation is
+// migrated fully to the newer nf-core topic-based pattern.
+//
+def normalizeVersionRecord(version_record) {
+    if (version_record instanceof List && version_record.size() == 3) {
+        def (process_name, tool_name, version_value) = version_record
+        return """
+        "${process_name}":
+            ${tool_name}: ${version_value}
+        """.stripIndent().trim()
+    }
+
+    return processVersionsFromYAML(version_record)
 }
 
 //
@@ -98,7 +117,7 @@ def workflowVersionToYAML() {
 // Get channel of software versions used in pipeline in YAML format
 //
 def softwareVersionsToYAML(ch_versions) {
-    return ch_versions.unique().map { version -> processVersionsFromYAML(version) }.unique().mix(channel.of(workflowVersionToYAML()))
+    return ch_versions.unique().map { version -> normalizeVersionRecord(version) }.unique().mix(channel.of(workflowVersionToYAML()))
 }
 
 //
