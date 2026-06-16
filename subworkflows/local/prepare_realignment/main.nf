@@ -135,8 +135,7 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
                                 reads_for_realignment.map{meta, reads -> [meta + [single_end:false], reads]},
                                 hisat2_index,
                                 splicesites,
-                                fasta_fai_for_hisat2,
-                                params.save_unaligned
+                                fasta_fai_for_hisat2
                                 )
             // The updated nf-core subworkflow emits a generic `index` channel instead of `bai`.
             bam_mapped = FASTQ_ALIGN_HISAT2.out.bam.join(FASTQ_ALIGN_HISAT2.out.index).map{meta, bam, index -> [meta + [ id:meta.sample, data_type:"bam"], bam, index]}
