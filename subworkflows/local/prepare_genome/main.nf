@@ -17,14 +17,14 @@ include { GUNZIP as GUNZIP_GFF                   } from '../../../modules/nf-cor
 include { GFFREAD                                } from '../../../modules/nf-core/gffread/main'
 include { UNTAR as UNTAR_STAR_INDEX              } from '../../../modules/nf-core/untar/main'
 include { TABIX_BGZIP as UNBGZIP_FASTA           } from '../../../modules/nf-core/tabix/bgzip/main'
+include { HTSLIB_BGZIPTABIX as TABIX_DBSNP       } from '../../../modules/nf-core/htslib/bgziptabix/main'
+include { HTSLIB_BGZIPTABIX as TABIX_GERMLINE_RESOURCE } from '../../../modules/nf-core/htslib/bgziptabix/main'
+include { HTSLIB_BGZIPTABIX as TABIX_KNOWN_INDELS } from '../../../modules/nf-core/htslib/bgziptabix/main'
+include { HTSLIB_BGZIPTABIX as TABIX_KNOWN_SNPS  } from '../../../modules/nf-core/htslib/bgziptabix/main'
+include { HTSLIB_BGZIPTABIX as TABIX_PON         } from '../../../modules/nf-core/htslib/bgziptabix/main'
 include { STAR_GENOMEGENERATE                    } from '../../../modules/nf-core/star/genomegenerate/main'            //addParams(options: params.star_index_options)
 include { GATK4_CREATESEQUENCEDICTIONARY         } from '../../../modules/nf-core/gatk4/createsequencedictionary/main'
 include { SAMTOOLS_FAIDX                         } from '../../../modules/nf-core/samtools/faidx/main'
-include { TABIX_TABIX as TABIX_DBSNP             } from '../../../modules/nf-core/tabix/tabix/main'
-include { TABIX_TABIX as TABIX_GERMLINE_RESOURCE } from '../../../modules/nf-core/tabix/tabix/main'
-include { TABIX_TABIX as TABIX_KNOWN_INDELS      } from '../../../modules/nf-core/tabix/tabix/main'
-include { TABIX_TABIX as TABIX_KNOWN_SNPS        } from '../../../modules/nf-core/tabix/tabix/main'
-include { TABIX_TABIX as TABIX_PON               } from '../../../modules/nf-core/tabix/tabix/main'
 include { HISAT2_EXTRACTSPLICESITES              } from '../../../modules/nf-core/hisat2/extractsplicesites/main'
 include { HISAT2_BUILD                           } from '../../../modules/nf-core/hisat2/build/main'
 
@@ -76,15 +76,38 @@ workflow PREPARE_GENOME {
     GATK4_CREATESEQUENCEDICTIONARY(fasta)
     SAMTOOLS_FAIDX(fasta, [['id':null], []], false)
 
-    // the following are flattened and mapped in case the user supplies more than one value for the param
-    // written for KNOWN_INDELS, but preemptively applied to the rest
-    // [ file1, file2 ] becomes [ [ meta1, file1 ], [ meta2, file2 ] ]
-    // outputs are collected to maintain a single channel for relevant TBI files
-    TABIX_DBSNP(dbsnp.flatten().map{ it -> [ [ id:it.baseName ], it ] })
-    TABIX_GERMLINE_RESOURCE(germline_resource.flatten().map{ it -> [ [ id:it.baseName ], it ] })
-    TABIX_KNOWN_SNPS(known_snps.flatten().map{ it -> [ [ id:it.baseName ], it ] } )
-    TABIX_KNOWN_INDELS(known_indels.flatten().map{ it -> [ [ id:it.baseName ], it ] } )
-    TABIX_PON(pon.flatten().map{ it -> [ [ id:it.baseName ], it ] })
+    // Canonical nf-core replacement for the deprecated tabix-only wrapper.
+    // This normalizes any VCF/VCF.GZ input into a fresh bgzipped VCF plus matching TBI.
+    TABIX_DBSNP(
+        dbsnp.flatten().map { file -> [[id: file.name.replaceFirst(/\.vcf(\.gz)?$/, '')], file, [], []] },
+        'compress',
+        true,
+        'vcf'
+    )
+    TABIX_GERMLINE_RESOURCE(
+        germline_resource.flatten().map { file -> [[id: file.name.replaceFirst(/\.vcf(\.gz)?$/, '')], file, [], []] },
+        'compress',
+        true,
+        'vcf'
+    )
+    TABIX_KNOWN_SNPS(
+        known_snps.flatten().map { file -> [[id: file.name.replaceFirst(/\.vcf(\.gz)?$/, '')], file, [], []] },
+        'compress',
+        true,
+        'vcf'
+    )
+    TABIX_KNOWN_INDELS(
+        known_indels.flatten().map { file -> [[id: file.name.replaceFirst(/\.vcf(\.gz)?$/, '')], file, [], []] },
+        'compress',
+        true,
+        'vcf'
+    )
+    TABIX_PON(
+        pon.flatten().map { file -> [[id: file.name.replaceFirst(/\.vcf(\.gz)?$/, '')], file, [], []] },
+        'compress',
+        true,
+        'vcf'
+    )
 
     //
     // Uncompress GTF annotation file or create from GFF3 if required
@@ -178,24 +201,34 @@ workflow PREPARE_GENOME {
     // Gather versions of all tools used
     versions = versions.mix(SAMTOOLS_FAIDX.out.versions)
     versions = versions.mix(GATK4_CREATESEQUENCEDICTIONARY.out.versions)
-    versions = versions.mix(TABIX_DBSNP.out.versions)
-    versions = versions.mix(TABIX_GERMLINE_RESOURCE.out.versions)
-    versions = versions.mix(TABIX_KNOWN_SNPS.out.versions)
-    versions = versions.mix(TABIX_KNOWN_INDELS.out.versions)
-    versions = versions.mix(TABIX_PON.out.versions)
+    versions = versions.mix(TABIX_DBSNP.out.versions_htslib)
+    versions = versions.mix(TABIX_DBSNP.out.versions_xz)
+    versions = versions.mix(TABIX_GERMLINE_RESOURCE.out.versions_htslib)
+    versions = versions.mix(TABIX_GERMLINE_RESOURCE.out.versions_xz)
+    versions = versions.mix(TABIX_KNOWN_SNPS.out.versions_htslib)
+    versions = versions.mix(TABIX_KNOWN_SNPS.out.versions_xz)
+    versions = versions.mix(TABIX_KNOWN_INDELS.out.versions_htslib)
+    versions = versions.mix(TABIX_KNOWN_INDELS.out.versions_xz)
+    versions = versions.mix(TABIX_PON.out.versions_htslib)
+    versions = versions.mix(TABIX_PON.out.versions_xz)
 
     emit:
         bwa                   = bwa       // path: bwa/*
         bwamem2               = bwamem2       // path: bwamem2/*
         hashtable             = hashtable // path: dragmap/*
-        dbsnp_tbi             = TABIX_DBSNP.out.tbi.map{ meta, tbi -> [tbi] }.collect()               // path: dbsnb.vcf.gz.tbi
+        dbsnp                 = TABIX_DBSNP.out.output.map{ meta, gz -> [gz] }.collect()
+        dbsnp_tbi             = TABIX_DBSNP.out.index.map{ meta, tbi -> [tbi] }.collect()               // path: dbsnb.vcf.gz.tbi
         dict                  = GATK4_CREATESEQUENCEDICTIONARY.out.dict                               // path: genome.fasta.dict
         fasta                 = fasta
         fasta_fai             = SAMTOOLS_FAIDX.out.fai.map{ meta, fai -> [fai] }                      // path: genome.fasta.fai
-        germline_resource_tbi = TABIX_GERMLINE_RESOURCE.out.tbi.map{ meta, tbi -> [tbi] }.collect()   // path: germline_resource.vcf.gz.tbi
-        known_snps_tbi        = TABIX_KNOWN_SNPS.out.tbi.map{ meta, tbi -> [tbi] }.collect()          // path: {known_indels*}.vcf.gz.tbi
-        known_indels_tbi      = TABIX_KNOWN_INDELS.out.tbi.map{ meta, tbi -> [tbi] }.collect()        // path: {known_indels*}.vcf.gz.tbi
-        pon_tbi               = TABIX_PON.out.tbi.map{ meta, tbi -> [tbi] }.collect()                 // path: pon.vcf.gz.tbi
+        germline_resource     = TABIX_GERMLINE_RESOURCE.out.output.map{ meta, gz -> [gz] }.collect()
+        germline_resource_tbi = TABIX_GERMLINE_RESOURCE.out.index.map{ meta, tbi -> [tbi] }.collect()   // path: germline_resource.vcf.gz.tbi
+        known_snps            = TABIX_KNOWN_SNPS.out.output.map{ meta, gz -> [gz] }.collect()
+        known_snps_tbi        = TABIX_KNOWN_SNPS.out.index.map{ meta, tbi -> [tbi] }.collect()          // path: {known_indels*}.vcf.gz.tbi
+        known_indels          = TABIX_KNOWN_INDELS.out.output.map{ meta, gz -> [gz] }.collect()
+        known_indels_tbi      = TABIX_KNOWN_INDELS.out.index.map{ meta, tbi -> [tbi] }.collect()        // path: {known_indels*}.vcf.gz.tbi
+        pon                   = TABIX_PON.out.output.map{ meta, gz -> [gz] }.collect()
+        pon_tbi               = TABIX_PON.out.index.map{ meta, tbi -> [tbi] }.collect()                 // path: pon.vcf.gz.tbi
         star_index            = ch_star_index                                                         // path: star/index/
         gtf                   = ch_gtf                                                                // path: genome.gtf
         hisat2_index          = ch_hisat2_index                                                       // path: hisat2/index/

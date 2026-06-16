@@ -80,8 +80,8 @@ workflow BAM_ALIGN {
             save_trimmed_fail = false
             save_merged = false
             FASTP(
-                input_fastq,
-                [], // we are not using any adapter fastas at the moment
+                // we are not using any adapter fastas at the moment, that's why last element is empty
+                input_fastq.map { meta, reads -> [meta, reads, []] }, 
                 false, // we don't use discard_trimmed_pass at the moment
                 save_trimmed_fail,
                 save_merged
@@ -99,7 +99,7 @@ workflow BAM_ALIGN {
                 }.transpose()
             } else reads_for_alignment = FASTP.out.reads
 
-            versions = versions.mix(FASTP.out.versions)
+            versions = versions.mix(FASTP.out.versions_fastp)
 
         } else {
             reads_for_alignment = input_fastq
@@ -164,16 +164,20 @@ workflow BAM_ALIGN {
         bam_mapped_dna.dump(tag:"bam_mapped_dna")
         reads_for_alignment_status.rna.dump(tag:"reads_for_alignment_status.rna")
 
+        // The updated nf-core STAR alignment subworkflow now expects
+        // [meta, fasta, fai] tuples for genome and transcriptome references.
+        fasta_fai_for_star = fasta.combine(fasta_fai).map { meta, fa, fai ->
+            [meta, fa, fai]
+        }
+
         // RNA STAR alignment
         FASTQ_ALIGN_STAR (
             reads_for_alignment_status.rna,
             star_index,
             gtf,
             params.star_ignore_sjdbgtf,
-            params.seq_platform ? params.seq_platform : [],
-            params.seq_center ? params.seq_center : [],
-            fasta,
-            [ [ id:"transcript_fasta" ], [] ] // transcript_fasta
+            fasta_fai_for_star,
+            [ [ id:"transcript_fasta" ], [], [] ]
         )
         // Grouping the bams from the same samples not to stall the workflow
         bam_mapped_rna = FASTQ_ALIGN_STAR.out.bam.combine(reads_grouping_key) // Creates a tuple of [ meta, bam, reads_grouping_key ]
@@ -196,7 +200,6 @@ workflow BAM_ALIGN {
         // Gather QC reports
         reports           = reports.mix(FASTQ_ALIGN_STAR.out.stats.collect{it[1]}.ifEmpty([]))
         reports           = reports.mix(FASTQ_ALIGN_STAR.out.log_final.collect{it[1]}.ifEmpty([]))
-        versions          = versions.mix(FASTQ_ALIGN_STAR.out.versions)
 
         // mix dna and rna in one channel
         bam_mapped = bam_mapped_dna.mix(bam_mapped_rna)
@@ -221,7 +224,6 @@ workflow BAM_ALIGN {
         // Gather used softwares versions
         versions = versions.mix(CONVERT_FASTQ_INPUT.out.versions)
         versions = versions.mix(FASTQ_ALIGN.out.versions)
-        versions = versions.mix(FASTQ_ALIGN_STAR.out.versions)
 
     }
 

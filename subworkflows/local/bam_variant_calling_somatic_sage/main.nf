@@ -6,7 +6,7 @@
 
 include { SAGE                                   } from '../../../modules/local/sage/main'
 include { GATK4_MERGEVCFS as MERGE_SAGE          } from '../../../modules/nf-core/gatk4/mergevcfs/main'
-include { TABIX_BGZIPTABIX as BGZIPTABIX_VC_SAGE } from '../../../modules/nf-core/tabix/bgziptabix/main'
+include { HTSLIB_BGZIPTABIX as BGZIPTABIX_VC_SAGE } from '../../../modules/nf-core/htslib/bgziptabix/main'
 include { UNZIP as UNZIP_SAGE_ENSEMBL            } from '../../../modules/nf-core/unzip/main'
 include { UNTAR as UNTAR_SAGE_ENSEMBL            } from '../../../modules/nf-core/untar/main'
 
@@ -63,16 +63,24 @@ workflow BAM_VARIANT_CALLING_SOMATIC_SAGE {
     MERGE_SAGE(vcf_to_merge, dict)
     merged_vcf = MERGE_SAGE.out.vcf.join(MERGE_SAGE.out.tbi, failOnMismatch: true)
     // Only when no_intervals
-    BGZIPTABIX_VC_SAGE(sage_vcf_out.no_intervals)
+    BGZIPTABIX_VC_SAGE(
+        sage_vcf_out.no_intervals.map{ meta, vcf -> [ meta, vcf, [], [] ] },
+        'compress',
+        true,
+        'vcf'
+    )
 
     // Mix intervals and no_intervals channels together
-    vcf = BGZIPTABIX_VC_SAGE.out.gz_tbi.mix(merged_vcf)
+    vcf = BGZIPTABIX_VC_SAGE.out.output
+        .join(BGZIPTABIX_VC_SAGE.out.index, failOnMismatch: true)
+        .mix(merged_vcf)
         // add variantcaller to meta map and remove no longer necessary field: num_intervals
         .map{ meta, vcf, tbi -> [ meta - meta.subMap('normal_id', 'tumor_id','num_intervals') + [ variantcaller:'sage' ], vcf ] }
 
     versions = versions.mix(MERGE_SAGE.out.versions)
     versions = versions.mix(SAGE.out.versions)
-    versions = versions.mix(BGZIPTABIX_VC_SAGE.out.versions)
+    versions = versions.mix(BGZIPTABIX_VC_SAGE.out.versions_htslib)
+    versions = versions.mix(BGZIPTABIX_VC_SAGE.out.versions_xz)
 
     emit:
 
