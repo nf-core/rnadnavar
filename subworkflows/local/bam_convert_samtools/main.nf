@@ -20,20 +20,21 @@ workflow BAM_CONVERT_SAMTOOLS {
 
     main:
     versions = Channel.empty()
+    fasta_with_fai = fasta.combine(fasta_fai).map { meta, fa, fai -> [meta, fa, fai] }
 
     // Index File if not PROVIDED -> this also requires updates to samtools view possibly URGH
 
     // MAP - MAP
-    SAMTOOLS_VIEW_MAP_MAP(input, fasta, [], [])
+    SAMTOOLS_VIEW_MAP_MAP(input, fasta_with_fai, [[id:''], []], [[id:''], []], '')
 
     // UNMAP - UNMAP
-    SAMTOOLS_VIEW_UNMAP_UNMAP(input, fasta, [], [])
+    SAMTOOLS_VIEW_UNMAP_UNMAP(input, fasta_with_fai, [[id:''], []], [[id:''], []], '')
 
     // UNMAP - MAP
-    SAMTOOLS_VIEW_UNMAP_MAP(input, fasta, [], [])
+    SAMTOOLS_VIEW_UNMAP_MAP(input, fasta_with_fai, [[id:''], []], [[id:''], []], '')
 
     // MAP - UNMAP
-    SAMTOOLS_VIEW_MAP_UNMAP(input, fasta, [], [])
+    SAMTOOLS_VIEW_MAP_UNMAP(input, fasta_with_fai, [[id:''], []], [[id:''], []], '')
 
     // Merge UNMAP
     all_unmapped_bam = SAMTOOLS_VIEW_UNMAP_UNMAP.out.bam
@@ -63,10 +64,10 @@ workflow BAM_CONVERT_SAMTOOLS {
     versions = versions.mix(COLLATE_FASTQ_MAP.out.versions)
     versions = versions.mix(COLLATE_FASTQ_UNMAP.out.versions)
     versions = versions.mix(SAMTOOLS_MERGE_UNMAP.out.versions)
-    versions = versions.mix(SAMTOOLS_VIEW_MAP_MAP.out.versions)
-    versions = versions.mix(SAMTOOLS_VIEW_MAP_UNMAP.out.versions)
-    versions = versions.mix(SAMTOOLS_VIEW_UNMAP_MAP.out.versions)
-    versions = versions.mix(SAMTOOLS_VIEW_UNMAP_UNMAP.out.versions)
+    versions = versions.mix(SAMTOOLS_VIEW_MAP_MAP.out.versions_samtools)
+    versions = versions.mix(SAMTOOLS_VIEW_MAP_UNMAP.out.versions_samtools)
+    versions = versions.mix(SAMTOOLS_VIEW_UNMAP_MAP.out.versions_samtools)
+    versions = versions.mix(SAMTOOLS_VIEW_UNMAP_UNMAP.out.versions_samtools)
 
     emit:
     reads
