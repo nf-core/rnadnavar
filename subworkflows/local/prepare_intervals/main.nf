@@ -14,9 +14,12 @@ include { TABIX_BGZIPTABIX as TABIX_BGZIPTABIX_INTERVAL_COMBINED } from '../../.
 
 workflow PREPARE_INTERVALS {
     take:
-    fasta_fai    // mandatory [ fasta_fai ]
-    intervals    // [ params.intervals ]
-    no_intervals // [ params.no_intervals ]
+    fasta_fai              // mandatory [ fasta_fai ]
+    intervals              // input intervals path
+    no_intervals           // boolean: skip intervals entirely
+    step                   // pipeline step
+    nucleotides_per_second // interval duration scaling
+    wes                    // whether this is targeted sequencing
 
     main:
     versions = Channel.empty()
@@ -28,7 +31,7 @@ workflow PREPARE_INTERVALS {
         intervals_combined                     = Channel.of([[id:"no_intervals"], 0 ])
         intervals_bed_gz_tbi_combined          = Channel.of([[], []])
         intervals_bed_gz_tbi_and_num_intervals = Channel.of([[],[], 0 ])
-    } else if (params.step != 'annotate') {
+    } else if (step != 'annotate') {
         // If no interval/target file is provided, then generated intervals from FASTA file
         if (!intervals) {
             BUILD_INTERVALS(fasta_fai.map{it -> [ [ id:it.baseName ], it ] })
@@ -68,7 +71,7 @@ workflow PREPARE_INTERVALS {
                     else {
                         def start = fields[1].toInteger()
                         def end = fields[2].toInteger()
-                        acc + (end - start) / params.nucleotides_per_second
+                        acc + (end - start) / nucleotides_per_second
                     }
                 }
                 [ duration, intervalFile ]
@@ -104,7 +107,7 @@ workflow PREPARE_INTERVALS {
         Channel.value([]) :
         intervals_combined.map{meta, bed -> bed }.collect()
     // For QC during preprocessing, we don't need any intervals (MOSDEPTH doesn't take them for WGS)
-    intervals_for_preprocessing = params.wes ?
+    intervals_for_preprocessing = wes ?
         intervals_bed_combined.map{it -> [ [ id:it.baseName ], it ]}.collect() :
         Channel.value([ [ id:'null' ], [] ])
 

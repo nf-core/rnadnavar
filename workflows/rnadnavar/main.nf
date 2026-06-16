@@ -107,7 +107,32 @@ workflow RNADNAVAR {
 
 
     // STEP 0: Build reference and indices if needed
-    PREPARE_REFERENCE_AND_INTERVALS()
+    PREPARE_REFERENCE_AND_INTERVALS(
+        params.dbsnp,
+        params.known_snps,
+        params.fasta,
+        params.germline_resource,
+        params.known_indels,
+        params.pon,
+        params.whitelist,
+        params.bwa,
+        params.bwamem2,
+        params.dragmap,
+        params.hisat2_index,
+        params.splicesites,
+        params.dict,
+        params.fasta_fai,
+        params.dbsnp_tbi,
+        params.germline_resource_tbi,
+        params.known_indels_tbi,
+        params.known_snps_tbi,
+        params.pon_tbi,
+        params.intervals,
+        params.no_intervals,
+        params.step,
+        params.nucleotides_per_second,
+        params.wes,
+    )
     versions = versions.mix(PREPARE_REFERENCE_AND_INTERVALS.out.versions)
 
     // Reference and intervals variables
@@ -188,7 +213,14 @@ workflow RNADNAVAR {
         // fastq will not be split when realignment
         params.split_fastq = 0
         // reset intervals to none (realignment files are smaller)
-        PREPARE_INTERVALS_FOR_REALIGNMENT(fasta_fai, null, true)
+        PREPARE_INTERVALS_FOR_REALIGNMENT(
+            fasta_fai,
+            null,
+            true,
+            params.step,
+            params.nucleotides_per_second,
+            params.wes,
+        )
         // hisat2 alignment
         PREPARE_REALIGNMENT(
             input_sample,
@@ -266,9 +298,9 @@ workflow RNADNAVAR {
     }
 
     if (!(params.skip_tools && params.skip_tools.split(',').contains('multiqc'))) {
-        ch_multiqc_config = Channel.fromPath("${projectDir}/assets/multiqc_config.yml", checkIfExists: true)
-        ch_multiqc_custom_config = params.multiqc_config ? Channel.fromPath(params.multiqc_config, checkIfExists: true) : Channel.empty()
-        ch_multiqc_logo = params.multiqc_logo ? Channel.fromPath(params.multiqc_logo, checkIfExists: true) : Channel.empty()
+        ch_multiqc_config = Channel.fromPath("${projectDir}/assets/multiqc_config.yml", checkIfExists: true).collect()
+        ch_multiqc_custom_config = params.multiqc_config ? Channel.fromPath(params.multiqc_config, checkIfExists: true).collect() : Channel.value([])
+        ch_multiqc_logo = params.multiqc_logo ? Channel.fromPath(params.multiqc_logo, checkIfExists: true).collect() : Channel.value([])
         summary_params = paramsSummaryMap(workflow, parameters_schema: "nextflow_schema.json")
         ch_workflow_summary = Channel.value(paramsSummaryMultiqc(summary_params))
         ch_multiqc_custom_methods_description = params.multiqc_methods_description ? file(params.multiqc_methods_description, checkIfExists: true) : file("${projectDir}/assets/methods_description_template.yml", checkIfExists: true)
@@ -278,14 +310,15 @@ workflow RNADNAVAR {
         ch_multiqc_files = ch_multiqc_files.mix(reports)
         ch_multiqc_files = ch_multiqc_files.mix(ch_methods_description.collectFile(name: 'methods_description_mqc.yaml', sort: true))
 
-        MULTIQC(
-            ch_multiqc_files.collect(),
-            ch_multiqc_config.toList(),
-            ch_multiqc_custom_config.toList(),
-            ch_multiqc_logo.toList(),
-            [],
-            [],
-        )
+        ch_multiqc_input = ch_multiqc_files.collect()
+            .combine(ch_multiqc_config)
+            .combine(ch_multiqc_custom_config)
+            .combine(ch_multiqc_logo)
+            .map { multiqc_files, base_config, custom_config, multiqc_logo_files ->
+                [[id: 'multiqc'], multiqc_files, base_config + custom_config, multiqc_logo_files, [], []]
+            }
+
+        MULTIQC(ch_multiqc_input)
         multiqc_report = MULTIQC.out.report.toList()
     }
 
