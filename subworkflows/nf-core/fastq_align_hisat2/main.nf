@@ -12,7 +12,7 @@ workflow FASTQ_ALIGN_HISAT2 {
     //
     // Map reads with HISAT2
     //
-    HISAT2_ALIGN(reads, index, splicesites)
+    HISAT2_ALIGN(reads, index, splicesites, false) // false = do not save unaligned
 
     //
     // Sort, index BAM file and run samtools stats, flagstat and idxstats
