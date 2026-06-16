@@ -14,15 +14,20 @@ process GATK4_SPLITNCIGARREADS {
     tuple val(meta4), path(dict)
 
     output:
-    tuple val(meta), path('*.bam'), emit: bam
+    tuple val(meta), path('*.cram'), emit: cram, optional: true
+    tuple val(meta), path('*.bam'), emit: bam, optional: true
+    tuple val(meta), path('*.crai'), emit: crai, optional: true
+    tuple val(meta), path('*.bai'), emit: bai, optional: true
     tuple val("${task.process}"), val('gatk4'), eval("gatk --version | sed -n '/GATK.*v/s/.*v//p'"), topic: versions, emit: versions_gatk4
+    tuple val("${task.process}"), val('samtools'), eval("samtools version | sed '1!d;s/.* //'"), topic: versions, emit: versions_samtools
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
     def args = task.ext.args ?: ''
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    def prefix = task.ext.prefix ?: "${meta.id}.bam"
+    def prefix_bam = prefix.tokenize('.')[-1] == 'cram' ? "${prefix.substring(0, prefix.lastIndexOf('.'))}.bam" : prefix
     def interval_command = intervals ? "--intervals ${intervals}" : ""
 
     def avail_mem = 3072
@@ -36,17 +41,31 @@ process GATK4_SPLITNCIGARREADS {
     gatk --java-options "-Xmx${avail_mem}M -XX:-UsePerfData" \\
         SplitNCigarReads \\
         --input ${bam} \\
-        --output ${prefix}.bam \\
+        --output ${prefix_bam} \\
         --reference ${fasta} \\
         ${interval_command} \\
         --tmp-dir . \\
         ${args}
+
+    if [[ ${prefix} == *.cram ]]; then
+        samtools view -Ch -T ${fasta} -o ${prefix} ${prefix_bam}
+        rm ${prefix_bam}
+        samtools index ${prefix}
+    fi
     """
 
     stub:
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    def prefix = task.ext.prefix ?: "${meta.id}.bam"
+    def prefix_bam = prefix.tokenize('.')[-1] == 'cram' ? "${prefix.substring(0, prefix.lastIndexOf('.'))}.bam" : prefix
 
     """
-    touch ${prefix}.bam
+    touch ${prefix_bam}
+    if [[ ${prefix} == *.cram ]]; then
+        touch ${prefix}
+        touch ${prefix}.crai
+        rm ${prefix_bam}
+    else
+        touch ${prefix}.bai
+    fi
     """
 }

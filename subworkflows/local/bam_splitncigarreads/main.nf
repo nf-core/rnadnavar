@@ -42,6 +42,7 @@ workflow BAM_SPLITNCIGARREADS {
 
     // Gather versions of all tools used
     versions = versions.mix(GATK4_SPLITNCIGARREADS.out.versions_gatk4)
+    versions = versions.mix(GATK4_SPLITNCIGARREADS.out.versions_samtools)
     versions = versions.mix(CRAM_MERGE_INDEX_SAMTOOLS.out.versions)
 
 
