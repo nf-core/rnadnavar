@@ -74,7 +74,10 @@ workflow PREPARE_GENOME {
     }
 
     GATK4_CREATESEQUENCEDICTIONARY(fasta)
-    SAMTOOLS_FAIDX(fasta, [['id':null], []], false)
+    SAMTOOLS_FAIDX(
+        fasta.map { meta, fa -> [meta, fa, []] },
+        false
+    )
 
     // Canonical nf-core replacement for the deprecated tabix-only wrapper.
     // This normalizes any VCF/VCF.GZ input into a fresh bgzipped VCF plus matching TBI.
@@ -199,7 +202,7 @@ workflow PREPARE_GENOME {
 
 
     // Gather versions of all tools used
-    versions = versions.mix(SAMTOOLS_FAIDX.out.versions)
+    versions = versions.mix(SAMTOOLS_FAIDX.out.versions_samtools)
     versions = versions.mix(GATK4_CREATESEQUENCEDICTIONARY.out.versions_gatk4)
     versions = versions.mix(TABIX_DBSNP.out.versions_htslib)
     versions = versions.mix(TABIX_DBSNP.out.versions_xz)
