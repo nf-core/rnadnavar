@@ -21,6 +21,7 @@ workflow BAM_CONVERT_SAMTOOLS {
     main:
     versions = Channel.empty()
     fasta_with_fai = fasta.combine(fasta_fai).map { meta, fa, fai -> [meta, fa, fai] }
+    fasta_with_fai_gzi = fasta.combine(fasta_fai).map { meta, fa, fai -> [meta, fa, fai, []] }
 
     // Index File if not PROVIDED -> this also requires updates to samtools view possibly URGH
 
@@ -41,7 +42,7 @@ workflow BAM_CONVERT_SAMTOOLS {
         .join(SAMTOOLS_VIEW_UNMAP_MAP.out.bam, failOnDuplicate: true, remainder: true)
         .join(SAMTOOLS_VIEW_MAP_UNMAP.out.bam, failOnDuplicate: true, remainder: true)
         .map{ meta, unmap_unmap, unmap_map, map_unmap -> [ meta, [ unmap_unmap, unmap_map, map_unmap ] ] }
-    SAMTOOLS_MERGE_UNMAP(all_unmapped_bam, fasta, fasta_fai, [[id:''],[]])
+    SAMTOOLS_MERGE_UNMAP(all_unmapped_bam, fasta_with_fai_gzi)
 
     // Collate & convert unmapped
     COLLATE_FASTQ_UNMAP(SAMTOOLS_MERGE_UNMAP.out.bam, fasta, interleaved)
@@ -63,7 +64,7 @@ workflow BAM_CONVERT_SAMTOOLS {
     versions = versions.mix(CAT_FASTQ.out.versions)
     versions = versions.mix(COLLATE_FASTQ_MAP.out.versions)
     versions = versions.mix(COLLATE_FASTQ_UNMAP.out.versions)
-    versions = versions.mix(SAMTOOLS_MERGE_UNMAP.out.versions)
+    versions = versions.mix(SAMTOOLS_MERGE_UNMAP.out.versions_samtools)
     versions = versions.mix(SAMTOOLS_VIEW_MAP_MAP.out.versions_samtools)
     versions = versions.mix(SAMTOOLS_VIEW_MAP_UNMAP.out.versions_samtools)
     versions = versions.mix(SAMTOOLS_VIEW_UNMAP_MAP.out.versions_samtools)

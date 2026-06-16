@@ -15,6 +15,7 @@ workflow CRAM_MERGE_INDEX_SAMTOOLS {
 
     main:
     versions = Channel.empty()
+    fasta_with_fai_gzi = fasta.combine(fasta_fai).map { meta, fa, fai -> [meta, fa, fai, []] }
 
     // Figuring out if there is one or more cram(s) from the same sample
     cram_to_merge = cram.branch{ meta, c ->
@@ -25,7 +26,7 @@ workflow CRAM_MERGE_INDEX_SAMTOOLS {
     }
 
     // Only when using intervals
-    MERGE_CRAM(cram_to_merge.multiple, fasta.map{ it -> [ [ id:'fasta' ], it ] }, fasta_fai.map{ it -> [ [ id:'fasta_fai' ], it ] }, [[id: 'gzi'], []])
+    MERGE_CRAM(cram_to_merge.multiple, fasta_with_fai_gzi)
 
     // Mix intervals and no_intervals channels together
     cram_all = MERGE_CRAM.out.cram.mix(cram_to_merge.single)
@@ -38,7 +39,7 @@ workflow CRAM_MERGE_INDEX_SAMTOOLS {
 
     // Gather versions of all tools used
     versions = versions.mix(INDEX_CRAM.out.versions)
-    versions = versions.mix(MERGE_CRAM.out.versions)
+    versions = versions.mix(MERGE_CRAM.out.versions_samtools)
 
     emit:
     cram_crai

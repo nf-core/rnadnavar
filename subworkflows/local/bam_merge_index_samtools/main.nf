@@ -13,6 +13,7 @@ workflow BAM_MERGE_INDEX_SAMTOOLS {
 
     main:
     versions = Channel.empty()
+    empty_fasta_with_fai_gzi = [[id:'fasta'], [], [], []]
 
     // Figuring out if there is one or more bam(s) from the same sample
     bam_to_merge = bam.branch{ meta, b ->
@@ -23,7 +24,7 @@ workflow BAM_MERGE_INDEX_SAMTOOLS {
     }
 
     // Only when using intervals
-    MERGE_BAM(bam_to_merge.multiple, [ [ id:'fasta' ], []], [ [ id:'fai' ], []], [ [ id:'gzi' ], []])
+    MERGE_BAM(bam_to_merge.multiple, empty_fasta_with_fai_gzi)
 
     // Mix intervals and no_intervals channels together
     bam_all = MERGE_BAM.out.bam.mix(bam_to_merge.single)
@@ -36,7 +37,7 @@ workflow BAM_MERGE_INDEX_SAMTOOLS {
 
     // Gather versions of all tools used
     versions = versions.mix(INDEX_MERGE_BAM.out.versions)
-    versions = versions.mix(MERGE_BAM.out.versions)
+    versions = versions.mix(MERGE_BAM.out.versions_samtools)
 
     emit:
     bam_bai
