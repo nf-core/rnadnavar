@@ -123,6 +123,11 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
                                 )
             // Align with HISAT2
             reads_for_realignment = CONVERT_FASTQ_INPUT.out.reads
+            // Build the reference tuple expected by the updated nf-core subworkflow:
+            // [ meta, fasta, fai ]
+            fasta_fai_for_hisat2 = fasta.combine(fasta_fai).map { meta, fa, fai ->
+                [meta, fa, fai]
+            }
             hisat2_index.dump(tag:"HISAT2index")
             splicesites.dump(tag:"HISAT2splicesites")
             // Note: single_end in meta always false for this subworkflow TODO: add to samplesheet in future?
@@ -130,12 +135,13 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
                                 reads_for_realignment.map{meta, reads -> [meta + [single_end:false], reads]},
                                 hisat2_index,
                                 splicesites,
-                                fasta
+                                fasta_fai_for_hisat2,
+                                params.save_unaligned
                                 )
-            // Mix with index add data type and change id to sample
-            bam_mapped = FASTQ_ALIGN_HISAT2.out.bam.join(FASTQ_ALIGN_HISAT2.out.bai).map{meta,bam,bai -> [meta + [ id:meta.sample, data_type:"bam"], bam, bai]}
+            // The updated nf-core subworkflow emits a generic `index` channel instead of `bai`.
+            bam_mapped = FASTQ_ALIGN_HISAT2.out.bam.join(FASTQ_ALIGN_HISAT2.out.index).map{meta, bam, index -> [meta + [ id:meta.sample, data_type:"bam"], bam, index]}
     }
-    bam_mapped = bam_mapped.map{meta, bam, bai -> [meta - meta.subMap('single_end'), bam]}
+    bam_mapped = bam_mapped.map{meta, bam, index -> [meta - meta.subMap('single_end'), bam]}
 
     emit:
     bam_mapped         = bam_mapped
