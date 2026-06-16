@@ -7,7 +7,8 @@
 include { MULTIQC                                                   } from '../../modules/nf-core/multiqc'
 include { paramsSummaryMap                                          } from 'plugin/nf-schema'
 include { paramsSummaryMultiqc                                      } from '../../subworkflows/nf-core/utils_nfcore_pipeline'
-include { softwareVersionsToYAML                                    } from '../../subworkflows/nf-core/utils_nfcore_pipeline'
+include { processVersionsFromYAML                                   } from '../../subworkflows/nf-core/utils_nfcore_pipeline'
+include { workflowVersionToYAML                                     } from '../../subworkflows/nf-core/utils_nfcore_pipeline'
 include { methodsDescriptionText                                    } from '../../subworkflows/local/utils_nfcore_rnadnavar_pipeline'
 
 
@@ -289,7 +290,29 @@ workflow RNADNAVAR {
     //
     version_yaml = Channel.empty()
     if (!(params.skip_tools && params.skip_tools.split(',').contains('versions'))) {
-        version_yaml = softwareVersionsToYAML(versions)
+        // The versions channel currently mixes legacy versions.yml files from local
+        // modules with modern nf-core [process, tool, version] tuples.
+        topic_versions = versions
+            .unique()
+            .branch { entry ->
+                versions_file: entry instanceof Path
+                versions_tuple: true
+            }
+
+        topic_versions_string = topic_versions.versions_tuple
+            .map { process_name, tool_name, tool_version ->
+                [process_name.toString().tokenize(':')[-1], "    ${tool_name}: ${tool_version}"]
+            }
+            .groupTuple(by: 0)
+            .map { process_name, tool_versions ->
+                "${process_name}:\n${tool_versions.unique().sort().join('\n')}"
+            }
+
+        version_yaml = topic_versions.versions_file
+            .map { version_file -> processVersionsFromYAML(version_file.text) }
+            .mix(topic_versions_string)
+            .unique()
+            .mix(channel.of(workflowVersionToYAML()))
             .collectFile(storeDir: "${params.outdir}/pipeline_info", name: 'nf_core_rnadnavar_software_mqc_versions.yml', sort: true, newLine: true)
     }
 
