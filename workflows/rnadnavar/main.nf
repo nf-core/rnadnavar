@@ -72,9 +72,10 @@ workflow RNADNAVAR {
     // Download cache if needed
     if (params.download_cache) {
         ensemblvep_info = Channel.of([[id: "${params.vep_cache_version}_${params.vep_genome}"], params.vep_genome, params.vep_species, params.vep_cache_version])
-        ENSEMBLVEP_DOWNLOAD(ensemblvep_info)
+        ENSEMBLVEP_DOWNLOAD(ensemblvep_info, false)
         vep_cache = ENSEMBLVEP_DOWNLOAD.out.cache.collect().map { meta, cache -> [cache] }
-        versions = versions.mix(ENSEMBLVEP_DOWNLOAD.out.versions)
+        versions = versions.mix(ENSEMBLVEP_DOWNLOAD.out.versions_ensemblvep)
+        versions = versions.mix(ENSEMBLVEP_DOWNLOAD.out.versions_perlmathcdf)
     }
     else if (params.vep_cache && params.vep_cache.endsWith(".zip")) {
         UNZIP_VEP_CACHE(Channel.fromPath(params.vep_cache).collect().map { it -> [[id: it[0].baseName], it] })

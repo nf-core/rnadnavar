@@ -51,8 +51,8 @@ workflow BAM_BASERECALIBRATOR {
         .map{ meta, table -> [ meta - meta.subMap('num_intervals'), table ] }
 
     // Gather versions of all tools used
-    versions = versions.mix(GATK4_BASERECALIBRATOR.out.versions)
-    versions = versions.mix(GATK4_GATHERBQSRREPORTS.out.versions)
+    versions = versions.mix(GATK4_BASERECALIBRATOR.out.versions_gatk4)
+    versions = versions.mix(GATK4_GATHERBQSRREPORTS.out.versions_gatk4)
 
     emit:
     table_bqsr // channel: [ meta, table ]

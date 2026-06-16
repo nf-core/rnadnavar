@@ -76,7 +76,7 @@ workflow BAM_GATK_PREPROCESSING {
                 cram_skip_markduplicates = Channel.empty().mix(input_markduplicates_convert.cram, BAM_TO_CRAM.out.cram)
             }
 
-            CRAM_QC_NO_MD(cram_skip_markduplicates, fasta, intervals_for_preprocessing)
+            CRAM_QC_NO_MD(cram_skip_markduplicates, fasta, fasta_fai, intervals_for_preprocessing)
 
             // Gather QC reports
             reports = reports.mix(CRAM_QC_NO_MD.out.reports.collect{ meta, report -> report })
@@ -307,6 +307,7 @@ workflow BAM_GATK_PREPROCESSING {
             CRAM_QC_RECAL(
                 cram_variant_calling,
                 fasta,
+                fasta_fai,
                 intervals_for_preprocessing)
 
             // Gather QC reports

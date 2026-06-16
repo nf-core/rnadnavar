@@ -195,12 +195,12 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
                             .join(ch_cont_to_filtermutectcalls)
                         .map{ meta, vcf_file, tbi_file, stats_file, orientation, seg, cont -> [ meta, vcf_file, tbi_file, stats_file, orientation, seg, cont, [] ] }
 
-        versions = versions.mix(CALCULATECONTAMINATION.out.versions)
-        versions = versions.mix(GETPILEUPSUMMARIES_NORMAL.out.versions)
-        versions = versions.mix(GETPILEUPSUMMARIES_TUMOR.out.versions)
-        versions = versions.mix(GATHERPILEUPSUMMARIES_NORMAL.out.versions)
-        versions = versions.mix(GATHERPILEUPSUMMARIES_TUMOR.out.versions)
-        versions = versions.mix(LEARNREADORIENTATIONMODEL.out.versions)
+        versions = versions.mix(CALCULATECONTAMINATION.out.versions_gatk4)
+        versions = versions.mix(GETPILEUPSUMMARIES_NORMAL.out.versions_gatk4)
+        versions = versions.mix(GETPILEUPSUMMARIES_TUMOR.out.versions_gatk4)
+        versions = versions.mix(GATHERPILEUPSUMMARIES_NORMAL.out.versions_gatk4)
+        versions = versions.mix(GATHERPILEUPSUMMARIES_TUMOR.out.versions_gatk4)
+        versions = versions.mix(LEARNREADORIENTATIONMODEL.out.versions_gatk4)
     } else{
         vcf_to_filter = vcf.join(tbi, failOnDuplicate: true, failOnMismatch: true)
                             .join(stats, failOnDuplicate: true, failOnMismatch: true)
@@ -220,7 +220,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
         .map{ meta, vcf_file -> [ meta + [ variantcaller:'mutect2' ], vcf_file ] }
 
     versions = versions.mix(MERGE_MUTECT2.out.versions)
-    versions = versions.mix(FILTERMUTECTCALLS.out.versions)
+    versions = versions.mix(FILTERMUTECTCALLS.out.versions_gatk4)
     versions = versions.mix(MERGEMUTECTSTATS.out.versions)
     versions = versions.mix(MUTECT2_PAIRED.out.versions)
 

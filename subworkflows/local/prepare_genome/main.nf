@@ -62,9 +62,9 @@ workflow PREPARE_GENOME {
         hashtable   = DRAGMAP_HASHTABLE.out.hashmap.collect()    // path: dragmap/*
 
 
-        versions = versions.mix(BWAMEM1_INDEX.out.versions)
-        versions = versions.mix(BWAMEM2_INDEX.out.versions)
-        versions = versions.mix(DRAGMAP_HASHTABLE.out.versions)
+        versions = versions.mix(BWAMEM1_INDEX.out.versions_bwa)
+        versions = versions.mix(BWAMEM2_INDEX.out.versions_bwamem2)
+        versions = versions.mix(DRAGMAP_HASHTABLE.out.versions_dragmap)
 
     } else {
 
@@ -200,7 +200,7 @@ workflow PREPARE_GENOME {
 
     // Gather versions of all tools used
     versions = versions.mix(SAMTOOLS_FAIDX.out.versions)
-    versions = versions.mix(GATK4_CREATESEQUENCEDICTIONARY.out.versions)
+    versions = versions.mix(GATK4_CREATESEQUENCEDICTIONARY.out.versions_gatk4)
     versions = versions.mix(TABIX_DBSNP.out.versions_htslib)
     versions = versions.mix(TABIX_DBSNP.out.versions_xz)
     versions = versions.mix(TABIX_GERMLINE_RESOURCE.out.versions_htslib)

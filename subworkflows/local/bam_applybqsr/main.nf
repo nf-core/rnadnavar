@@ -23,12 +23,13 @@ workflow BAM_APPLYBQSR {
         // Move num_intervals to meta map
         .map{ meta, c, crai, recal, intervls, num_intervals -> [ meta + [ num_intervals:num_intervals ], c, crai, recal, intervls ] }
     cram_intervals.dump(tag:"cram_intervalsGATK4_APPLYBQSR")
-    // RUN APPLYBQSR
+    // GATK4_APPLYBQSR now takes plain path inputs for the reference side channels,
+    // so flatten those here and keep the local wrapper interface unchanged.
     GATK4_APPLYBQSR(
                     cram_intervals,
-                    fasta,
-                    fasta_fai,
-                    dict.map{ _meta, it -> [ it ] }
+                    fasta.map{ _meta, fa -> fa },
+                    fasta_fai.map{ it -> it[0] },
+                    dict.map{ _meta, d -> d }
                     )
     GATK4_APPLYBQSR.out.cram.dump(tag:"GATK4_APPLYBQSR.out.cram")
     // Gather the recalibrated cram files
@@ -42,7 +43,7 @@ workflow BAM_APPLYBQSR {
         .map{ meta, c, idx -> [ meta - meta.subMap('num_intervals'), c, idx ] }
 
     // Gather versions of all tools used
-    versions = versions.mix(GATK4_APPLYBQSR.out.versions)
+    versions = versions.mix(GATK4_APPLYBQSR.out.versions_gatk4)
     versions = versions.mix(CRAM_MERGE_INDEX_SAMTOOLS.out.versions)
 
     emit:
