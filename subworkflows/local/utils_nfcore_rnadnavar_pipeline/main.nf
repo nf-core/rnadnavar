@@ -123,6 +123,8 @@ workflow PIPELINE_INITIALISATION {
         params.intervals,
         params.pon,
         params.pon_tbi,
+        params.mutect2_alleles,
+        params.mutect2_alleles_tbi,
         params.multiqc_config,
         params.vep_cache,
         params.star_index,
@@ -204,6 +206,7 @@ workflow PIPELINE_COMPLETION {
 // Check and validate pipeline parameters
 def validateInputParameters() {
     genomeExistsError()
+    validateMutect2AllelesParameters()
 }
 
 /*
@@ -284,6 +287,15 @@ def normaliseRequestedTools(tools) {
         .collect { tool -> tool.trim() }
         .findAll { tool -> tool }
         .unique()
+}
+
+// Keep optional force-calling inputs as a single top-level pipeline feature.
+// The Mutect2 module requires both the VCF and its index together, so reject
+// partial configuration here before workflow channels are created.
+def validateMutect2AllelesParameters() {
+    if ((params.mutect2_alleles && !params.mutect2_alleles_tbi) || (!params.mutect2_alleles && params.mutect2_alleles_tbi)) {
+        error('Please provide both `--mutect2_alleles` and `--mutect2_alleles_tbi`, or leave both unset.')
+    }
 }
 
 // Exit pipeline if incorrect --genome key provided

@@ -536,6 +536,20 @@
                     "fa_icon": "fas fa-angle-double-right",
                     "description": "Runs Mutect2 in joint (multi-sample) mode for better concordance among variant calls of tumor samples from the same patient. Mutect2 outputs will be stored in a subfolder named with patient ID under `variant_calling/mutect2/` folder. Only a single normal sample per patient is allowed. Tumor-only mode is also supported."
                 },
+                "mutect2_alleles": {
+                    "type": "string",
+                    "fa_icon": "fas fa-file",
+                    "description": "Bgzipped VCF of alleles to force-call with GATK Mutect2.",
+                    "help_text": "Optional force-calling input passed to Mutect2 via `--alleles`. Must be provided together with `--mutect2_alleles_tbi`.",
+                    "hidden": true
+                },
+                "mutect2_alleles_tbi": {
+                    "type": "string",
+                    "fa_icon": "fas fa-file",
+                    "description": "Tabix index for the Mutect2 force-call alleles VCF.",
+                    "help_text": "Must be provided together with `--mutect2_alleles`.",
+                    "hidden": true
+                },
                 "sage_highconfidence": {
                     "type": "string",
                     "fa_icon": "fas fa-file",

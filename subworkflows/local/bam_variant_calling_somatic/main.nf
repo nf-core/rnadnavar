@@ -21,6 +21,8 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
     intervals_bed_gz_tbi_combined // [] if no_intervals, else interval_bed_combined_gz, interval_bed_combined_gz_tbi
     panel_of_normals              // channel: [optional]  panel_of_normals
     panel_of_normals_tbi          // channel: [optional]  panel_of_normals_tbi
+    mutect2_alleles               // channel: [optional]  force-call alleles VCF for mutect2
+    mutect2_alleles_tbi           // channel: [optional]  force-call alleles VCF index for mutect2
     joint_mutect2                 // boolean: [mandatory] [default: false] run mutect2 in joint mode
     realignment
     no_intervals
@@ -100,6 +102,8 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
             germline_resource_tbi,
             panel_of_normals,
             panel_of_normals_tbi,
+            mutect2_alleles,
+            mutect2_alleles_tbi,
             intervals,
             joint_mutect2,
             realignment

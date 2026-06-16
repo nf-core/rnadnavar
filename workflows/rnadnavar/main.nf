@@ -61,6 +61,8 @@ workflow RNADNAVAR {
 
     // The samplesheet channel was already parsed and validated during pipeline initialisation.
     input_sample = ch_samplesheet
+    mutect2_alleles = params.mutect2_alleles ? Channel.value(file(params.mutect2_alleles, checkIfExists: true)) : Channel.value([])
+    mutect2_alleles_tbi = params.mutect2_alleles_tbi ? Channel.value(file(params.mutect2_alleles_tbi, checkIfExists: true)) : Channel.value([])
 
 
     // Initialise MULTIQC
@@ -180,6 +182,8 @@ workflow RNADNAVAR {
         dbsnp_tbi,
         pon,
         pon_tbi,
+        mutect2_alleles,
+        mutect2_alleles_tbi,
         known_sites_indels,
         known_sites_indels_tbi,
         germline_resource,
@@ -238,6 +242,8 @@ workflow RNADNAVAR {
             dbsnp_tbi,
             pon,
             pon_tbi,
+            mutect2_alleles,
+            mutect2_alleles_tbi,
             known_sites_indels,
             known_sites_indels_tbi,
             germline_resource,

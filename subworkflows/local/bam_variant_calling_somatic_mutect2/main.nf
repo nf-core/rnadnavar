@@ -24,12 +24,21 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
     germline_resource_tbi     // channel: /path/to/germline/index
     panel_of_normals          // channel: /path/to/panel/of/normals
     panel_of_normals_tbi      // channel: /path/to/panel/of/normals/index
+    alleles                   // channel: /path/to/force-call alleles VCF
+    alleles_tbi               // channel: /path/to/force-call alleles VCF index
     intervals                 // channel: [mandatory] [ intervals, num_intervals ] or [ [], 0 ] if no intervals
     joint_mutect2             // boolean: [mandatory] [default: false] run mutect2 in joint mode
     realignment                // boolean: [mandatory] if realignment
 
     main:
     versions = Channel.empty()
+
+    // The updated nf-core Mutect2 module expects the FASTA index and optional GZI
+    // in a single tuple. Alleles are provided as optional workflow inputs so users
+    // can enable force-calling without pushing params into this subworkflow.
+    fai_gzi = fai.map { meta, fai_file ->
+        [ meta, fai_file instanceof List ? fai_file[0] : fai_file, [] ]
+    }
 
     //If no germline resource is provided, then create an empty channel to avoid GetPileupsummaries from being run
     germline_resource_pileup     = germline_resource_tbi ? germline_resource : Channel.empty()
@@ -54,11 +63,33 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
             // Move num_intervals to meta map and reorganize channel for MUTECT2_PAIRED module
             // meta: [id:patient_id, num_intervals, patient, sex]
             .map{ meta, cram, crai, intervls, num_intervals -> [ meta + [ num_intervals:num_intervals ], cram, crai, intervls ] }
-        MUTECT2_PAIRED( ch_tn_intervals, fasta, fai, dict, germline_resource, germline_resource_tbi, panel_of_normals, panel_of_normals_tbi)
+        MUTECT2_PAIRED(
+            ch_tn_intervals,
+            fasta,
+            fai_gzi,
+            dict,
+            alleles,
+            alleles_tbi,
+            germline_resource,
+            germline_resource_tbi,
+            panel_of_normals,
+            panel_of_normals_tbi
+        )
     }
     else {
         // Perform variant calling using mutect2 module pair mode
-        MUTECT2_PAIRED( input_intervals, fasta, fai, dict, germline_resource, germline_resource_tbi, panel_of_normals, panel_of_normals_tbi)
+        MUTECT2_PAIRED(
+            input_intervals,
+            fasta,
+            fai_gzi,
+            dict,
+            alleles,
+            alleles_tbi,
+            germline_resource,
+            germline_resource_tbi,
+            panel_of_normals,
+            panel_of_normals_tbi
+        )
     }
 
     // Figuring out if there is one or more vcf(s) from the same sample
@@ -222,7 +253,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
     versions = versions.mix(MERGE_MUTECT2.out.versions)
     versions = versions.mix(FILTERMUTECTCALLS.out.versions_gatk4)
     versions = versions.mix(MERGEMUTECTSTATS.out.versions)
-    versions = versions.mix(MUTECT2_PAIRED.out.versions)
+    versions = versions.mix(MUTECT2_PAIRED.out.versions_gatk4)
 
     emit:
     vcf   // channel: [ meta, vcf ]

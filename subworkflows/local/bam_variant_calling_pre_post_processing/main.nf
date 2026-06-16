@@ -28,6 +28,8 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     dbsnp_tbi                       // channel: [optional]  germline_resource_tbi
     pon                             // channel: [optional]  pon for mutect2
     pon_tbi                         // channel: [optional]  pon_tbi for mutect2
+    mutect2_alleles                 // channel: [optional]  force-call alleles VCF for mutect2
+    mutect2_alleles_tbi             // channel: [optional]  force-call alleles VCF index for mutect2
     known_sites_indels              // channel: [optional]  known_sites
     known_sites_indels_tbi          // channel: [optional]  known_sites
     germline_resource               // channel: [optional]  germline_resource
@@ -82,6 +84,8 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
         intervals_bed_gz_tbi_combined,
         pon,
         pon_tbi,
+        mutect2_alleles,
+        mutect2_alleles_tbi,
         input_sample,
         realignment,
         no_intervals

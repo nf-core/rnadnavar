@@ -28,6 +28,8 @@ workflow BAM_VARIANT_CALLING {
     intervals_bed_gz_tbi_combined
     pon
     pon_tbi
+    mutect2_alleles
+    mutect2_alleles_tbi
     input_sample
     realignment
     no_intervals
@@ -123,6 +125,8 @@ workflow BAM_VARIANT_CALLING {
                 intervals_bed_gz_tbi_combined,
                 pon,
                 pon_tbi,
+                mutect2_alleles,
+                mutect2_alleles_tbi,
                 params.joint_mutect2,
                 realignment,
                 no_intervals
