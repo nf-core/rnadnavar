@@ -50,9 +50,9 @@ workflow BAM_ALIGN {
     if (params.step == 'mapping') {
 
         // Figure out if input is bam or fastq
-        input_sample_type = input_sample.branch{
-            bam:   it[0].data_type == "bam"
-            fastq: it[0].data_type == "fastq"
+        input_sample_type = input_sample.branch { item ->
+            bam:   item[0].data_type == "bam"
+            fastq: item[0].data_type == "fastq"
         }
         // QC & TRIM
         interleave_input = false // Currently don't allow interleaved input
@@ -125,9 +125,9 @@ workflow BAM_ALIGN {
             else [ meta, reads ]
         }
         // Separate DNA from RNA samples, DNA samples will be aligned with bwa, and RNA samples with star
-        reads_for_alignment_status = reads_for_alignment.branch{
-                dna: it[0].status < 2
-                rna: it[0].status == 2
+        reads_for_alignment_status = reads_for_alignment.branch { item ->
+                dna: item[0].status < 2
+                rna: item[0].status == 2
             }
 
         //  DNA mapping
