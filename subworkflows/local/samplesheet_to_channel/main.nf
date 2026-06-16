@@ -156,35 +156,9 @@ workflow  SAMPLESHEET_TO_CHANNEL{
                 error("Missing or unknown field in csv file header. Please check your samplesheet")
             }
         }
-    input_sample.dump(tag:"input_sample")
-
-    if (params.step != 'annotate' && params.tools && !params.build_only_index) {
-        // Two checks for ensuring that the pipeline stops with a meaningful error message if
-        // 1. the sample-sheet only contains normal-samples, but some of the requested tools require tumor-samples, and
-        // 2. the sample-sheet only contains tumor-samples, but some of the requested tools require normal-samples.
-        input_sample.filter{ it[0].status in [1, 2] }.ifEmpty{ // In this case, the sample-sheet contains no tumor-samples
-            if (!params.build_only_index) {
-                def tools_tumor = ['mutect2', 'sage', 'strelka']
-                def tools_tumor_asked = []
-                tools_tumor.each{ tool ->
-                    if (params.tools.split(',').contains(tool)) tools_tumor_asked.add(tool)
-                }
-                if (!tools_tumor_asked.isEmpty()) {
-                    error('The sample-sheet only contains normal-samples, but the following tools, which were requested with "--tools", expect at least one tumor-sample : ' + tools_tumor_asked.join(", "))
-                }
-            }
-        }
-        input_sample.filter{ it[0].status == 0 }.ifEmpty{ // In this case, the sample-sheet contains no normal/germline-samples
-            def tools_requiring_normal_samples = ['mutect', 'sage', 'strelka']
-            def requested_tools_requiring_normal_samples = []
-            tools_requiring_normal_samples.each{ tool_requiring_normal_samples ->
-                if (params.tools.split(',').contains(tool_requiring_normal_samples)) requested_tools_requiring_normal_samples.add(tool_requiring_normal_samples)
-            }
-            if (!requested_tools_requiring_normal_samples.isEmpty()) {
-                error('The sample-sheet only contains tumor-samples, but the following tools, which were requested by the option "tools", expect at least one normal-sample at the moment: ' + requested_tools_requiring_normal_samples.join(", "))
-            }
-        }
-    }
+    // Global tumour/normal composition checks are intentionally performed upstream on the
+    // parsed samplesheet list. This subworkflow is kept focused on row-level validation and
+    // metadata shaping so it does not depend on queue-channel consumer order.
 
     // Fails when wrongfull extension for intervals file
     if (params.wes && !params.step == 'annotate') {

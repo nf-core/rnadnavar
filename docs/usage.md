@@ -58,8 +58,10 @@ You will need to create a samplesheet with information about the samples you wou
 
 An RNA tumor sample must be associated to a DNA normal
 sample at the moment, specified with the
-same `patient` ID. The sample
-type can be specified with the `status`: 0 (normal DNA),
+same `patient` ID. The pipeline validates this tumour-normal
+matching before channel creation so the current release fails
+early and deterministically for unsupported sample compositions.
+The sample type can be specified with the `status`: 0 (normal DNA),
 1 (tumour DNA) and 2 (tumour RNA). An
 additional tumor sample (such as a
 relapse for example), can be added if specified with the

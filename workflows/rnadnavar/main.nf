@@ -5,7 +5,6 @@
 */
 
 include { MULTIQC                                                   } from '../../modules/nf-core/multiqc'
-include { samplesheetToList                                         } from 'plugin/nf-schema'
 include { paramsSummaryMap                                          } from 'plugin/nf-schema'
 include { paramsSummaryMultiqc                                      } from '../../subworkflows/nf-core/utils_nfcore_pipeline'
 include { softwareVersionsToYAML                                    } from '../../subworkflows/nf-core/utils_nfcore_pipeline'
@@ -61,15 +60,8 @@ workflow RNADNAVAR {
     // To gather used softwares versions for MultiQC
     versions = Channel.empty()
 
-    // Set input, can either be from --input or from automatic retrieval in utils_nfcore_rnadnavar_pipeline
-    if (params.input) {
-        ch_from_samplesheet = params.build_only_index ? Channel.empty() : Channel.fromList(samplesheetToList(params.input, "${projectDir}/assets/schema_input.json"))
-    }
-    else {
-        ch_from_samplesheet = params.build_only_index ? Channel.empty() : Channel.fromList(samplesheetToList(params.input, "${projectDir}/assets/schema_input.json"))
-    }
-    // Parse samplesheet
-    SAMPLESHEET_TO_CHANNEL(ch_from_samplesheet)
+    // The parsed samplesheet is produced and globally validated during pipeline initialisation.
+    SAMPLESHEET_TO_CHANNEL(ch_samplesheet)
 
     input_sample = SAMPLESHEET_TO_CHANNEL.out.input_sample
 
