@@ -165,19 +165,13 @@ workflow BAM_ALIGN {
         bam_mapped_dna.dump(tag:"bam_mapped_dna")
         reads_for_alignment_status.rna.dump(tag:"reads_for_alignment_status.rna")
 
-        // The updated nf-core STAR alignment subworkflow now expects
-        // [meta, fasta, fai] tuples for genome and transcriptome references.
-        fasta_fai_for_star = fasta.combine(fasta_fai).map { meta, fa, fai ->
-            [meta, fa, fai]
-        }
-
         // RNA STAR alignment
         FASTQ_ALIGN_STAR (
             reads_for_alignment_status.rna,
             star_index,
             gtf,
             params.star_ignore_sjdbgtf,
-            fasta_fai_for_star,
+            fasta_with_fai,
             [ [ id:"transcript_fasta" ], [], [] ]
         )
         // Grouping the bams from the same samples not to stall the workflow

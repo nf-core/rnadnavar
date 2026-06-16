@@ -119,16 +119,14 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
             CONVERT_FASTQ_INPUT(
                                 bam_to_fq,
                                 fasta,
-                                fasta_fai.map{it -> [ [ id:"fasta_fai" ], it ]},
+                                fasta_fai,
                                 interleave_input
                                 )
             // Align with HISAT2
             reads_for_realignment = CONVERT_FASTQ_INPUT.out.reads
             // Build the reference tuple expected by the updated nf-core subworkflow:
             // [ meta, fasta, fai ]
-            fasta_fai_for_hisat2 = fasta.combine(fasta_fai).map { meta, fa, fai ->
-                [meta, fa, fai]
-            }
+            fasta_fai_for_hisat2 = fasta_with_fai
             hisat2_index.dump(tag:"HISAT2index")
             splicesites.dump(tag:"HISAT2splicesites")
             // Note: single_end in meta always false for this subworkflow TODO: add to samplesheet in future?

@@ -39,6 +39,7 @@ workflow BAM_GATK_PREPROCESSING {
     reports   = Channel.empty()
     versions  = Channel.empty()
     cram_variant_calling = Channel.empty()
+    dict_path = dict.map { _meta, d -> d }
     fasta_with_fai = fasta.combine(fasta_fai).map { meta, fa, fai -> [meta, fa, fai] }
     // Markduplicates
     if (params.step in ['mapping', 'markduplicates'] || realignment) {
@@ -164,9 +165,9 @@ workflow BAM_GATK_PREPROCESSING {
                                             }
             BAM_SPLITNCIGARREADS (
                 cram_for_splitncigar_status.rna,
-                dict.map{d -> [[id:"dict"], d]},
+                dict_path.map { d -> [[id: "dict"], d] },
                 fasta,
-                fasta_fai.map{fai -> [[id:"fai"], fai]},
+                fasta_fai.map { fai -> [[id: "fai"], fai] },
                 intervals_and_num_intervals
             )
 

@@ -223,7 +223,7 @@ workflow PREPARE_GENOME {
         dbsnp_tbi             = TABIX_DBSNP.out.index.map{ meta, tbi -> [tbi] }.collect()               // path: dbsnb.vcf.gz.tbi
         dict                  = GATK4_CREATESEQUENCEDICTIONARY.out.dict                               // path: genome.fasta.dict
         fasta                 = fasta
-        fasta_fai             = SAMTOOLS_FAIDX.out.fai.map{ meta, fai -> [fai] }                      // path: genome.fasta.fai
+        fasta_fai             = SAMTOOLS_FAIDX.out.fai.map{ _meta, fai -> fai }                       // path: genome.fasta.fai
         germline_resource     = TABIX_GERMLINE_RESOURCE.out.output.map{ meta, gz -> [gz] }.collect()
         germline_resource_tbi = TABIX_GERMLINE_RESOURCE.out.index.map{ meta, tbi -> [tbi] }.collect()   // path: germline_resource.vcf.gz.tbi
         known_snps            = TABIX_KNOWN_SNPS.out.output.map{ meta, gz -> [gz] }.collect()

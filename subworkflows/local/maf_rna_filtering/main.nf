@@ -62,8 +62,7 @@ workflow MAF_FILTERING_RNA {
 //        maf_to_filter_status_dna.dump(tag:"[STEP9: FILTERING] maf_to_filter_status_dna")
 //        maf_crossed = maf_crossed.mix(maf_to_filter_status.dna)
         RNA_FILTERING(maf_crossed,
-                    fasta,
-                    fasta_fai)
+                    fasta)
         versions = versions.mix(RNA_FILTERING.out.versions)
     }
 

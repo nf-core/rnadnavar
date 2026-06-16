@@ -19,6 +19,8 @@ workflow BAM_BASERECALIBRATOR {
 
     main:
     versions = Channel.empty()
+    known_sites_path = known_sites.map { entry -> entry instanceof List ? entry[-1] : entry }
+    known_sites_tbi_path = known_sites_tbi.map { entry -> entry instanceof List ? entry[-1] : entry }
 
     // Combine cram and intervals for spread and gather strategy
     cram_intervals = cram.combine(intervals)
@@ -29,10 +31,10 @@ workflow BAM_BASERECALIBRATOR {
     GATK4_BASERECALIBRATOR(
                             cram_intervals,
                             fasta,
-                            fasta_fai.map{ it -> [ [id: "fai"], it[0] ] },
+                            fasta_fai.map{ fai -> [ [id: "fai"], fai ] },
                             dict,
-                            known_sites.map{ it -> [ [id: "sites"], it[0] ] },
-                            known_sites_tbi.map{ it -> [ [id: "sites_tbi"], it[0] ] }
+                            known_sites_path.map{ site -> [ [id: "sites"], site ] },
+                            known_sites_tbi_path.map{ site_tbi -> [ [id: "sites_tbi"], site_tbi ] }
                             )
 
     // Figuring out if there is one or more table(s) from the same sample

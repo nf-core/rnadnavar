@@ -17,9 +17,10 @@ workflow BAM_MARKDUPLICATES {
     main:
     versions = Channel.empty()
     reports  = Channel.empty()
+    fasta_path = fasta.map { _meta, fa -> fa }
 
     // RUN MARKUPDUPLICATES
-    GATK4_MARKDUPLICATES(bam, fasta.map{_meta, fa -> fa}, fasta_fai)
+    GATK4_MARKDUPLICATES(bam, fasta_path, fasta_fai)
 
     // Join with the crai file
     cram = GATK4_MARKDUPLICATES.out.cram.join(GATK4_MARKDUPLICATES.out.crai, failOnDuplicate: true, failOnMismatch: true)

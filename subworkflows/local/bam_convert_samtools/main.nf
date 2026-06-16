@@ -45,10 +45,10 @@ workflow BAM_CONVERT_SAMTOOLS {
     SAMTOOLS_MERGE_UNMAP(all_unmapped_bam, fasta_with_fai_gzi)
 
     // Collate & convert unmapped
-    COLLATE_FASTQ_UNMAP(SAMTOOLS_MERGE_UNMAP.out.bam, fasta, interleaved)
+    COLLATE_FASTQ_UNMAP(SAMTOOLS_MERGE_UNMAP.out.bam, fasta_with_fai, interleaved)
 
     // Collate & convert mapped
-    COLLATE_FASTQ_MAP(SAMTOOLS_VIEW_MAP_MAP.out.bam, fasta, interleaved)
+    COLLATE_FASTQ_MAP(SAMTOOLS_VIEW_MAP_MAP.out.bam, fasta_with_fai, interleaved)
 
     // join Mapped & unmapped fastq
 

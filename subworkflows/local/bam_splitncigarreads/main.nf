@@ -12,7 +12,7 @@ workflow BAM_SPLITNCIGARREADS {
     cram            // channel: [mandatory] [ meta, cram_markduplicates, crai ]
     dict            // channel: [mandatory] [ dict ]
     fasta           // channel: [mandatory] [ meta, fasta ]
-    fasta_fai       // channel: [mandatory] [ meta, fasta_fai ]
+    fasta_fai       // channel: [mandatory] fasta_fai
     intervals       // channel: [mandatory] [ intervals, num_intervals ] (or [ [], 0 ] if no intervals)
 
     main:
@@ -34,7 +34,7 @@ workflow BAM_SPLITNCIGARREADS {
     cram_to_merge = GATK4_SPLITNCIGARREADS.out.cram.map{ meta, crm -> [ groupKey(meta, meta.num_intervals), crm ] }.groupTuple()
 
     // Merge and index the recalibrated cram files
-    CRAM_MERGE_INDEX_SAMTOOLS(cram_to_merge, fasta.map{_meta, fa -> fa}, fasta_fai.map{_meta, fai -> fai})
+    CRAM_MERGE_INDEX_SAMTOOLS(cram_to_merge, fasta.map{_meta, fa -> fa}, fasta_fai)
 
     cram_recal = CRAM_MERGE_INDEX_SAMTOOLS.out.cram_crai
     // Remove no longer necessary field: num_intervals
