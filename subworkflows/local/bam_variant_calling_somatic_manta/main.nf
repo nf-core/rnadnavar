@@ -36,7 +36,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MANTA {
     // add variantcaller to meta map
     vcf = Channel.empty().mix(diploid_sv_vcf, somatic_sv_vcf).map{ meta, vcf -> [ meta + [ variantcaller:'manta' ], vcf ] }
 
-    versions = versions.mix(MANTA_SOMATIC.out.versions)
+    versions = versions.mix(MANTA_SOMATIC.out.versions_manta)
 
     emit:
     candidate_small_indels_vcf

@@ -46,7 +46,7 @@ workflow PREPARE_GENOME {
     if (params.fasta.endsWith('.gz')){  // bgzip
         UNBGZIP_FASTA ( Channel.fromPath(params.fasta).collect().map{ fa -> [ [ id:fa.baseName[0] - ~/\.fa(sta)?$/ ], fa ] } )
         fasta    = UNBGZIP_FASTA.out.output
-        versions = versions.mix(UNBGZIP_FASTA.out.versions)
+        versions = versions.mix(UNBGZIP_FASTA.out.versions_tabix)
     } else{
         fasta    = fasta.map{ fa -> [ [ id:fa.baseName ], fa ] }
     }
@@ -122,7 +122,7 @@ workflow PREPARE_GENOME {
                     Channel.fromPath(params.gtf).map{ it -> [[id:it[0].baseName], it] }
                 )
                 ch_gtf = GUNZIP_GTF.out.gunzip.collect()
-                versions = versions.mix(GUNZIP_GTF.out.versions)
+                versions = versions.mix(GUNZIP_GTF.out.versions_gunzip)
             } else {
                 ch_gtf = Channel.fromPath(params.gtf).collect().map{gtf -> [[id:"gtf"], gtf]}
             }
@@ -132,7 +132,7 @@ workflow PREPARE_GENOME {
                     Channel.fromPath(params.gff).map{ it -> [[id:it[0].baseName], it] }
                 )
                 ch_gff = GUNZIP_GFF.out.gunzip.collect()
-                versions = versions.mix(GUNZIP_GFF.out.versions)
+                versions = versions.mix(GUNZIP_GFF.out.versions_gunzip)
             } else {
                 ch_gff = Channel.fromPath(params.gff).collect().map{gff -> [[id:"gff"], gff]}
             }
@@ -144,7 +144,7 @@ workflow PREPARE_GENOME {
             .gtf
             .set { ch_gtf }
 
-            versions = versions.mix(GFFREAD.out.versions)
+            versions = versions.mix(GFFREAD.out.versions_gffread)
         }
 
         //
@@ -156,7 +156,7 @@ workflow PREPARE_GENOME {
                     Channel.fromPath(params.star_index).map{ it -> [[id:it[0].baseName], it] }
                 )
                 ch_star_index = UNTAR_STAR_INDEX.out.untar.collect()
-                versions   = versions.mix(UNTAR_STAR_INDEX.out.versions)
+                versions   = versions.mix(UNTAR_STAR_INDEX.out.versions_untar)
             } else {
                 ch_star_index = Channel.fromPath(params.star_index).collect().map{star_index -> [[id:"star_index"], star_index]}
             }
@@ -164,7 +164,7 @@ workflow PREPARE_GENOME {
         else {
             STAR_GENOMEGENERATE ( fasta, ch_gtf )
             ch_star_index = STAR_GENOMEGENERATE.out.index
-            versions      = versions.mix(STAR_GENOMEGENERATE.out.versions)
+            versions      = versions.mix(STAR_GENOMEGENERATE.out.versions_star)
         }
 
 
@@ -175,7 +175,7 @@ workflow PREPARE_GENOME {
             } else{
                 HISAT2_EXTRACTSPLICESITES ( ch_gtf )
                 ch_splicesites  = HISAT2_EXTRACTSPLICESITES.out.txt
-                versions = versions.mix(HISAT2_EXTRACTSPLICESITES.out.versions)
+                versions = versions.mix(HISAT2_EXTRACTSPLICESITES.out.versions_hisat2)
             }
 
             if (params.hisat2_index) {
@@ -187,7 +187,7 @@ workflow PREPARE_GENOME {
                                 ch_splicesites
                             )
                 ch_hisat2_index = HISAT2_BUILD.out.index
-                versions = versions.mix(HISAT2_BUILD.out.versions)
+                versions = versions.mix(HISAT2_BUILD.out.versions_hisat2)
             }
         } else {
             ch_hisat2_index = []

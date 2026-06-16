@@ -250,9 +250,9 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
         // add variantcaller to meta map
         .map{ meta, vcf_file -> [ meta + [ variantcaller:'mutect2' ], vcf_file ] }
 
-    versions = versions.mix(MERGE_MUTECT2.out.versions)
+    versions = versions.mix(MERGE_MUTECT2.out.versions_gatk4)
     versions = versions.mix(FILTERMUTECTCALLS.out.versions_gatk4)
-    versions = versions.mix(MERGEMUTECTSTATS.out.versions)
+    versions = versions.mix(MERGEMUTECTSTATS.out.versions_gatk4)
     versions = versions.mix(MUTECT2_PAIRED.out.versions_gatk4)
 
     emit:

@@ -3,7 +3,6 @@
 //
 include { PREPARE_GENOME                                       } from './../prepare_genome/main'
 include { PREPARE_INTERVALS                                    } from './../prepare_intervals/main'
-include { GATK4_BEDTOINTERVALLIST                              } from '../../../modules/nf-core/gatk4/bedtointervallist/main'
 
 workflow PREPARE_REFERENCE_AND_INTERVALS {
     take:

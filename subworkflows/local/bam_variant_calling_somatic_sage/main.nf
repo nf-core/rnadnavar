@@ -27,7 +27,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_SAGE {
     else if (params.sage_ensembl_dir.endsWith(".tar.gz")) {
         UNTAR_SAGE_ENSEMBL(Channel.fromPath(params.sage_ensembl_dir).collect().map{ it -> [ [ id:it[0].baseName ], it ] })
         sage_ensembl = UNTAR_SAGE_ENSEMBL.out.untar
-        versions = versions.mix(UNTAR_SAGE_ENSEMBL.out.versions)
+        versions = versions.mix(UNTAR_SAGE_ENSEMBL.out.versions_untar)
     } else if (params.sage_ensembl_dir.endsWith(".zip")) {
         UNZIP_SAGE_ENSEMBL(Channel.fromPath(params.sage_ensembl_dir).collect().map{ it -> [ [ id:it[0].baseName ], it ] })
         sage_ensembl = UNZIP_SAGE_ENSEMBL.out.unzipped_archive
@@ -77,7 +77,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_SAGE {
         // add variantcaller to meta map and remove no longer necessary field: num_intervals
         .map{ meta, vcf, tbi -> [ meta - meta.subMap('normal_id', 'tumor_id','num_intervals') + [ variantcaller:'sage' ], vcf ] }
 
-    versions = versions.mix(MERGE_SAGE.out.versions)
+    versions = versions.mix(MERGE_SAGE.out.versions_gatk4)
     versions = versions.mix(SAGE.out.versions)
     versions = versions.mix(BGZIPTABIX_VC_SAGE.out.versions_htslib)
     versions = versions.mix(BGZIPTABIX_VC_SAGE.out.versions_xz)

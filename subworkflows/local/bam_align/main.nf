@@ -59,8 +59,8 @@ workflow BAM_ALIGN {
         interleave_input = false // Currently don't allow interleaved input
         CONVERT_FASTQ_INPUT(
             input_sample_type.bam,
-            [ [ id:"fasta" ], [] ], // fasta
-            [ [ id:'null' ], [] ],  // fasta_fai
+            fasta, // fasta
+            fasta_fai,  // fasta_fai
             interleave_input)
 
         // Gather fastq (inputed or converted)

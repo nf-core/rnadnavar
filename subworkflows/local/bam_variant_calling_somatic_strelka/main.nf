@@ -66,7 +66,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_STRELKA {
 
 //    versions = versions.mix(MERGE_STRELKA_SNVS.out.versions)
 //    versions = versions.mix(MERGE_STRELKA_INDELS.out.versions)
-    versions = versions.mix(MERGE_STRELKA.out.versions)
+    versions = versions.mix(MERGE_STRELKA.out.versions_gatk4)
     versions = versions.mix(STRELKA_SOMATIC.out.versions)
 
     emit:
