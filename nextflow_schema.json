@@ -942,13 +942,6 @@
                     "fa_icon": "fas fa-check-square",
                     "hidden": true
                 },
-                "hook_url": {
-                    "type": "string",
-                    "description": "Incoming hook URL for messaging service",
-                    "fa_icon": "fas fa-people-group",
-                    "help_text": "Incoming hook URL for messaging service. Currently, MS Teams and Slack are supported.",
-                    "hidden": true
-                },
                 "trace_report_suffix": {
                     "type": "string",
                     "fa_icon": "far calendar",
