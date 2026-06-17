@@ -59,7 +59,7 @@ workflow PREPARE_REFERENCE_AND_INTERVALS {
     dragmap                = fasta_input                   ? dragmap_input                    ? Channel.fromPath(dragmap_input).collect()                       : PREPARE_GENOME.out.hashtable             : []
     hisat2_index           = fasta_input                   ? hisat2_index_input               ? Channel.fromPath(hisat2_index_input).map{ it -> [ [id:'ht_idx'], it ] }.collect()                          : PREPARE_GENOME.out.hisat2_index : []
     splicesites            = fasta_input                   ? splicesites_input                ? Channel.fromPath(splicesites_input).collect()                   : PREPARE_GENOME.out.splicesites           : []
-    dict                   = dict_input                    ? Channel.fromPath(dict_input).map{ it -> [ [id:'dict'], it ] }.collect()                             : PREPARE_GENOME.out.dict
+    dict                   = dict_input                    ? Channel.fromPath(dict_input).map{ it -> [ [id:'dict'], it ] }.first()                               : PREPARE_GENOME.out.dict
     fasta_fai              = fasta_input                   ? fasta_fai_input                  ? Channel.fromPath(fasta_fai_input).collect()                     : PREPARE_GENOME.out.fasta_fai             : []
     // If no external index was supplied, consume the rebuilt resource emitted by PREPARE_GENOME
     // so the resource path and generated TBI keep matching basenames downstream.
