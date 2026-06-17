@@ -74,7 +74,9 @@ workflow VCF_CONSENSUS {
                                 rna: it[0].status == 2
                                 }
 
-        maf_from_consensus_rna = maf_from_consensus.rna.map{meta, maf -> [meta, maf]}
+        // Tag consensus-derived MAFs explicitly so restart CSVs and downstream logic do not
+        // need to infer their origin from filename or tuple shape.
+        maf_from_consensus_rna = maf_from_consensus.rna.map{meta, maf -> [meta + [variantcaller:'consensus'], maf]}
         mafs_from_varcal_rna   = mafs_from_varcal.rna
 
         // Only RNA mafs are processed again if second run
@@ -82,7 +84,7 @@ workflow VCF_CONSENSUS {
             maf_from_consensus_dna = previous_maf_consensus_dna   // VCF with consensus calling
             mafs_from_varcal_dna   = previous_mafs_status_dna     // VCFs with consensus calling
         } else {
-            maf_from_consensus_dna = maf_from_consensus.dna.map{meta, maf -> [meta, maf]}
+            maf_from_consensus_dna = maf_from_consensus.dna.map{meta, maf -> [meta + [variantcaller:'consensus'], maf]}
             mafs_from_varcal_dna   = mafs_from_varcal.dna
         }
 
@@ -156,8 +158,10 @@ workflow VCF_CONSENSUS {
                 no_intervals: it[0].num_intervals <= 1
             }
 
-            maf_from_consensus_dna = maf_from_rescue.dna.map{meta, maf -> [meta, maf]}
-            maf_from_consensus_rna = maf_from_rescue.rna.map{meta, maf -> [meta, maf]}
+            // Keep rescue outputs distinguishable while still matching the historical
+            // "contains consensus" pattern used elsewhere in the pipeline.
+            maf_from_consensus_dna = maf_from_rescue.dna.map{meta, maf -> [meta + [variantcaller:'consensus_rescue'], maf]}
+            maf_from_consensus_rna = maf_from_rescue.rna.map{meta, maf -> [meta + [variantcaller:'consensus_rescue'], maf]}
             consensus_maf = maf_from_consensus_dna.mix(maf_from_consensus_rna)
             maf_from_consensus_dna
                                         .mix(maf_from_consensus_rna)
