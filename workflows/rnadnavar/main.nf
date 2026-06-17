@@ -76,13 +76,13 @@ workflow RNADNAVAR {
     if (params.download_cache) {
         ensemblvep_info = Channel.of([[id: "${params.vep_cache_version}_${params.vep_genome}"], params.vep_genome, params.vep_species, params.vep_cache_version])
         ENSEMBLVEP_DOWNLOAD(ensemblvep_info, false)
-        vep_cache = ENSEMBLVEP_DOWNLOAD.out.cache.collect().map { meta, cache -> [cache] }
+        vep_cache = ENSEMBLVEP_DOWNLOAD.out.cache.first()
         versions = versions.mix(ENSEMBLVEP_DOWNLOAD.out.versions_ensemblvep)
         versions = versions.mix(ENSEMBLVEP_DOWNLOAD.out.versions_perlmathcdf)
     }
     else if (params.vep_cache && params.vep_cache.endsWith(".zip")) {
         UNZIP_VEP_CACHE(Channel.fromPath(params.vep_cache).collect().map { it -> [[id: it[0].baseName], it] })
-        vep_cache = UNZIP_VEP_CACHE.out.unzipped_archive.map { it[1] }
+        vep_cache = UNZIP_VEP_CACHE.out.unzipped_archive.first()
         versions = versions.mix(UNZIP_VEP_CACHE.out.versions)
     }
     else {
@@ -319,7 +319,9 @@ workflow RNADNAVAR {
     if (!(params.skip_tools && params.skip_tools.split(',').contains('multiqc'))) {
         ch_multiqc_config = Channel.fromPath("${projectDir}/assets/multiqc_config.yml", checkIfExists: true).collect()
         ch_multiqc_custom_config = params.multiqc_config ? Channel.fromPath(params.multiqc_config, checkIfExists: true).collect() : Channel.value([])
-        ch_multiqc_logo = params.multiqc_logo ? Channel.fromPath(params.multiqc_logo, checkIfExists: true).collect() : Channel.value([])
+        ch_multiqc_logo = params.multiqc_logo
+            ? Channel.fromPath(params.multiqc_logo, checkIfExists: true).collect()
+            : Channel.fromPath("${projectDir}/assets/nf-core-rnadnavar_logo_light.png", checkIfExists: true).collect()
         summary_params = paramsSummaryMap(workflow, parameters_schema: "nextflow_schema.json")
         ch_workflow_summary = Channel.value(paramsSummaryMultiqc(summary_params))
         ch_multiqc_custom_methods_description = params.multiqc_methods_description ? file(params.multiqc_methods_description, checkIfExists: true) : file("${projectDir}/assets/methods_description_template.yml", checkIfExists: true)
