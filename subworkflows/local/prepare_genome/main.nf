@@ -14,9 +14,9 @@ include { DRAGMAP_HASHTABLE                      } from '../../../modules/nf-cor
 include { GUNZIP as GUNZIP_GENE_BED              } from '../../../modules/nf-core/gunzip/main'                         //addParams(options: params.genome_options)
 include { GUNZIP as GUNZIP_GTF                   } from '../../../modules/nf-core/gunzip/main'                         //addParams(options: params.genome_options)
 include { GUNZIP as GUNZIP_GFF                   } from '../../../modules/nf-core/gunzip/main'
+include { GUNZIP as GUNZIP_FASTA                 } from '../../../modules/nf-core/gunzip/main'
 include { GFFREAD                                } from '../../../modules/nf-core/gffread/main'
 include { UNTAR as UNTAR_STAR_INDEX              } from '../../../modules/nf-core/untar/main'
-include { TABIX_BGZIP as UNBGZIP_FASTA           } from '../../../modules/nf-core/tabix/bgzip/main'
 include { HTSLIB_BGZIPTABIX as TABIX_DBSNP       } from '../../../modules/nf-core/htslib/bgziptabix/main'
 include { HTSLIB_BGZIPTABIX as TABIX_GERMLINE_RESOURCE } from '../../../modules/nf-core/htslib/bgziptabix/main'
 include { HTSLIB_BGZIPTABIX as TABIX_KNOWN_INDELS } from '../../../modules/nf-core/htslib/bgziptabix/main'
@@ -42,11 +42,11 @@ workflow PREPARE_GENOME {
 
     versions = Channel.empty()
 
-    // UNBGZIP genome if applicable
-    if (params.fasta.endsWith('.gz')){  // bgzip
-        UNBGZIP_FASTA ( Channel.fromPath(params.fasta).collect().map{ fa -> [ [ id:fa.baseName[0] - ~/\.fa(sta)?$/ ], fa ] } )
-        fasta    = UNBGZIP_FASTA.out.output
-        versions = versions.mix(UNBGZIP_FASTA.out.versions_tabix)
+    // Gunzip the reference FASTA when the input is compressed.
+    if (params.fasta.endsWith('.gz')){
+        GUNZIP_FASTA(Channel.fromPath(params.fasta).collect().map{ fa -> [[id: fa.baseName[0] - ~/\.fa(sta)?$/], fa] })
+        fasta    = GUNZIP_FASTA.out.gunzip
+        versions = versions.mix(GUNZIP_FASTA.out.versions_gunzip)
     } else{
         fasta    = fasta.map{ fa -> [ [ id:fa.baseName ], fa ] }
     }
