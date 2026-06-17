@@ -82,7 +82,7 @@ workflow BAM_ALIGN {
             save_merged = false
             FASTP(
                 // we are not using any adapter fastas at the moment, that's why last element is empty
-                input_fastq.map { meta, reads -> [meta, reads, []] }, 
+                input_fastq.map { meta, reads -> [meta, reads, []] },
                 false, // we don't use discard_trimmed_pass at the moment
                 save_trimmed_fail,
                 save_merged

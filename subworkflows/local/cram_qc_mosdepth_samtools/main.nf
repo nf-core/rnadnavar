@@ -27,7 +27,7 @@ workflow CRAM_QC_MOSDEPTH_SAMTOOLS {
 
     MOSDEPTH(
         cram.combine(intervals.map{ meta, bed -> [ bed?:[] ] }),
-        fasta, 
+        fasta,
         []
     )
 
