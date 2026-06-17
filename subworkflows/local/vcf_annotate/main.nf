@@ -19,7 +19,6 @@ workflow VCF_ANNOTATE {
     vcf_ann  = Channel.empty()
     tab_ann  = Channel.empty()
     json_ann = Channel.empty()
-    versions = Channel.empty()
 
     if (params.step == 'annotate') vcf = input_sample
 
@@ -47,9 +46,6 @@ workflow VCF_ANNOTATE {
             VCF_ANNOTATE_ENSEMBLVEP(vcf_for_vep, fasta, vep_genome, vep_species, vep_cache_version, vep_cache, vep_extra_files)
 
             reports  = reports.mix(VCF_ANNOTATE_ENSEMBLVEP.out.reports)
-            versions = versions.mix(VCF_ANNOTATE_ENSEMBLVEP.out.versions_ensemblvep)
-            versions = versions.mix(VCF_ANNOTATE_ENSEMBLVEP.out.versions_tabix)
-            versions = versions.mix(VCF_ANNOTATE_ENSEMBLVEP.out.versions_perlmathcdf)
             vcf_ann  = vcf_ann.mix(VCF_ANNOTATE_ENSEMBLVEP.out.vcf_tbi).map{meta, vcf_file, tbi -> [meta +[data_type:"vcf"], vcf_file, tbi]}
             tab_ann  = tab_ann.mix(VCF_ANNOTATE_ENSEMBLVEP.out.tab)
             json_ann = json_ann.mix(VCF_ANNOTATE_ENSEMBLVEP.out.json)
@@ -66,5 +62,4 @@ workflow VCF_ANNOTATE {
     tab_ann
     json_ann
     reports      //    path: *.html
-    versions     //    path: versions.yml
 }

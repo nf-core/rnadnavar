@@ -122,7 +122,6 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
                 )
 
     vcf_to_consensus              = VCF_ANNOTATE.out.vcf_ann
-    versions                      = versions.mix(VCF_ANNOTATE.out.versions)
     reports                       = reports.mix(VCF_ANNOTATE.out.reports)
 
     vcf_to_consensus.dump(tag:"vcf_to_consensus0")
