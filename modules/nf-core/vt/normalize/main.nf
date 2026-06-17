@@ -5,8 +5,8 @@ process VT_NORMALIZE {
     // WARN: Version information not provided by tool on CLI. Please update this string when bumping container versions.
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine in ['singularity', 'apptainer'] && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/vt:2015.11.10--h5ef6573_4':
-        'quay.io/biocontainers/vt:2015.11.10--h5ef6573_4' }"
+        'https://depot.galaxyproject.org/singularity/vt:0.57721--h17a1952_6':
+        'biocontainers/vt:0.57721--h17a1952_6' }"
 
     input:
     tuple val(meta) , path(vcf), path(tbi), path(intervals)
@@ -39,7 +39,7 @@ process VT_NORMALIZE {
         ${args} \\
         ${vcf}
 
-    bgzip ${args2} --threads ${task.cpus} ${prefix}.vcf
+    gzip ${args2} ${prefix}.vcf
     """
 
     stub:
