@@ -17,7 +17,7 @@ Changes in 'picard/filtersamreads/main.nf':
      tuple val("${task.process}"), val('picard'), eval("picard FilterSamReads --version 2>&1 | sed -n 's/.*Version://p'"), topic: versions, emit: versions_picard
  
      when:
-@@ -38,10 +40,13 @@
+@@ -38,6 +40,7 @@
          picard \\
              -Xmx${avail_mem}M \\
              FilterSamReads \\
@@ -25,13 +25,7 @@ Changes in 'picard/filtersamreads/main.nf':
              --INPUT ${bam} \\
              --OUTPUT ${prefix}.bam \\
              --FILTER ${filter} \\
-             ${args}
-+
-+        samtools index ${prefix}.bam
-         """
-     }
-     else if (filter == 'includeReadList' || filter == 'excludeReadList') {
-@@ -49,11 +54,14 @@
+@@ -49,6 +52,7 @@
          picard \\
              -Xmx${avail_mem}M \\
              FilterSamReads \\
@@ -39,14 +33,7 @@ Changes in 'picard/filtersamreads/main.nf':
              --INPUT ${bam} \\
              --OUTPUT ${prefix}.bam \\
              --FILTER ${filter} \\
-             --READ_LIST_FILE ${readlist} \\
-             ${args}
-+
-+        samtools index ${prefix}.bam
-         """
-     }
- 
-@@ -64,5 +72,6 @@
+@@ -64,5 +68,6 @@
      }
      """
      touch ${prefix}.bam

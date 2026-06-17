@@ -45,8 +45,6 @@ process PICARD_FILTERSAMREADS {
             --OUTPUT ${prefix}.bam \\
             --FILTER ${filter} \\
             ${args}
-
-        samtools index ${prefix}.bam
         """
     }
     else if (filter == 'includeReadList' || filter == 'excludeReadList') {
@@ -60,8 +58,6 @@ process PICARD_FILTERSAMREADS {
             --FILTER ${filter} \\
             --READ_LIST_FILE ${readlist} \\
             ${args}
-
-        samtools index ${prefix}.bam
         """
     }
 
