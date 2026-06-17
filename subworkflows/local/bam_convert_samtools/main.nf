@@ -41,7 +41,10 @@ workflow BAM_CONVERT_SAMTOOLS {
     all_unmapped_bam = SAMTOOLS_VIEW_UNMAP_UNMAP.out.bam
         .join(SAMTOOLS_VIEW_UNMAP_MAP.out.bam, failOnDuplicate: true, remainder: true)
         .join(SAMTOOLS_VIEW_MAP_UNMAP.out.bam, failOnDuplicate: true, remainder: true)
-        .map{ meta, unmap_unmap, unmap_map, map_unmap -> [ meta, [ unmap_unmap, unmap_map, map_unmap ] ] }
+        // The updated nf-core samtools/merge module expects both input files and an
+        // index-files slot. BAM indexes are not needed for the merge itself here, so
+        // pass an explicit empty list to satisfy the module interface.
+        .map{ meta, unmap_unmap, unmap_map, map_unmap -> [ meta, [ unmap_unmap, unmap_map, map_unmap ], [] ] }
     SAMTOOLS_MERGE_UNMAP(all_unmapped_bam, fasta_with_fai_gzi)
 
     // Collate & convert unmapped
