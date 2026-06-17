@@ -329,11 +329,28 @@ workflow RNADNAVAR {
         ch_multiqc_files = ch_multiqc_files.mix(reports)
         ch_multiqc_files = ch_multiqc_files.mix(ch_methods_description.collectFile(name: 'methods_description_mqc.yaml', sort: true))
 
-        ch_multiqc_input = ch_multiqc_files.collect()
-            .combine(ch_multiqc_config)
+        // Build the singleton MultiQC asset bundle explicitly. Chained `combine()`
+        // calls produce nested pairs, so flatten them here before creating the
+        // module input tuple.
+        ch_multiqc_assets = ch_multiqc_config
             .combine(ch_multiqc_custom_config)
             .combine(ch_multiqc_logo)
-            .map { multiqc_files, base_config, custom_config, multiqc_logo_files ->
+            .map { asset_entry ->
+                def config_entry = asset_entry[0]
+                def multiqc_logo_files = asset_entry[1]
+                def base_config = config_entry[0]
+                def custom_config = config_entry[1]
+                [base_config, custom_config, multiqc_logo_files]
+            }
+
+        ch_multiqc_input = ch_multiqc_files.collect()
+            .combine(ch_multiqc_assets)
+            .map { multiqc_entry ->
+                def multiqc_files = multiqc_entry[0]
+                def asset_entry = multiqc_entry[1]
+                def base_config = asset_entry[0]
+                def custom_config = asset_entry[1]
+                def multiqc_logo_files = asset_entry[2]
                 [[id: 'multiqc'], multiqc_files, base_config + custom_config, multiqc_logo_files, [], []]
             }
 
