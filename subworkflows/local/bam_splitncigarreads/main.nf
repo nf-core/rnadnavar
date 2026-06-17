@@ -10,9 +10,9 @@ include { CRAM_MERGE_INDEX_SAMTOOLS } from '../cram_merge_index_samtools/main'
 workflow BAM_SPLITNCIGARREADS {
     take:
     cram            // channel: [mandatory] [ meta, cram_markduplicates, crai ]
-    dict            // channel: [mandatory] [ dict ]
+    dict            // channel: [mandatory] [ meta, dict ]
     fasta           // channel: [mandatory] [ meta, fasta ]
-    fasta_fai       // channel: [mandatory] fasta_fai
+    fasta_fai       // channel: [mandatory] fasta FAI path
     intervals       // channel: [mandatory] [ intervals, num_intervals ] (or [ [], 0 ] if no intervals)
 
     main:
@@ -26,8 +26,8 @@ workflow BAM_SPLITNCIGARREADS {
     GATK4_SPLITNCIGARREADS (
         cram_intervals,
         fasta,
-        fasta_fai,
-        dict.map{ _meta, it ->  it  }
+        fasta_fai.map{fai -> [[id:'fai'], fai]},
+        dict
     )
 
     // Gather the recalibrated cram files

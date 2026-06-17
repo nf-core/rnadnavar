@@ -14,8 +14,8 @@ workflow BAM_VARIANT_CALLING_SOMATIC_SAGE {
     take:
     cram      // channel: [mandatory] [ meta, normal_cram, normal_crai, tumor_cram, tumor_crai, manta_vcf, manta_tbi ] manta* are optional
     dict      // channel: [mandatory] [ meta, dict ]
-    fasta     // channel: [mandatory] [ fasta ]
-    fasta_fai // channel: [mandatory] [ fasta_fai ]
+    fasta     // channel: [mandatory] [ meta, fasta ]
+    fasta_fai // channel: [mandatory] [ meta, fasta_fai ]
     intervals // channel: [mandatory] [ intervals, num_intervals ] or [ [], 0 ] if no intervals
 
     main:

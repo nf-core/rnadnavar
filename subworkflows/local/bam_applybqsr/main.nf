@@ -12,7 +12,7 @@ workflow BAM_APPLYBQSR {
     cram          // channel: [mandatory] [ meta, cram, crai, recal ]
     dict          // channel: [mandatory] [ meta, dict ]
     fasta         // channel: [mandatory] [ meta, fasta ]
-    fasta_fai     // channel: [mandatory] [ fasta_fai ]
+    fasta_fai     // channel: [mandatory] fasta FAI path
     intervals     // channel: [mandatory] [ intervals, num_intervals ] or [ [], 0 ] if no intervals
 
     main:

@@ -17,9 +17,9 @@ include { GATK4_MUTECT2                   as MUTECT2_PAIRED               } from
 workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
     take:
     input                     // channel: [ meta, [ input ], [ input_index ] ]
-    fasta                     // channel: [ meta, fasta]
-    fai                       // channel: [ meta, fai]
-    dict                      // channel: [ meta, dict]
+    fasta                     // channel: [mandatory] [ meta, fasta ]
+    fai                       // channel: [mandatory] [ meta, fasta_fai ]
+    dict                      // channel: [mandatory] [ meta, dict ]
     germline_resource         // channel: /path/to/germline/resource
     germline_resource_tbi     // channel: /path/to/germline/index
     panel_of_normals          // channel: /path/to/panel/of/normals
@@ -180,8 +180,8 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
         pileup_table_tumor_to_merge = pileup_table_tumor_branch.intervals.map{ meta, table -> [ groupKey(meta, meta.num_intervals), table ] }.groupTuple()
 
         // Merge Pileup Summaries
-        GATHERPILEUPSUMMARIES_NORMAL(pileup_table_normal_to_merge, dict.map{ _meta, d -> [ d ] })
-        GATHERPILEUPSUMMARIES_TUMOR(pileup_table_tumor_to_merge, dict.map{ _meta, d -> [ d ] })
+        GATHERPILEUPSUMMARIES_NORMAL(pileup_table_normal_to_merge, dict.map{ _meta, d ->  d  })
+        GATHERPILEUPSUMMARIES_TUMOR(pileup_table_tumor_to_merge, dict.map{ _meta, d ->  d  })
 
         // Do some channel magic to generate tumor-normal pairs again.
         // This is necessary because we generated one normal pileup summary for each patient but we need run calculate contamination for each tumor-normal pair.

@@ -10,9 +10,9 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
     take:
     tools                         // Mandatory, list of tools to apply
     cram                          // channel: [mandatory] cram
-    fasta                         // channel: [mandatory] fasta
-    fasta_fai                     // channel: [mandatory] fasta_fai
-    dict                          // channel: [mandatory] dict
+    fasta                         // channel: [mandatory] [ meta, fasta ]
+    fasta_fai                     // channel: [mandatory] fasta FAI path
+    dict                          // channel: [mandatory] [ meta, dict ]
     germline_resource             // channel: [optional]  germline_resource
     germline_resource_tbi         // channel: [optional]  germline_resource_tbi
     intervals                     // channel: [mandatory] [ intervals, num_intervals ] or [ [], 0 ] if no intervals

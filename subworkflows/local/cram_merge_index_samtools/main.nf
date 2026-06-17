@@ -10,12 +10,12 @@ include { SAMTOOLS_MERGE as MERGE_CRAM } from '../../../modules/nf-core/samtools
 workflow CRAM_MERGE_INDEX_SAMTOOLS {
     take:
     cram      // channel: [mandatory] meta, cram
-    fasta     // channel: [mandatory] fasta
-    fasta_fai // channel: [mandatory] fai for fasta
+    fasta     // channel: [mandatory] fasta path
+    fasta_fai // channel: [mandatory] fasta FAI path
 
     main:
     versions = Channel.empty()
-    fasta_with_fai_gzi = fasta.combine(fasta_fai).map { meta, fa, fai -> [meta, fa, fai, []] }
+    fasta_with_fai_gzi = fasta.combine(fasta_fai).map { fa, fai -> [[id: fa.baseName], fa, fai, []] }
 
     // Figuring out if there is one or more cram(s) from the same sample
     cram_to_merge = cram.branch{ meta, c ->

@@ -17,9 +17,9 @@ workflow BAM_VARIANT_CALLING {
     take:
     tools
     cram_variant_calling
-    fasta
-    fasta_fai
-    dict
+    fasta                         // channel: [mandatory] [ meta, fasta ]
+    fasta_fai                     // channel: [mandatory] fasta FAI path
+    dict                          // channel: [mandatory] [ meta, dict ]
     germline_resource
     germline_resource_tbi
     intervals

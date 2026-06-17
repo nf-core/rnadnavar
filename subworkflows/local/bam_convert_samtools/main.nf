@@ -13,9 +13,9 @@ include { CAT_FASTQ                                          } from '../../../mo
 
 workflow BAM_CONVERT_SAMTOOLS {
     take:
-    input       // channel: [meta, alignment (BAM or CRAM), index (optional)]
-    fasta       // optional: reference file if CRAM format and reference not in header
-    fasta_fai
+    input       // channel: [ meta, alignment (BAM or CRAM), index (optional) ]
+    fasta       // channel: [mandatory] [ meta, fasta ] (when reference-backed conversion is needed)
+    fasta_fai   // channel: [mandatory] fasta_fai (when reference-backed conversion is needed)
     interleaved // value: true/false
 
     main:

@@ -25,9 +25,9 @@ workflow BAM_GATK_PREPROCESSING {
     input_sample                  // channel: [optional]  input from CSV if applicable
     bam_mapped                    // channel: [mandatory] bam_mapped
     cram_mapped                   // channel: [mandatory] cram_mapped
-    fasta                         // channel: [mandatory] fasta
-    fasta_fai                     // channel: [mandatory] fasta_fai
-    dict                          // channel: [mandatory] dict
+    fasta                         // channel: [mandatory] [ meta, fasta ]
+    fasta_fai                     // channel: [mandatory] fasta FAI path
+    dict                          // channel: [mandatory] [ meta, dict ]
     known_sites_indels            // channel: [optional]  known_sites
     known_sites_indels_tbi        // channel: [optional]  known_sites
     intervals_for_preprocessing   // channel: [mandatory] intervals/wes
@@ -167,7 +167,7 @@ workflow BAM_GATK_PREPROCESSING {
                 cram_for_splitncigar_status.rna,
                 dict_path.map { d -> [[id: "dict"], d] },
                 fasta,
-                fasta_fai.map { fai -> [[id: "fai"], fai] },
+                fasta_fai,
                 intervals_and_num_intervals
             )
 

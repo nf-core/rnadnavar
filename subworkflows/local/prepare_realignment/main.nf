@@ -19,9 +19,9 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
         input_sample
         maf_with_candidates              // MAf with candidate regions to extract [meta, maf]
         reads_to_realign                 // CRAM/BAM to extract reads from [meta, cram, crai]
-        fasta
-        fasta_fai
-        dict
+        fasta       // channel: [mandatory] [ meta, fasta ]
+        fasta_fai   // channel: [mandatory] fasta FAI path
+        dict        // channel: [mandatory] [ meta, dict ]
         hisat2_index
         splicesites
         dna_consensus_maf

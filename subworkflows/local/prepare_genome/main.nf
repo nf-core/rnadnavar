@@ -31,7 +31,7 @@ include { HISAT2_BUILD                           } from '../../../modules/nf-cor
 workflow PREPARE_GENOME {
     take:
         dbsnp                   // channel: [optional]  dbsnp
-        fasta                   // channel: [mandatory] fasta
+        fasta                   // channel: [mandatory] fasta path input before local wrapping to [ meta, fasta ]
         germline_resource       // channel: [optional]  germline_resource
         known_indels            // channel: [optional]  known_indels
         known_snps              // channel: [optional]  known_snps
@@ -139,7 +139,7 @@ workflow PREPARE_GENOME {
 
             GFFREAD (
                 ch_gff,
-                fasta
+                fasta.map { meta, fa -> [meta, fa, []] }
             )
             .gtf
             .set { ch_gtf }

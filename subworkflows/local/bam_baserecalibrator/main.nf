@@ -12,7 +12,7 @@ workflow BAM_BASERECALIBRATOR {
     cram            // channel: [mandatory] [ meta, cram_markduplicates, crai ]
     dict            // channel: [mandatory] [ meta, dict ]
     fasta           // channel: [mandatory] [ meta, fasta ]
-    fasta_fai       // channel: [mandatory] [ fasta_fai ]
+    fasta_fai       // channel: [mandatory] fasta FAI path
     intervals       // channel: [mandatory] [ intervals, num_intervals ] (or [ [], 0 ] if no intervals)
     known_sites     // channel: [optional]  [ known_sites ]
     known_sites_tbi // channel: [optional]  [ known_sites_tbi ]

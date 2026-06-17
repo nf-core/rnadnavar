@@ -11,7 +11,7 @@ workflow BAM_MARKDUPLICATES {
     take:
     bam                    // channel: [mandatory] [ meta, bam ]
     fasta                  // channel: [mandatory] [ meta, fasta ]
-    fasta_fai              // channel: [mandatory] [ fasta_fai ]
+    fasta_fai              // channel: [mandatory] fasta FAI path
     intervals_bed_combined // channel: [optional]  [ meta, intervals_bed ]
 
     main:

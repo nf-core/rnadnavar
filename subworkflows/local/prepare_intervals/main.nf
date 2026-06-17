@@ -14,7 +14,7 @@ include { HTSLIB_BGZIPTABIX as TABIX_BGZIPTABIX_INTERVAL_COMBINED } from '../../
 
 workflow PREPARE_INTERVALS {
     take:
-    fasta_fai              // mandatory [ fasta_fai ]
+    fasta_fai              // channel: [mandatory] fasta FAI path
     intervals              // input intervals path
     no_intervals           // boolean: skip intervals entirely
     step                   // pipeline step

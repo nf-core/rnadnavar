@@ -12,9 +12,9 @@ include { STRELKA_SOMATIC                         } from '../../../modules/nf-co
 workflow BAM_VARIANT_CALLING_SOMATIC_STRELKA {
     take:
     cram          // channel: [mandatory] [ meta, normal_cram, normal_crai, tumor_cram, tumor_crai, manta_vcf, manta_tbi ] manta* are optional
-    dict          // channel: [optional]  [ meta, dict ]
-    fasta         // channel: [mandatory] [ fasta ]
-    fasta_fai     // channel: [mandatory] [ fasta_fai ]
+    dict          // channel: [mandatory] [ meta, dict ]
+    fasta         // channel: [mandatory] [ meta, fasta ]
+    fasta_fai     // channel: [mandatory] fasta FAI path
     intervals     // channel: [mandatory] [ interval.bed.gz, interval.bed.gz.tbi, num_intervals ] or [ [], [], 0 ] if no intervals
     no_intervals  // true/false
 
@@ -31,7 +31,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_STRELKA {
         // Move num_intervals to meta map
         .map{ meta, normal_cram, normal_crai, tumor_cram, tumor_crai, manta_vcf, manta_tbi, intervals_gz_tbi, num_intervals -> [ meta + [ num_intervals:num_intervals ], normal_cram, normal_crai, tumor_cram, tumor_crai, manta_vcf, manta_tbi, intervals_gz_tbi[0], intervals_gz_tbi[1] ] }
     }
-    STRELKA_SOMATIC(cram_intervals, fasta, fasta_fai )
+    STRELKA_SOMATIC(cram_intervals, fasta.map { _meta, fa -> fa }, fasta_fai)
 
     // Figuring out if there is one or more vcf(s) from the same sample
     vcf_indels = STRELKA_SOMATIC.out.vcf_indels.branch{

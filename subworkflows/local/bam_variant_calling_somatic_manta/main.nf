@@ -10,11 +10,12 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MANTA {
     take:
     cram          // channel: [mandatory] [ meta, cram1, crai1, cram2, crai2 ]
     fasta         // channel: [mandatory] [ meta, fasta ]
-    fasta_fai     // channel: [mandatory] [ meta, fasta_fai ]
+    fasta_fai     // channel: [mandatory] fasta FAI path
     intervals     // channel: [mandatory] [ interval.bed.gz, interval.bed.gz.tbi ] or [ [], [] ] if no intervals
 
     main:
     versions = Channel.empty()
+    fasta_fai_with_meta = fasta.combine(fasta_fai).map { meta, _fa, fai -> [meta, fai] }
 
     // Combine cram and intervals, account for 0 intervals
     cram_intervals = cram.combine(intervals).map{ it ->
@@ -24,7 +25,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MANTA {
         [it[0], it[1], it[2], it[3], it[4], bed_gz, bed_tbi]
     }
 
-    MANTA_SOMATIC(cram_intervals, fasta, fasta_fai, [])
+    MANTA_SOMATIC(cram_intervals, fasta, fasta_fai_with_meta, [])
 
     candidate_small_indels_vcf = MANTA_SOMATIC.out.candidate_small_indels_vcf
     candidate_small_indels_vcf_tbi = MANTA_SOMATIC.out.candidate_small_indels_vcf_tbi

@@ -21,9 +21,9 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     input_sample                    // input from CSV if applicable
     bam_mapped                      // channel: [mandatory] bam_mapped
     cram_mapped                     // channel: [mandatory] cram_mapped
-    fasta                           // fasta reference file
-    fasta_fai                       // fai for fasta file
-    dict                            // dict for fasta file
+    fasta                           // channel: [mandatory] [ meta, fasta ]
+    fasta_fai                       // channel: [mandatory] fasta FAI path
+    dict                            // channel: [mandatory] [ meta, dict ]
     dbsnp                           // channel: [optional]  germline_resource
     dbsnp_tbi                       // channel: [optional]  germline_resource_tbi
     pon                             // channel: [optional]  pon for mutect2
@@ -55,9 +55,9 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
         input_sample,
         bam_mapped,                               // channel: [mandatory] [meta, [bam]]
         cram_mapped,                              // channel: [mandatory] [meta, [cram]]
-        fasta,                                    // channel: [mandatory] [meta, fasta]
-        fasta_fai,                                // channel: [mandatory] fasta_fai
-        dict,                                     // channel: [mandatory] dict
+        fasta,                                    // channel: [mandatory] [ meta, fasta ]
+        fasta_fai,                                // channel: [mandatory] fasta FAI path
+        dict,                                     // channel: [mandatory] [ meta, dict ]
         known_sites_indels,                       // channel: [optional]  known_sites
         known_sites_indels_tbi,                   // channel: [optional]  known_sites
         intervals_for_preprocessing,              // channel: [mandatory] intervals_for_preprocessing/wes
