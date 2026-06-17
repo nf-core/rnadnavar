@@ -12,13 +12,15 @@ workflow BAM_BASERECALIBRATOR {
     cram            // channel: [mandatory] [ meta, cram_markduplicates, crai ]
     dict            // channel: [mandatory] [ meta, dict ]
     fasta           // channel: [mandatory] [ meta, fasta ]
-    fasta_fai       // channel: [mandatory] [ fasta_fai ]
+    fasta_fai       // channel: [mandatory] fasta FAI path
     intervals       // channel: [mandatory] [ intervals, num_intervals ] (or [ [], 0 ] if no intervals)
     known_sites     // channel: [optional]  [ known_sites ]
     known_sites_tbi // channel: [optional]  [ known_sites_tbi ]
 
     main:
     versions = Channel.empty()
+    known_sites_path = known_sites.map { entry -> entry instanceof List ? entry[-1] : entry }
+    known_sites_tbi_path = known_sites_tbi.map { entry -> entry instanceof List ? entry[-1] : entry }
 
     // Combine cram and intervals for spread and gather strategy
     cram_intervals = cram.combine(intervals)
@@ -29,10 +31,10 @@ workflow BAM_BASERECALIBRATOR {
     GATK4_BASERECALIBRATOR(
                             cram_intervals,
                             fasta,
-                            fasta_fai.map{ it -> [ [id: "fai"], it[0] ] },
+                            fasta_fai.map{ fai -> [ [id: "fai"], fai ] },
                             dict,
-                            known_sites.map{ it -> [ [id: "sites"], it[0] ] },
-                            known_sites_tbi.map{ it -> [ [id: "sites_tbi"], it[0] ] }
+                            known_sites_path.map{ site -> [ [id: "sites"], site ] },
+                            known_sites_tbi_path.map{ site_tbi -> [ [id: "sites_tbi"], site_tbi ] }
                             )
 
     // Figuring out if there is one or more table(s) from the same sample
@@ -51,8 +53,8 @@ workflow BAM_BASERECALIBRATOR {
         .map{ meta, table -> [ meta - meta.subMap('num_intervals'), table ] }
 
     // Gather versions of all tools used
-    versions = versions.mix(GATK4_BASERECALIBRATOR.out.versions)
-    versions = versions.mix(GATK4_GATHERBQSRREPORTS.out.versions)
+    versions = versions.mix(GATK4_BASERECALIBRATOR.out.versions_gatk4)
+    versions = versions.mix(GATK4_GATHERBQSRREPORTS.out.versions_gatk4)
 
     emit:
     table_bqsr // channel: [ meta, table ]

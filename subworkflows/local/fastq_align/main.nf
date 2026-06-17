@@ -35,9 +35,13 @@ workflow FASTQ_ALIGN {
     reports = reports.mix(DRAGMAP_ALIGN.out.log)
 
     // Gather versions of all tools used
-    versions = versions.mix(BWAMEM1_MEM.out.versions)
-    versions = versions.mix(BWAMEM2_MEM.out.versions)
-    versions = versions.mix(DRAGMAP_ALIGN.out.versions)
+    versions = versions.mix(BWAMEM1_MEM.out.versions_bwa)
+    versions = versions.mix(BWAMEM1_MEM.out.versions_samtools)
+    versions = versions.mix(BWAMEM2_MEM.out.versions_bwamem2)
+    versions = versions.mix(BWAMEM2_MEM.out.versions_samtools)
+    versions = versions.mix(DRAGMAP_ALIGN.out.versions_dragmap)
+    versions = versions.mix(DRAGMAP_ALIGN.out.versions_samtools)
+    versions = versions.mix(DRAGMAP_ALIGN.out.versions_pigz)
 
     emit:
     bam      // channel: [ [meta], bam ]

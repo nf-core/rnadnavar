@@ -7,7 +7,8 @@
 include { MULTIQC                                                   } from '../../modules/nf-core/multiqc'
 include { paramsSummaryMap                                          } from 'plugin/nf-schema'
 include { paramsSummaryMultiqc                                      } from '../../subworkflows/nf-core/utils_nfcore_pipeline'
-include { softwareVersionsToYAML                                    } from '../../subworkflows/nf-core/utils_nfcore_pipeline'
+include { processVersionsFromYAML                                   } from '../../subworkflows/nf-core/utils_nfcore_pipeline'
+include { workflowVersionToYAML                                     } from '../../subworkflows/nf-core/utils_nfcore_pipeline'
 include { methodsDescriptionText                                    } from '../../subworkflows/local/utils_nfcore_rnadnavar_pipeline'
 
 
@@ -61,6 +62,8 @@ workflow RNADNAVAR {
 
     // The samplesheet channel was already parsed and validated during pipeline initialisation.
     input_sample = ch_samplesheet
+    mutect2_alleles = params.mutect2_alleles ? Channel.value(file(params.mutect2_alleles, checkIfExists: true)) : Channel.value([])
+    mutect2_alleles_tbi = params.mutect2_alleles_tbi ? Channel.value(file(params.mutect2_alleles_tbi, checkIfExists: true)) : Channel.value([])
 
 
     // Initialise MULTIQC
@@ -72,9 +75,10 @@ workflow RNADNAVAR {
     // Download cache if needed
     if (params.download_cache) {
         ensemblvep_info = Channel.of([[id: "${params.vep_cache_version}_${params.vep_genome}"], params.vep_genome, params.vep_species, params.vep_cache_version])
-        ENSEMBLVEP_DOWNLOAD(ensemblvep_info)
+        ENSEMBLVEP_DOWNLOAD(ensemblvep_info, false)
         vep_cache = ENSEMBLVEP_DOWNLOAD.out.cache.collect().map { meta, cache -> [cache] }
-        versions = versions.mix(ENSEMBLVEP_DOWNLOAD.out.versions)
+        versions = versions.mix(ENSEMBLVEP_DOWNLOAD.out.versions_ensemblvep)
+        versions = versions.mix(ENSEMBLVEP_DOWNLOAD.out.versions_perlmathcdf)
     }
     else if (params.vep_cache && params.vep_cache.endsWith(".zip")) {
         UNZIP_VEP_CACHE(Channel.fromPath(params.vep_cache).collect().map { it -> [[id: it[0].baseName], it] })
@@ -179,6 +183,8 @@ workflow RNADNAVAR {
         dbsnp_tbi,
         pon,
         pon_tbi,
+        mutect2_alleles,
+        mutect2_alleles_tbi,
         known_sites_indels,
         known_sites_indels_tbi,
         germline_resource,
@@ -237,6 +243,8 @@ workflow RNADNAVAR {
             dbsnp_tbi,
             pon,
             pon_tbi,
+            mutect2_alleles,
+            mutect2_alleles_tbi,
             known_sites_indels,
             known_sites_indels_tbi,
             germline_resource,
@@ -282,7 +290,29 @@ workflow RNADNAVAR {
     //
     version_yaml = Channel.empty()
     if (!(params.skip_tools && params.skip_tools.split(',').contains('versions'))) {
-        version_yaml = softwareVersionsToYAML(versions)
+        // The versions channel currently mixes legacy versions.yml files from local
+        // modules with modern nf-core [process, tool, version] tuples.
+        topic_versions = versions
+            .unique()
+            .branch { entry ->
+                versions_file: entry instanceof Path
+                versions_tuple: true
+            }
+
+        topic_versions_string = topic_versions.versions_tuple
+            .map { process_name, tool_name, tool_version ->
+                [process_name.toString().tokenize(':')[-1], "    ${tool_name}: ${tool_version}"]
+            }
+            .groupTuple(by: 0)
+            .map { process_name, tool_versions ->
+                "${process_name}:\n${tool_versions.unique().sort().join('\n')}"
+            }
+
+        version_yaml = topic_versions.versions_file
+            .map { version_file -> processVersionsFromYAML(version_file.text) }
+            .mix(topic_versions_string)
+            .unique()
+            .mix(channel.of(workflowVersionToYAML()))
             .collectFile(storeDir: "${params.outdir}/pipeline_info", name: 'nf_core_rnadnavar_software_mqc_versions.yml', sort: true, newLine: true)
     }
 

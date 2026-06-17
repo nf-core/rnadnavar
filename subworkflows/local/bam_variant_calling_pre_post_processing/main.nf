@@ -21,13 +21,15 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     input_sample                    // input from CSV if applicable
     bam_mapped                      // channel: [mandatory] bam_mapped
     cram_mapped                     // channel: [mandatory] cram_mapped
-    fasta                           // fasta reference file
-    fasta_fai                       // fai for fasta file
-    dict                            // dict for fasta file
+    fasta                           // channel: [mandatory] [ meta, fasta ]
+    fasta_fai                       // channel: [mandatory] fasta FAI path
+    dict                            // channel: [mandatory] [ meta, dict ]
     dbsnp                           // channel: [optional]  germline_resource
     dbsnp_tbi                       // channel: [optional]  germline_resource_tbi
     pon                             // channel: [optional]  pon for mutect2
     pon_tbi                         // channel: [optional]  pon_tbi for mutect2
+    mutect2_alleles                 // channel: [optional]  force-call alleles VCF for mutect2
+    mutect2_alleles_tbi             // channel: [optional]  force-call alleles VCF index for mutect2
     known_sites_indels              // channel: [optional]  known_sites
     known_sites_indels_tbi          // channel: [optional]  known_sites
     germline_resource               // channel: [optional]  germline_resource
@@ -53,9 +55,9 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
         input_sample,
         bam_mapped,                               // channel: [mandatory] [meta, [bam]]
         cram_mapped,                              // channel: [mandatory] [meta, [cram]]
-        fasta,                                    // channel: [mandatory] [meta, fasta]
-        fasta_fai,                                // channel: [mandatory] fasta_fai
-        dict,                                     // channel: [mandatory] dict
+        fasta,                                    // channel: [mandatory] [ meta, fasta ]
+        fasta_fai,                                // channel: [mandatory] fasta FAI path
+        dict,                                     // channel: [mandatory] [ meta, dict ]
         known_sites_indels,                       // channel: [optional]  known_sites
         known_sites_indels_tbi,                   // channel: [optional]  known_sites
         intervals_for_preprocessing,              // channel: [mandatory] intervals_for_preprocessing/wes
@@ -82,6 +84,8 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
         intervals_bed_gz_tbi_combined,
         pon,
         pon_tbi,
+        mutect2_alleles,
+        mutect2_alleles_tbi,
         input_sample,
         realignment,
         no_intervals

@@ -25,9 +25,9 @@ workflow BAM_GATK_PREPROCESSING {
     input_sample                  // channel: [optional]  input from CSV if applicable
     bam_mapped                    // channel: [mandatory] bam_mapped
     cram_mapped                   // channel: [mandatory] cram_mapped
-    fasta                         // channel: [mandatory] fasta
-    fasta_fai                     // channel: [mandatory] fasta_fai
-    dict                          // channel: [mandatory] dict
+    fasta                         // channel: [mandatory] [ meta, fasta ]
+    fasta_fai                     // channel: [mandatory] fasta FAI path
+    dict                          // channel: [mandatory] [ meta, dict ]
     known_sites_indels            // channel: [optional]  known_sites
     known_sites_indels_tbi        // channel: [optional]  known_sites
     intervals_for_preprocessing   // channel: [mandatory] intervals/wes
@@ -39,6 +39,8 @@ workflow BAM_GATK_PREPROCESSING {
     reports   = Channel.empty()
     versions  = Channel.empty()
     cram_variant_calling = Channel.empty()
+    dict_path = dict.map { _meta, d -> d }
+    fasta_with_fai = fasta.combine(fasta_fai).map { meta, fa, fai -> [meta, fa, fai] }
     // Markduplicates
     if (params.step in ['mapping', 'markduplicates'] || realignment) {
 
@@ -70,13 +72,13 @@ workflow BAM_GATK_PREPROCESSING {
                 }
 
                 // Convert any input BAMs to CRAM
-                BAM_TO_CRAM(input_markduplicates_convert.bam, fasta.map{meta, fa -> [fa]}, fasta_fai)
-                versions = versions.mix(BAM_TO_CRAM.out.versions)
+                BAM_TO_CRAM(input_markduplicates_convert.bam, fasta_with_fai)
+                versions = versions.mix(BAM_TO_CRAM.out.versions_samtools)
 
                 cram_skip_markduplicates = Channel.empty().mix(input_markduplicates_convert.cram, BAM_TO_CRAM.out.cram)
             }
 
-            CRAM_QC_NO_MD(cram_skip_markduplicates, fasta, intervals_for_preprocessing)
+            CRAM_QC_NO_MD(cram_skip_markduplicates, fasta, fasta_fai, intervals_for_preprocessing)
 
             // Gather QC reports
             reports = reports.mix(CRAM_QC_NO_MD.out.reports.collect{ meta, report -> report })
@@ -112,8 +114,8 @@ workflow BAM_GATK_PREPROCESSING {
         // Create CSV to restart from this step
         csv_subfolder = 'markduplicates'
         if (params.save_output_as_bam){
-            CRAM_TO_BAM(ch_md_cram_for_restart, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
-            versions = versions.mix(CRAM_TO_BAM.out.versions)
+            CRAM_TO_BAM(ch_md_cram_for_restart, fasta_with_fai)
+            versions = versions.mix(CRAM_TO_BAM.out.versions_samtools)
             cram_to_bam_bai = CRAM_TO_BAM.out.bam.join(CRAM_TO_BAM.out.bai, failOnDuplicate: true, failOnMismatch: true)
             CHANNEL_MARKDUPLICATES_CREATE_CSV(cram_to_bam_bai, csv_subfolder, params.outdir, params.save_output_as_bam)
         } else {
@@ -137,8 +139,8 @@ workflow BAM_GATK_PREPROCESSING {
 
                 input_sncr_convert  = input_sncr_convert.bam.map{ meta, bam, bai, table -> [ meta, bam, bai ] }
                 // BAM files first must be converted to CRAM files since from this step on we base everything on CRAM format
-                BAM_TO_CRAM(input_sncr_convert, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
-                versions = versions.mix(BAM_TO_CRAM.out.versions)
+                BAM_TO_CRAM(input_sncr_convert, fasta_with_fai)
+                versions = versions.mix(BAM_TO_CRAM.out.versions_samtools)
 
                 sncr_cram_from_bam = BAM_TO_CRAM.out.cram
                     // Make sure correct data types are carried through
@@ -163,9 +165,9 @@ workflow BAM_GATK_PREPROCESSING {
                                             }
             BAM_SPLITNCIGARREADS (
                 cram_for_splitncigar_status.rna,
-                dict.map{d -> [[id:"dict"], d]},
+                dict_path.map { d -> [[id: "dict"], d] },
                 fasta,
-                fasta_fai.map{fai -> [[id:"fai"], fai]},
+                fasta_fai,
                 intervals_and_num_intervals
             )
 
@@ -199,8 +201,8 @@ workflow BAM_GATK_PREPROCESSING {
             }
 
             // BAM files first must be converted to CRAM files since from this step on we base everything on CRAM format
-            BAM_TO_CRAM(input_prepare_recal_convert.bam, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
-            versions = versions.mix(BAM_TO_CRAM.out.versions)
+            BAM_TO_CRAM(input_prepare_recal_convert.bam, fasta_with_fai)
+            versions = versions.mix(BAM_TO_CRAM.out.versions_samtools)
 
             sncr_cram_from_bam = BAM_TO_CRAM.out.cram
                 // Make sure correct data types are carried through
@@ -275,8 +277,8 @@ workflow BAM_GATK_PREPROCESSING {
             input_only_bam   = input_recal_convert.bam.map{ meta, bam, bai, table -> [ meta, bam, bai ] }
 
             // BAM files first must be converted to CRAM files since from this step on we base everything on CRAM format
-            BAM_TO_CRAM(input_only_bam, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
-            versions = versions.mix(BAM_TO_CRAM.out.versions)
+            BAM_TO_CRAM(input_only_bam, fasta_with_fai)
+            versions = versions.mix(BAM_TO_CRAM.out.versions_samtools)
 
             cram_applybqsr = Channel.empty().mix(
                 BAM_TO_CRAM.out.cram.join(input_only_table, failOnDuplicate: true, failOnMismatch: true),
@@ -307,6 +309,7 @@ workflow BAM_GATK_PREPROCESSING {
             CRAM_QC_RECAL(
                 cram_variant_calling,
                 fasta,
+                fasta_fai,
                 intervals_for_preprocessing)
 
             // Gather QC reports
@@ -316,8 +319,8 @@ workflow BAM_GATK_PREPROCESSING {
             versions = versions.mix(CRAM_QC_RECAL.out.versions)
 
             // If params.save_output_as_bam, then convert CRAM files to BAM
-            CRAM_TO_BAM_RECAL(cram_variant_calling, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
-            versions = versions.mix(CRAM_TO_BAM_RECAL.out.versions)
+            CRAM_TO_BAM_RECAL(cram_variant_calling, fasta_with_fai)
+            versions = versions.mix(CRAM_TO_BAM_RECAL.out.versions_samtools)
 
             converted_cram_to_bam = CRAM_TO_BAM_RECAL.out.bam.join(CRAM_TO_BAM_RECAL.out.bai, failOnDuplicate: true, failOnMismatch: true)
 
@@ -353,8 +356,8 @@ workflow BAM_GATK_PREPROCESSING {
         }
 
         // BAM files first must be converted to CRAM files since from this step on we base everything on CRAM format
-        BAM_TO_CRAM(input_variant_calling_convert.bam, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
-        versions = versions.mix(BAM_TO_CRAM.out.versions)
+        BAM_TO_CRAM(input_variant_calling_convert.bam, fasta_with_fai)
+        versions = versions.mix(BAM_TO_CRAM.out.versions_samtools)
         BAM_TO_CRAM.out.cram.dump(tag:"BAM_TO_CRAM.out.cram")
         converted = BAM_TO_CRAM.out.cram.join(BAM_TO_CRAM.out.crai, failOnDuplicate: true, failOnMismatch: true)
         converted.dump(tag:"converted")

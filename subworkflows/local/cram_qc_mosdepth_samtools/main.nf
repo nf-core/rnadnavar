@@ -11,16 +11,25 @@ workflow CRAM_QC_MOSDEPTH_SAMTOOLS {
     take:
     cram                          // channel: [mandatory] [ meta, cram, crai ]
     fasta                         // channel: [mandatory] [ meta, fasta ]
+    fasta_fai                     // channel: [mandatory] fasta FAI path
     intervals                     // channel: [mandatory] [ meta, bed ]
 
     main:
     versions = Channel.empty()
     reports = Channel.empty()
+    fasta_with_fai = fasta.combine(fasta_fai).map { meta, fa, fai -> [meta, fa, fai] }
 
     // Reports run on cram
-    SAMTOOLS_STATS(cram, fasta)
+    SAMTOOLS_STATS(
+        cram,
+        fasta_with_fai
+    )
 
-    MOSDEPTH(cram.combine(intervals.map{ meta, bed -> [ bed?:[] ] }), fasta)
+    MOSDEPTH(
+        cram.combine(intervals.map{ meta, bed -> [ bed?:[] ] }),
+        fasta,
+        []
+    )
 
     // Gather all reports generated
     reports = reports.mix(SAMTOOLS_STATS.out.stats)
@@ -28,8 +37,9 @@ workflow CRAM_QC_MOSDEPTH_SAMTOOLS {
     reports = reports.mix(MOSDEPTH.out.regions_txt)
 
     // Gather versions of all tools used
-    versions = versions.mix(MOSDEPTH.out.versions)
-    versions = versions.mix(SAMTOOLS_STATS.out.versions)
+    versions = versions.mix(MOSDEPTH.out.versions_mosdepth)
+    versions = versions.mix(MOSDEPTH.out.versions_gzip)
+    versions = versions.mix(SAMTOOLS_STATS.out.versions_samtools)
 
     emit:
     reports

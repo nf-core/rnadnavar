@@ -3,7 +3,6 @@
 //
 include { PREPARE_GENOME                                       } from './../prepare_genome/main'
 include { PREPARE_INTERVALS                                    } from './../prepare_intervals/main'
-include { GATK4_BEDTOINTERVALLIST                              } from '../../../modules/nf-core/gatk4/bedtointervallist/main'
 
 workflow PREPARE_REFERENCE_AND_INTERVALS {
     take:
@@ -60,8 +59,15 @@ workflow PREPARE_REFERENCE_AND_INTERVALS {
     dragmap                = fasta_input                   ? dragmap_input                    ? Channel.fromPath(dragmap_input).collect()                       : PREPARE_GENOME.out.hashtable             : []
     hisat2_index           = fasta_input                   ? hisat2_index_input               ? Channel.fromPath(hisat2_index_input).map{ it -> [ [id:'ht_idx'], it ] }.collect()                          : PREPARE_GENOME.out.hisat2_index : []
     splicesites            = fasta_input                   ? splicesites_input                ? Channel.fromPath(splicesites_input).collect()                   : PREPARE_GENOME.out.splicesites           : []
-    dict                   = dict_input                    ? Channel.fromPath(dict_input).map{ it -> [ [id:'dict'], it ] }.collect()                             : PREPARE_GENOME.out.dict
+    dict                   = dict_input                    ? Channel.fromPath(dict_input).map{ it -> [ [id:'dict'], it ] }.first()                               : PREPARE_GENOME.out.dict
     fasta_fai              = fasta_input                   ? fasta_fai_input                  ? Channel.fromPath(fasta_fai_input).collect()                     : PREPARE_GENOME.out.fasta_fai             : []
+    // If no external index was supplied, consume the rebuilt resource emitted by PREPARE_GENOME
+    // so the resource path and generated TBI keep matching basenames downstream.
+    dbsnp                  = dbsnp_input                   ? dbsnp_tbi_input                  ? Channel.fromPath(dbsnp_input).collect()                         : PREPARE_GENOME.out.dbsnp                  : Channel.value([])
+    germline_resource      = germline_resource_input       ? germline_resource_tbi_input      ? Channel.fromPath(germline_resource_input).collect()             : PREPARE_GENOME.out.germline_resource      : []
+    known_indels           = known_indels_input            ? known_indels_tbi_input           ? Channel.fromPath(known_indels_input).collect()                  : PREPARE_GENOME.out.known_indels           : Channel.value([])
+    known_snps             = known_snps_input              ? known_snps_tbi_input             ? Channel.fromPath(known_snps_input).collect()                    : PREPARE_GENOME.out.known_snps             : Channel.value([])
+    pon                    = pon_input                     ? pon_tbi_input                    ? Channel.fromPath(pon_input).collect()                           : PREPARE_GENOME.out.pon                    : []
     dbsnp_tbi              = dbsnp_input                   ? dbsnp_tbi_input                  ? Channel.fromPath(dbsnp_tbi_input).collect()                     : PREPARE_GENOME.out.dbsnp_tbi             : Channel.value([])
     germline_resource_tbi  = germline_resource_input       ? germline_resource_tbi_input      ? Channel.fromPath(germline_resource_tbi_input).collect()         : PREPARE_GENOME.out.germline_resource_tbi : []
     known_indels_tbi       = known_indels_input            ? known_indels_tbi_input           ? Channel.fromPath(known_indels_tbi_input).collect()              : PREPARE_GENOME.out.known_indels_tbi      : Channel.value([])
