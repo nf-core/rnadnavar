@@ -47,10 +47,12 @@ workflow VCF_ANNOTATE {
             VCF_ANNOTATE_ENSEMBLVEP(vcf_for_vep, fasta, vep_genome, vep_species, vep_cache_version, vep_cache, vep_extra_files)
 
             reports  = reports.mix(VCF_ANNOTATE_ENSEMBLVEP.out.reports)
+            versions = versions.mix(VCF_ANNOTATE_ENSEMBLVEP.out.versions_ensemblvep)
+            versions = versions.mix(VCF_ANNOTATE_ENSEMBLVEP.out.versions_tabix)
+            versions = versions.mix(VCF_ANNOTATE_ENSEMBLVEP.out.versions_perlmathcdf)
             vcf_ann  = vcf_ann.mix(VCF_ANNOTATE_ENSEMBLVEP.out.vcf_tbi).map{meta, vcf_file, tbi -> [meta +[data_type:"vcf"], vcf_file, tbi]}
             tab_ann  = tab_ann.mix(VCF_ANNOTATE_ENSEMBLVEP.out.tab)
             json_ann = json_ann.mix(VCF_ANNOTATE_ENSEMBLVEP.out.json)
-            versions = versions.mix(VCF_ANNOTATE_ENSEMBLVEP.out.versions)
             CHANNEL_ANNOTATE_CREATE_CSV(vcf_ann.map{meta, vcf_file, _tbi -> [meta, vcf_file]}, "annotated")
 
     } else{
