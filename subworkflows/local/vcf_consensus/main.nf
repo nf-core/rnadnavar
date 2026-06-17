@@ -74,7 +74,7 @@ workflow VCF_CONSENSUS {
                                 rna: it[0].status == 2
                                 }
 
-        maf_from_consensus_rna = maf_from_consensus.rna.map{meta, maf -> [meta, maf, ['ConsensusRNA']]}
+        maf_from_consensus_rna = maf_from_consensus.rna.map{meta, maf -> [meta, maf]}
         mafs_from_varcal_rna   = mafs_from_varcal.rna
 
         // Only RNA mafs are processed again if second run
@@ -82,7 +82,7 @@ workflow VCF_CONSENSUS {
             maf_from_consensus_dna = previous_maf_consensus_dna   // VCF with consensus calling
             mafs_from_varcal_dna   = previous_mafs_status_dna     // VCFs with consensus calling
         } else {
-            maf_from_consensus_dna = maf_from_consensus.dna.map{meta, maf -> [meta, maf, ['ConsensusDNA']]}
+            maf_from_consensus_dna = maf_from_consensus.dna.map{meta, maf -> [meta, maf]}
             mafs_from_varcal_dna   = mafs_from_varcal.dna
         }
 
@@ -99,13 +99,13 @@ workflow VCF_CONSENSUS {
         if (params.tools && params.tools.split(',').contains('rescue')) {
             // VCF from consensus
             maf_consensus_status_dna_to_cross = maf_from_consensus_dna.map{
-                                                    meta, maf, caller ->
-                                                    [meta.patient, meta, [maf], caller]
+                                                    meta, maf ->
+                                                    [meta.patient, meta, [maf], ['ConsensusDNA']]
                                                     }
 
             maf_consensus_status_rna_to_cross = maf_from_consensus_rna.map{
-                                                    meta, maf, caller ->
-                                                    [meta.patient, meta, [maf], caller]
+                                                    meta, maf ->
+                                                    [meta.patient, meta, [maf], ['ConsensusRNA']]
                                                     }
             // VCFs from variant calling
             mafs_status_dna_to_cross = mafs_from_varcal_dna.map{
@@ -156,8 +156,8 @@ workflow VCF_CONSENSUS {
                 no_intervals: it[0].num_intervals <= 1
             }
 
-            maf_from_consensus_dna = maf_from_rescue.dna.map{meta, maf -> [meta, maf, ['ConsensusDNA']]}
-            maf_from_consensus_rna = maf_from_rescue.rna.map{meta, maf -> [meta, maf, ['ConsensusRNA']]}
+            maf_from_consensus_dna = maf_from_rescue.dna.map{meta, maf -> [meta, maf]}
+            maf_from_consensus_rna = maf_from_rescue.rna.map{meta, maf -> [meta, maf]}
             consensus_maf = maf_from_consensus_dna.mix(maf_from_consensus_rna)
             maf_from_consensus_dna
                                         .mix(maf_from_consensus_rna)
