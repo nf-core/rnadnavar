@@ -134,7 +134,8 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
                                 reads_for_realignment.map{meta, reads -> [meta + [single_end:false], reads]},
                                 hisat2_index,
                                 splicesites,
-                                fasta_fai_for_hisat2
+                                fasta_fai_for_hisat2,
+                                false
                                 )
             versions = versions.mix(CONVERT_CRAM2BAM.out.versions_samtools)
             versions = versions.mix(PICARD_FILTERSAMREADS.out.versions_picard)

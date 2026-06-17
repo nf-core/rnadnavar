@@ -7,12 +7,13 @@ workflow FASTQ_ALIGN_HISAT2 {
     index // channel: /path/to/hisat2/index
     splicesites // channel: /path/to/genome.splicesites.txt
     ch_fasta_fai // channel: [meta, fasta, fai ]
+    save_unaligned // val: boolean
 
     main:
     //
     // Map reads with HISAT2
     //
-    HISAT2_ALIGN(reads, index, splicesites, false) // false = do not save unaligned
+    HISAT2_ALIGN(reads, index, splicesites, save_unaligned)
 
     //
     // Sort, index BAM file and run samtools stats, flagstat and idxstats
