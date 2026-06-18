@@ -83,7 +83,7 @@ workflow RNADNAVAR {
     else if (params.vep_cache && params.vep_cache.endsWith(".zip")) {
         UNZIP_VEP_CACHE(Channel.fromPath(params.vep_cache).collect().map { it -> [[id: it[0].baseName], it] })
         vep_cache = UNZIP_VEP_CACHE.out.unzipped_archive.first()
-        versions = versions.mix(UNZIP_VEP_CACHE.out.versions)
+        versions = versions.mix(UNZIP_VEP_CACHE.out.versions_7za)
     }
     else {
         // Assuming that if the cache is provided, the user has already downloaded it

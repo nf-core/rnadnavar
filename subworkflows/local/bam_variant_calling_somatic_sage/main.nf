@@ -31,7 +31,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_SAGE {
     } else if (params.sage_ensembl_dir.endsWith(".zip")) {
         UNZIP_SAGE_ENSEMBL(Channel.fromPath(params.sage_ensembl_dir).collect().map{ it -> [ [ id:it[0].baseName ], it ] })
         sage_ensembl = UNZIP_SAGE_ENSEMBL.out.unzipped_archive
-        versions = versions.mix(UNZIP_SAGE_ENSEMBL.out.versions)
+        versions = versions.mix(UNZIP_SAGE_ENSEMBL.out.versions_7za)
     } else {
         sage_ensembl = Channel.fromPath(params.sage_ensembl_dir).collect().map{ it -> [ [ id:it[0].baseName ], it ] }
     }
