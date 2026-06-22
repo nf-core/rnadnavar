@@ -222,7 +222,7 @@
                     },
                     "picard/filtersamreads": {
                         "branch": "master",
-                        "git_sha": "c49d575b10e90cbb09b1a0c2f9bac133bba17f4a",
+                        "git_sha": "1b71791bf7b24b6f83dd918809ba66be8c8f1f93",
                         "installed_by": ["modules"]
                     },
                     "samblaster": {
