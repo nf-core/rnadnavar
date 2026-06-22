@@ -1,4 +1,5 @@
 Changes in component 'nf-core/gatk4/splitncigarreads'
+'modules/nf-core/gatk4/splitncigarreads/meta.yml' is unchanged
 Changes in 'gatk4/splitncigarreads/environment.yml':
 --- modules/nf-core/gatk4/splitncigarreads/environment.yml
 +++ modules/nf-core/gatk4/splitncigarreads/environment.yml
@@ -9,10 +10,20 @@ Changes in 'gatk4/splitncigarreads/environment.yml':
 +  # Required for optional BAM -> CRAM conversion and indexing when ext.prefix ends with .cram
 +  - bioconda::samtools=1.21
 
-'modules/nf-core/gatk4/splitncigarreads/meta.yml' is unchanged
 Changes in 'gatk4/splitncigarreads/main.nf':
 --- modules/nf-core/gatk4/splitncigarreads/main.nf
 +++ modules/nf-core/gatk4/splitncigarreads/main.nf
+@@ -4,8 +4,8 @@
+ 
+     conda "${moduleDir}/environment.yml"
+     container "${workflow.containerEngine in ['singularity', 'apptainer'] && !task.ext.singularity_pull_docker_container
+-        ? 'https://community-cr-prod.seqera.io/docker/registry/v2/blobs/sha256/ce/ced519873646379e287bc28738bdf88e975edd39a92e7bc6a34bccd37153d9d0/data'
+-        : 'community.wave.seqera.io/library/gatk4_gcnvkernel:edb12e4f0bf02cd3'}"
++        ? 'https://community-cr-prod.seqera.io/docker/registry/v2/blobs/sha256/e5/e504069ef3553bf305398ca756c54efc9679bd59d6975ee0514cc6a9d5388114/data'
++        : 'community.wave.seqera.io/library/gatk4_gcnvkernel_samtools:26ea948db2151b79'}"
+ 
+     input:
+     tuple val(meta), path(bam), path(bai), path(intervals)
 @@ -14,15 +14,20 @@
      tuple val(meta4), path(dict)
  
@@ -72,6 +83,6 @@ Changes in 'gatk4/splitncigarreads/main.nf':
      """
  }
 
-'modules/nf-core/gatk4/splitncigarreads/tests/main.nf.test.snap' is unchanged
 'modules/nf-core/gatk4/splitncigarreads/tests/main.nf.test' is unchanged
+'modules/nf-core/gatk4/splitncigarreads/tests/main.nf.test.snap' is unchanged
 ************************************************************
