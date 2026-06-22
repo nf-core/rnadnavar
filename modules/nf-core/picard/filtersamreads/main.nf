@@ -9,7 +9,7 @@ process PICARD_FILTERSAMREADS {
 
     input:
     tuple val(meta), path(bam), path(readlist)
-    tuple val(meta1), path(fasta)
+    tuple val(meta2), path(fasta)
     val filter
 
     output:
@@ -68,6 +68,5 @@ process PICARD_FILTERSAMREADS {
     }
     """
     touch ${prefix}.bam
-    touch ${prefix}.bam.bai
     """
 }

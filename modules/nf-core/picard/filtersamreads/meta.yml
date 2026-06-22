@@ -1,85 +1,75 @@
 name: picard_filtersamreads
-description: Filters SAM/BAM files to include/exclude either aligned/unaligned 
-  reads or based on a read list
+description: Filters SAM/BAM files to include/exclude either aligned/unaligned reads
+  or based on a read list
 keywords:
-- bam
-- filter
-- picard
-- sam
+  - bam
+  - filter
+  - picard
+  - sam
 tools:
-- picard:
-    description: |
-      A set of command line tools (in Java) for manipulating high-throughput sequencing (HTS)
-      data and formats such as SAM/BAM/CRAM and VCF.
-    homepage: https://broadinstitute.github.io/picard/
-    documentation: https://broadinstitute.github.io/picard/
-    tool_dev_url: https://github.com/broadinstitute/picard
-    licence:
-    - "MIT"
-    identifier: biotools:picard_tools
-input:
-- - meta:
-      type: map
+  - picard:
       description: |
-        Groovy Map containing sample information
-        e.g. [ id:'test', single_end:false ]
-  - bam:
-      type: file
-      description: List of BAM files. If filtering without read list must be 
-        sorted by queryname with picard sortsam
-      pattern: "*.{bam}"
-      ontologies: []
-  - readlist:
-      type: file
-      description: Optional text file containing reads IDs to include or exclude
-      ontologies: []
-- - meta1: {}
-  - fasta: {}
-- filter:
-    type: string
-    description: Picard filter type
-    pattern: "includeAligned|excludeAligned|includeReadList|excludeReadList"
-output:
-  bam:
+        A set of command line tools (in Java) for manipulating high-throughput sequencing (HTS)
+        data and formats such as SAM/BAM/CRAM and VCF.
+      homepage: https://broadinstitute.github.io/picard/
+      documentation: https://broadinstitute.github.io/picard/
+      tool_dev_url: https://github.com/broadinstitute/picard
+      licence: ["MIT"]
+      identifier: biotools:picard_tools
+input:
   - - meta:
         type: map
         description: |
           Groovy Map containing sample information
           e.g. [ id:'test', single_end:false ]
-    - '*.bam':
+    - bam:
         type: file
-        description: Filtered BAM file
+        description: List of BAM files. If filtering without read list must be sorted
+          by queryname with picard sortsam
         pattern: "*.{bam}"
         ontologies: []
+    - readlist:
+        type: file
+        description: Optional text file containing reads IDs to include or exclude
+        ontologies: []
+  - filter:
+      type: string
+      description: Picard filter type
+      pattern: "includeAligned|excludeAligned|includeReadList|excludeReadList"
+output:
+  bam:
+    - - meta:
+          type: map
+          description: |
+            Groovy Map containing sample information
+            e.g. [ id:'test', single_end:false ]
+      - "*.bam":
+          type: file
+          description: Filtered BAM file
+          pattern: "*.{bam}"
+          ontologies: []
   versions_picard:
-  - - ${task.process}:
-        type: string
-        description: The process the versions were collected from
-    - picard:
-        type: string
-        description: The tool name
-    - picard FilterSamReads --version 2>&1 | sed -n 's/.*Version://p':
-        type: eval
-        description: The command used to generate the version of the tool
-  bai:
-  - - meta:
-        type: map
-        description: |
-          Groovy Map containing sample information
-          e.g. [ id:'test', single_end:false ]
-    - '*.bai': {}
+    - - ${task.process}:
+          type: string
+          description: The process the versions were collected from
+      - picard:
+          type: string
+          description: The tool name
+      - "picard FilterSamReads --version 2>&1 | sed -n 's/.*Version://p'":
+          type: string
+          description: The command used to generate the version of the tool
 topics:
   versions:
-  - - ${task.process}:
-        type: string
-        description: The process the versions were collected from
-    - picard:
-        type: string
-        description: The tool name
-    - picard FilterSamReads --version 2>&1 | sed -n 's/.*Version://p':
-        type: eval
-        description: The command used to generate the version of the tool
+    - - ${task.process}:
+          type: string
+          description: The process the versions were collected from
+      - picard:
+          type: string
+          description: The tool name
+      - "picard FilterSamReads --version 2>&1 | sed -n 's/.*Version://p'":
+          type: string
+          description: The command used to generate the version of the tool
 authors:
-- "@jfy133"
+  - "@jfy133"
 maintainers:
-- "@jfy133"
+  - "@jfy133"
