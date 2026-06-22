@@ -1,5 +1,4 @@
 Changes in component 'nf-core/picard/filtersamreads'
-'modules/nf-core/picard/filtersamreads/environment.yml' is unchanged
 Changes in 'picard/filtersamreads/meta.yml':
 --- modules/nf-core/picard/filtersamreads/meta.yml
 +++ modules/nf-core/picard/filtersamreads/meta.yml
@@ -148,6 +147,7 @@ Changes in 'picard/filtersamreads/meta.yml':
 -  - "@jfy133"
 +- "@jfy133"
 
+'modules/nf-core/picard/filtersamreads/environment.yml' is unchanged
 Changes in 'picard/filtersamreads/main.nf':
 --- modules/nf-core/picard/filtersamreads/main.nf
 +++ modules/nf-core/picard/filtersamreads/main.nf
@@ -188,7 +188,7 @@ Changes in 'picard/filtersamreads/main.nf':
      """
  }
 
-'modules/nf-core/picard/filtersamreads/tests/main.nf.test.snap' is unchanged
-'modules/nf-core/picard/filtersamreads/tests/nextflow.config' is unchanged
 'modules/nf-core/picard/filtersamreads/tests/main.nf.test' is unchanged
+'modules/nf-core/picard/filtersamreads/tests/nextflow.config' is unchanged
+'modules/nf-core/picard/filtersamreads/tests/main.nf.test.snap' is unchanged
 ************************************************************
