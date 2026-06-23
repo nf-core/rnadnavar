@@ -58,8 +58,10 @@ You will need to create a samplesheet with information about the samples you wou
 
 An RNA tumor sample must be associated to a DNA normal
 sample at the moment, specified with the
-same `patient` ID. The sample
-type can be specified with the `status`: 0 (normal DNA),
+same `patient` ID. The pipeline validates this tumour-normal
+matching before channel creation so the current release fails
+early and deterministically for unsupported sample compositions.
+The sample type can be specified with the `status`: 0 (normal DNA),
 1 (tumour DNA) and 2 (tumour RNA). An
 additional tumor sample (such as a
 relapse for example), can be added if specified with the
@@ -114,7 +116,7 @@ If you wish to repeatedly use the same parameters for multiple runs, rather than
 Pipeline settings can be provided in a `yaml` or `json` file via `-params-file <file>`.
 
 > [!WARNING]
-> Do not use `-c <file>` to specify parameters as this will result in errors. Custom config files specified with `-c` must only be used for [tuning process resource specifications](https://nf-co.re/docs/usage/configuration#tuning-workflow-resources), other infrastructural tweaks (such as output directories), or module arguments (args).
+> Do not use `-c <file>` to specify parameters as this will result in errors. Custom config files specified with `-c` must only be used for [tuning process resource specifications](https://nf-co.re/docs/running/run-pipelines#configuring-pipelines), other infrastructural tweaks (such as output directories), or module arguments (args).
 
 The above pipeline run specified with a params file in yaml format:
 
@@ -148,16 +150,13 @@ The pipeline has the flexibility to start from different steps but `tools` need 
   - if `realignment` alignment files must be included and therefore `bam,bai` or `cram,crai` should be added to the csv as well. Each sample will then have a line per maf/variantcaller and a line per alignment file (`maf` value will be empty for the alignment files and _vice versa_).
 
 - `filtering`
-  - If you use other variant callers that are not mutect2, strelka or SAGE you will need to change in `config/modules/filtering/maf_filtering.config` and add to args `--vc_priority caller1 caller2 caller3`
   - If you use other variant callers that are not mutect2, strelka or SAGE you will need to change in `config/modules/filtering/maf_filtering.config` and add to args `--vc_priority caller1 caller2 caller3`. Do not forget to add `consensus` to callers if you are running DNA and RNA in parallel to annotate mutations found in both data types. **Disclaimer: this has not been tested thoroughly, therefore please ask in our slack channel or open an issue in github describing your issue. Be aware that even if processes run, you will need to review your results**
-  - At the end of the RNA filtering you will have two entries per mutation, the extra one is the annotation from realignment mode. If you want to remove these entried, they can be filtered through the column `Tumor_Sample_Barcode` and remove all entries with the suffix `_realign`.
+  - At the end of the RNA filtering you will have two entries per mutation, the extra one is the annotation from realignment mode. If you want to remove these entries, they can be filtered through the column `Tumor_Sample_Barcode` and remove all entries with the suffix `_realign`.
 
-- `realignment`: this step is slightly different from the rest as it requires both results from variant calling (`vcf/maf`) and alignment files (`bam,cram`). Reason being that it will convert coordinates from `vcf/maf` to `bed` and extract reads from the alignment files of those regions of interest where a mutation was found. With those reads a re-alignment is performed using HISAT2. requires `patient,status,sample,normal_id,vcf/maf,variantcaller,bam/cram,bai/crai`.
-  - Realignment can be activated from any step as long as it is specified in `params.tools`, alignment files are provided and a maf/vcf file is provided or produced by the pipeline.
+- `realignment`: this step is slightly different from the rest as it requires both results from variant calling (`vcf/maf`) and alignment files (`bam,cram`). Note that it increases computation and time substanstially. Reason being that it will convert coordinates from `vcf/maf` to `bed` and extract reads from the alignment files of those regions of interest where a mutation was found. With those reads a re-alignment is performed using HISAT2. Requires `patient,status,sample,normal_id,vcf/maf,variantcaller,bam/cram,bai/crai`.
+  - Realignment can be activated from any step as long as it is specified in `params.tools` as `realignment`, alignment files are provided and a `maf/vcf` file is provided or produced by the pipeline.
 
-- realigns regions where mutations in RNA samples (status=2) where found using HISAT2 instead of STAR. If you want to activate this step it needs to be specified in `tools` and CRAM/BAM must be specified.
-
-- rescue will require:`patient,status,sample,vcf,variantcaller,normal_id` if not realignment step in tools. If realignment step then: `patient,status,sample,vcf,variantcaller,normal_id,cram,crai` if not realignment step in tools.
+- `rescue` will activate the option of a second consensus PASS were DNA/RNA will be used for the consensus. The idea being that if a mutation is in any caller plus the other data type, it should be a PASS in the consensus. To run it requires:`patient,status,sample,vcf,variantcaller,normal_id` if not realignment step in tools. If realignment step then: `patient,status,sample,vcf,variantcaller,normal_id,cram/bam,crai/bai`.
 
 If you think there is a step of a workflow missing that we haven't think about yet please contact us in the slack channel.
 
@@ -241,19 +240,19 @@ Specify the path to a specific config file (this is a core Nextflow command). Se
 
 Whilst the default requirements set within the pipeline will hopefully work for most people and with most input data, you may find that you want to customise the compute resources that the pipeline requests. Each step in the pipeline has a default set of requirements for number of CPUs, memory and time. For most of the pipeline steps, if the job exits with any of the error codes specified [here](https://github.com/nf-core/rnaseq/blob/4c27ef5610c87db00c3c5a3eed10b1d161abf575/conf/base.config#L18) it will automatically be resubmitted with higher resources request (2 x original, then 3 x original). If it still fails after the third attempt then the pipeline execution is stopped.
 
-To change the resource requests, please see the [max resources](https://nf-co.re/docs/usage/configuration#max-resources) and [tuning workflow resources](https://nf-co.re/docs/usage/configuration#tuning-workflow-resources) section of the nf-core website.
+To change the resource requests, please see the [max resources](https://nf-co.re/docs/running/configuration/nextflow-for-your-system#set-max-resources) and [customise process resources](https://nf-co.re/docs/running/configuration/nextflow-for-your-system#customize-process-resources) section of the nf-core website.
 
 ### Custom Containers
 
 In some cases, you may wish to change the container or conda environment used by a pipeline steps for a particular tool. By default, nf-core pipelines use containers and software from the [biocontainers](https://biocontainers.pro/) or [bioconda](https://bioconda.github.io/) projects. However, in some cases the pipeline specified version maybe out of date.
 
-To use a different container from the default container or conda environment specified in a pipeline, please see the [updating tool versions](https://nf-co.re/docs/usage/configuration#updating-tool-versions) section of the nf-core website.
+To use a different container from the default container or conda environment specified in a pipeline, please see the [updating tool versions](https://nf-co.re/docs/running/configuration/nextflow-for-your-system#update-tool-versions) section of the nf-core website.
 
 ### Custom Tool Arguments
 
 A pipeline might not always support every possible argument or option of a particular tool used in pipeline. Fortunately, nf-core pipelines provide some freedom to users to insert additional parameters that the pipeline does not include by default.
 
-To learn how to provide additional arguments to a particular tool of the pipeline, please see the [customising tool arguments](https://nf-co.re/docs/usage/configuration#customising-tool-arguments) section of the nf-core website.
+To learn how to provide additional arguments to a particular tool of the pipeline, please see the [customising tool arguments](https://nf-co.re/docs/running/configuration/nextflow-for-your-system#modifying-tool-arguments) section of the nf-core website.
 
 ### nf-core/configs
 

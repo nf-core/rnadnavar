@@ -10,6 +10,7 @@ nextflow_workflow {
             params {
                 // define parameters here. Example:
                 skip_tools = 'baserecalibrator'
+                fasta      = 'https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/reference/chr7_hg38/GRCh38.d1.vd1.chr7.mini.fa'
             }
             workflow {
                 """
@@ -31,6 +32,39 @@ nextflow_workflow {
         then {
             assert workflow.success
             assert snapshot(workflow.out).match()
+        }
+
+    }
+
+    test("Should not perform global sample-composition validation") {
+
+        when {
+            params {
+                skip_tools = 'baserecalibrator'
+                tools      = 'strelka'
+                step       = 'mapping'
+                fasta      = 'https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/reference/chr7_hg38/GRCh38.d1.vd1.chr7.mini.fa'
+            }
+            workflow {
+                """
+                // Global tumour/normal validation now happens upstream, so this subworkflow
+                // should still shape tumour-only rows without failing on sample composition.
+                input[0] = Channel.of([['patient':'PT1', 'sample':'RNA_T',
+                                        'status':2, 'lane':'L1'],
+                                        file('https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/illumina/fastq/test_1.fastq.gz'),
+                                        file('https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/illumina/fastq/test_2.fastq.gz'),
+                                        [], [], [], [], [], [], [], []])
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                { assert workflow.out.input_sample.size() == 1 },
+                { assert workflow.out.input_sample[0][0].status == 2 },
+                { assert workflow.out.input_sample[0][0].data_type == 'fastq' }
+            )
         }
 
     }

@@ -19,9 +19,9 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
         input_sample
         maf_with_candidates              // MAf with candidate regions to extract [meta, maf]
         reads_to_realign                 // CRAM/BAM to extract reads from [meta, cram, crai]
-        fasta
-        fasta_fai
-        dict
+        fasta       // channel: [mandatory] [ meta, fasta ]
+        fasta_fai   // channel: [mandatory] fasta FAI path
+        dict        // channel: [mandatory] [ meta, dict ]
         hisat2_index
         splicesites
         dna_consensus_maf
@@ -30,6 +30,7 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
     main:
         versions   = Channel.empty()
         bam_mapped = Channel.empty()
+        fasta_with_fai = fasta.combine(fasta_fai).map { meta, fa, fai -> [meta, fa, fai] }.first()
 
         if (params.step in ['mapping', 'markduplicates', 'splitncigar',
         'prepare_recalibration', 'recalibrate', 'variant_calling', 'norm', 'consensus',
@@ -108,21 +109,24 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
             // Extract reads
             cram_to_convert = SAMTOOLS_EXTRACT_READ_IDS.out.read_ids.map{meta, readsid -> [meta + [readsid_file:readsid], meta.cram_file, meta.crai_file]}
             // 1) Convert cram 2 bam
-            CONVERT_CRAM2BAM(cram_to_convert, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
+            CONVERT_CRAM2BAM(cram_to_convert, fasta_with_fai)
             bam_to_filter = CONVERT_CRAM2BAM.out.bam.map{meta, bam -> [meta, bam, meta.readsid_file]}
             // 2) Apply picard filtersamreads
-            PICARD_FILTERSAMREADS(bam_to_filter, fasta,'includeReadList') // bam -> filtered_bam
+            PICARD_FILTERSAMREADS(bam_to_filter, fasta, 'includeReadList') // bam -> filtered_bam
             // Conver to FQ
             bam_to_fq = PICARD_FILTERSAMREADS.out.bam.join(PICARD_FILTERSAMREADS.out.bai)
             interleave_input = false // Currently don't allow interleaved input
             CONVERT_FASTQ_INPUT(
                                 bam_to_fq,
                                 fasta,
-                                fasta_fai.map{it -> [ [ id:"fasta_fai" ], it ]},
+                                fasta_fai,
                                 interleave_input
                                 )
             // Align with HISAT2
             reads_for_realignment = CONVERT_FASTQ_INPUT.out.reads
+            // Build the reference tuple expected by the updated nf-core subworkflow:
+            // [ meta, fasta, fai ]
+            fasta_fai_for_hisat2 = fasta_with_fai
             hisat2_index.dump(tag:"HISAT2index")
             splicesites.dump(tag:"HISAT2splicesites")
             // Note: single_end in meta always false for this subworkflow TODO: add to samplesheet in future?
@@ -130,12 +134,16 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
                                 reads_for_realignment.map{meta, reads -> [meta + [single_end:false], reads]},
                                 hisat2_index,
                                 splicesites,
-                                fasta
+                                fasta_fai_for_hisat2,
+                                false
                                 )
-            // Mix with index add data type and change id to sample
-            bam_mapped = FASTQ_ALIGN_HISAT2.out.bam.join(FASTQ_ALIGN_HISAT2.out.bai).map{meta,bam,bai -> [meta + [ id:meta.sample, data_type:"bam"], bam, bai]}
+            versions = versions.mix(CONVERT_CRAM2BAM.out.versions_samtools)
+            versions = versions.mix(PICARD_FILTERSAMREADS.out.versions_picard)
+            versions = versions.mix(CONVERT_FASTQ_INPUT.out.versions)
+            // The updated nf-core subworkflow emits a generic `index` channel instead of `bai`.
+            bam_mapped = FASTQ_ALIGN_HISAT2.out.bam.join(FASTQ_ALIGN_HISAT2.out.index).map{meta, bam, index -> [meta + [ id:meta.sample, data_type:"bam"], bam, index]}
     }
-    bam_mapped = bam_mapped.map{meta, bam, bai -> [meta - meta.subMap('single_end'), bam]}
+    bam_mapped = bam_mapped.map{meta, bam, index -> [meta - meta.subMap('single_end'), bam]}
 
     emit:
     bam_mapped         = bam_mapped

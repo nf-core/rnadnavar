@@ -86,7 +86,8 @@ workflow {
         params.input,
         params.help,
         params.help_full,
-        params.show_hidden
+        params.show_hidden,
+        params.monochrome_logs
     )
 
     //
@@ -104,8 +105,7 @@ workflow {
         params.plaintext_email,
         params.outdir,
         params.monochrome_logs,
-        params.hook_url,
-        NFCORE_RNADNAVAR.out.multiqc_report,
+        NFCORE_RNADNAVAR.out.multiqc_report
     )
 }
 

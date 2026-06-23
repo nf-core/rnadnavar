@@ -35,15 +35,15 @@ workflow VCF_NORMALIZE {
         VT_DECOMPOSE(vcf_to_normalize)
 
         vcf_decomposed = vcf_decomposed.mix(VT_DECOMPOSE.out.vcf)
-        version = version.mix(VT_DECOMPOSE.out.versions.first())
+        version = version.mix(VT_DECOMPOSE.out.versions_vt)
 
-        // Normalise variants
-        vcf_decomposed = vcf_decomposed.map{meta,vcf -> [meta, vcf, [],[]]} // tbi not necessary, vt accepts intervals, not in use for now
+        // Restore the historical input pattern for VT normalize.
+        vcf_decomposed = vcf_decomposed.map{meta,vcf -> [meta, vcf, [],[]]}
         VT_NORMALIZE(vcf_decomposed,
                     fasta, fasta_fai) // fai not necessary?
 
         vcf_to_consensus = VT_NORMALIZE.out.vcf
-        version = version.mix(VT_NORMALIZE.out.versions.first())
+        version = version.mix(VT_NORMALIZE.out.versions_vt)
 
         CHANNEL_VARIANT_CALLING_CREATE_CSV(vcf_to_consensus, "normalized")
 

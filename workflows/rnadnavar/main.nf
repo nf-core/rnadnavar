@@ -5,10 +5,10 @@
 */
 
 include { MULTIQC                                                   } from '../../modules/nf-core/multiqc'
-include { samplesheetToList                                         } from 'plugin/nf-schema'
 include { paramsSummaryMap                                          } from 'plugin/nf-schema'
 include { paramsSummaryMultiqc                                      } from '../../subworkflows/nf-core/utils_nfcore_pipeline'
-include { softwareVersionsToYAML                                    } from '../../subworkflows/nf-core/utils_nfcore_pipeline'
+include { processVersionsFromYAML                                   } from '../../subworkflows/nf-core/utils_nfcore_pipeline'
+include { workflowVersionToYAML                                     } from '../../subworkflows/nf-core/utils_nfcore_pipeline'
 include { methodsDescriptionText                                    } from '../../subworkflows/local/utils_nfcore_rnadnavar_pipeline'
 
 
@@ -21,7 +21,6 @@ include { methodsDescriptionText                                    } from '../.
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
 //
 // Build the genome index and other reference files
-include { SAMPLESHEET_TO_CHANNEL                                    } from '../../subworkflows/local/samplesheet_to_channel'
 include { PREPARE_REFERENCE_AND_INTERVALS                           } from '../../subworkflows/local/prepare_reference_and_intervals'
 include { PREPARE_INTERVALS as PREPARE_INTERVALS_FOR_REALIGNMENT    } from '../../subworkflows/local/prepare_intervals'
 // Download annotation cache if needed
@@ -61,36 +60,32 @@ workflow RNADNAVAR {
     // To gather used softwares versions for MultiQC
     versions = Channel.empty()
 
-    // Set input, can either be from --input or from automatic retrieval in utils_nfcore_rnadnavar_pipeline
-    if (params.input) {
-        ch_from_samplesheet = params.build_only_index ? Channel.empty() : Channel.fromList(samplesheetToList(params.input, "${projectDir}/assets/schema_input.json"))
-    }
-    else {
-        ch_from_samplesheet = params.build_only_index ? Channel.empty() : Channel.fromList(samplesheetToList(params.input, "${projectDir}/assets/schema_input.json"))
-    }
-    // Parse samplesheet
-    SAMPLESHEET_TO_CHANNEL(ch_from_samplesheet)
-
-    input_sample = SAMPLESHEET_TO_CHANNEL.out.input_sample
+    // The samplesheet channel was already parsed and validated during pipeline initialisation.
+    input_sample = ch_samplesheet
+    mutect2_alleles = params.mutect2_alleles ? Channel.value(file(params.mutect2_alleles, checkIfExists: true)) : Channel.value([])
+    mutect2_alleles_tbi = params.mutect2_alleles_tbi ? Channel.value(file(params.mutect2_alleles_tbi, checkIfExists: true)) : Channel.value([])
 
 
-    // Initialise MULTIQC
-    multiqc_config = Channel.fromPath("${projectDir}/assets/multiqc_config.yml", checkIfExists: true)
-    multiqc_custom_config = params.multiqc_config ? Channel.fromPath(params.multiqc_config, checkIfExists: true) : Channel.empty()
-    multiqc_logo = params.multiqc_logo ? Channel.fromPath(params.multiqc_logo, checkIfExists: true) : Channel.empty()
+    // Initialise singleton MultiQC assets as plain file objects. This mirrors the
+    // nf-core rnaseq / sarek style more closely and avoids reshaping path channels
+    // through nested combine() calls, which can corrupt the staged config argument.
+    multiqc_config = [file("${projectDir}/assets/multiqc_config.yml", checkIfExists: true)]
+    multiqc_custom_config = params.multiqc_config ? [file(params.multiqc_config, checkIfExists: true)] : []
+    multiqc_logo = params.multiqc_logo ? [file(params.multiqc_logo, checkIfExists: true)] : [file("${projectDir}/assets/nf-core-rnadnavar_logo_light.png", checkIfExists: true)]
     ch_multiqc_custom_methods_description = params.multiqc_methods_description ? file(params.multiqc_methods_description, checkIfExists: true) : file("${projectDir}/assets/methods_description_template.yml", checkIfExists: true)
 
     // Download cache if needed
     if (params.download_cache) {
         ensemblvep_info = Channel.of([[id: "${params.vep_cache_version}_${params.vep_genome}"], params.vep_genome, params.vep_species, params.vep_cache_version])
-        ENSEMBLVEP_DOWNLOAD(ensemblvep_info)
-        vep_cache = ENSEMBLVEP_DOWNLOAD.out.cache.collect().map { meta, cache -> [cache] }
-        versions = versions.mix(ENSEMBLVEP_DOWNLOAD.out.versions)
+        ENSEMBLVEP_DOWNLOAD(ensemblvep_info, false)
+        vep_cache = ENSEMBLVEP_DOWNLOAD.out.cache.first()
+        versions = versions.mix(ENSEMBLVEP_DOWNLOAD.out.versions_ensemblvep)
+        versions = versions.mix(ENSEMBLVEP_DOWNLOAD.out.versions_perlmathcdf)
     }
     else if (params.vep_cache && params.vep_cache.endsWith(".zip")) {
         UNZIP_VEP_CACHE(Channel.fromPath(params.vep_cache).collect().map { it -> [[id: it[0].baseName], it] })
-        vep_cache = UNZIP_VEP_CACHE.out.unzipped_archive.map { it[1] }
-        versions = versions.mix(UNZIP_VEP_CACHE.out.versions)
+        vep_cache = UNZIP_VEP_CACHE.out.unzipped_archive.first()
+        versions = versions.mix(UNZIP_VEP_CACHE.out.versions_7za)
     }
     else {
         // Assuming that if the cache is provided, the user has already downloaded it
@@ -107,7 +102,32 @@ workflow RNADNAVAR {
 
 
     // STEP 0: Build reference and indices if needed
-    PREPARE_REFERENCE_AND_INTERVALS()
+    PREPARE_REFERENCE_AND_INTERVALS(
+        params.dbsnp,
+        params.known_snps,
+        params.fasta,
+        params.germline_resource,
+        params.known_indels,
+        params.pon,
+        params.whitelist,
+        params.bwa,
+        params.bwamem2,
+        params.dragmap,
+        params.hisat2_index,
+        params.splicesites,
+        params.dict,
+        params.fasta_fai,
+        params.dbsnp_tbi,
+        params.germline_resource_tbi,
+        params.known_indels_tbi,
+        params.known_snps_tbi,
+        params.pon_tbi,
+        params.intervals,
+        params.no_intervals,
+        params.step,
+        params.nucleotides_per_second,
+        params.wes,
+    )
     versions = versions.mix(PREPARE_REFERENCE_AND_INTERVALS.out.versions)
 
     // Reference and intervals variables
@@ -165,6 +185,8 @@ workflow RNADNAVAR {
         dbsnp_tbi,
         pon,
         pon_tbi,
+        mutect2_alleles,
+        mutect2_alleles_tbi,
         known_sites_indels,
         known_sites_indels_tbi,
         germline_resource,
@@ -188,7 +210,14 @@ workflow RNADNAVAR {
         // fastq will not be split when realignment
         params.split_fastq = 0
         // reset intervals to none (realignment files are smaller)
-        PREPARE_INTERVALS_FOR_REALIGNMENT(fasta_fai, null, true)
+        PREPARE_INTERVALS_FOR_REALIGNMENT(
+            fasta_fai,
+            null,
+            true,
+            params.step,
+            params.nucleotides_per_second,
+            params.wes,
+        )
         // hisat2 alignment
         PREPARE_REALIGNMENT(
             input_sample,
@@ -216,6 +245,8 @@ workflow RNADNAVAR {
             dbsnp_tbi,
             pon,
             pon_tbi,
+            mutect2_alleles,
+            mutect2_alleles_tbi,
             known_sites_indels,
             known_sites_indels_tbi,
             germline_resource,
@@ -261,14 +292,33 @@ workflow RNADNAVAR {
     //
     version_yaml = Channel.empty()
     if (!(params.skip_tools && params.skip_tools.split(',').contains('versions'))) {
-        version_yaml = softwareVersionsToYAML(versions)
+        // The versions channel currently mixes legacy versions.yml files from local
+        // modules with modern nf-core [process, tool, version] tuples.
+        topic_versions = versions
+            .unique()
+            .branch { entry ->
+                versions_file: entry instanceof Path
+                versions_tuple: true
+            }
+
+        topic_versions_string = topic_versions.versions_tuple
+            .map { process_name, tool_name, tool_version ->
+                [process_name.toString().tokenize(':')[-1], "    ${tool_name}: ${tool_version}"]
+            }
+            .groupTuple(by: 0)
+            .map { process_name, tool_versions ->
+                "${process_name}:\n${tool_versions.unique().sort().join('\n')}"
+            }
+
+        version_yaml = topic_versions.versions_file
+            .map { version_file -> processVersionsFromYAML(version_file.text) }
+            .mix(topic_versions_string)
+            .unique()
+            .mix(channel.of(workflowVersionToYAML()))
             .collectFile(storeDir: "${params.outdir}/pipeline_info", name: 'nf_core_rnadnavar_software_mqc_versions.yml', sort: true, newLine: true)
     }
 
     if (!(params.skip_tools && params.skip_tools.split(',').contains('multiqc'))) {
-        ch_multiqc_config = Channel.fromPath("${projectDir}/assets/multiqc_config.yml", checkIfExists: true)
-        ch_multiqc_custom_config = params.multiqc_config ? Channel.fromPath(params.multiqc_config, checkIfExists: true) : Channel.empty()
-        ch_multiqc_logo = params.multiqc_logo ? Channel.fromPath(params.multiqc_logo, checkIfExists: true) : Channel.empty()
         summary_params = paramsSummaryMap(workflow, parameters_schema: "nextflow_schema.json")
         ch_workflow_summary = Channel.value(paramsSummaryMultiqc(summary_params))
         ch_multiqc_custom_methods_description = params.multiqc_methods_description ? file(params.multiqc_methods_description, checkIfExists: true) : file("${projectDir}/assets/methods_description_template.yml", checkIfExists: true)
@@ -278,14 +328,24 @@ workflow RNADNAVAR {
         ch_multiqc_files = ch_multiqc_files.mix(reports)
         ch_multiqc_files = ch_multiqc_files.mix(ch_methods_description.collectFile(name: 'methods_description_mqc.yaml', sort: true))
 
-        MULTIQC(
-            ch_multiqc_files.collect(),
-            ch_multiqc_config.toList(),
-            ch_multiqc_custom_config.toList(),
-            ch_multiqc_logo.toList(),
-            [],
-            [],
-        )
+        // Some local subworkflows still emit report tuples as [meta, file]. MultiQC
+        // expects only staged file paths here, so strip any metadata before collect().
+        ch_multiqc_input = ch_multiqc_files
+            .flatMap { entry ->
+                if (entry instanceof Path) {
+                    [entry]
+                } else if (entry instanceof List) {
+                    entry.flatten().findAll { item -> item instanceof Path }
+                } else {
+                    []
+                }
+            }
+            .collect()
+            .map { multiqc_files ->
+                [[id: 'multiqc'], multiqc_files, multiqc_config + multiqc_custom_config, multiqc_logo, [], []]
+            }
+
+        MULTIQC(ch_multiqc_input)
         multiqc_report = MULTIQC.out.report.toList()
     }
 

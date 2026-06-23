@@ -8,7 +8,7 @@ process MAF_FILTERING {
         'biocontainers/mulled-v2-629aec3ba267b06a1efc3ec454c0f09e134f6ee2:3b083bb5eae6e491b8579589b070fa29afbea2a1-0' }"
 
     input:
-    tuple val(meta), path(maf), val(caller)
+    tuple val(meta), path(maf)
     tuple val(meta2), path(fasta)
 
     output:
@@ -26,7 +26,7 @@ process MAF_FILTERING {
     filter_mutations.py -i $maf --output ${prefix}.maf --ref $fasta $args
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        python: \$(echo \$(python --version 2>&1) | sed 's/^.*Python (//;s/).*//')
+        python: \$(echo \$(python --version 2>&1) | sed -e "s/Python //g")
     END_VERSIONS
     """
 
