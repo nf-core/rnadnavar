@@ -21,11 +21,11 @@ workflow MAF_FILTERING_RNA {
 
         if (params.step == 'rna_filtering') { maf_to_filter = input_sample} // TODO: not implemented yet
         else {
-            if (params.step =="realignment"){
+            if (params.step == "realignment"){
                 maf_to_filter = maf_to_filter_realigned // there is no first maf
                 maf_to_filter_realigned = null
             }
-            if (maf_to_filter_realigned){
+            if (params.tools && params.tools.split(',').contains('realignment') && maf_to_filter_realigned){
                 // RNA filtering after realignment
                 maf_to_cross_first_pass = maf_to_filter
                                             .map{meta, maf -> [meta.patient, meta, maf]}
