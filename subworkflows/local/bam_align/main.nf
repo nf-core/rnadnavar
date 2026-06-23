@@ -35,7 +35,7 @@ workflow BAM_ALIGN {
     main:
     reports   = Channel.empty()
     versions  = Channel.empty()
-    fasta_with_fai = fasta.combine(fasta_fai).map { meta, fa, fai -> [meta, fa, fai] }
+    fasta_with_fai = fasta.combine(fasta_fai).map { meta, fa, fai -> [meta, fa, fai] }.first()
 
     // Initialize outputs to emit
     bam_mapped_rna   = Channel.empty()

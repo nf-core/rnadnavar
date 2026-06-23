@@ -15,7 +15,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MANTA {
 
     main:
     versions = Channel.empty()
-    fasta_fai_with_meta = fasta.combine(fasta_fai).map { meta, _fa, fai -> [meta, fai] }
+    fasta_fai_with_meta = fasta.combine(fasta_fai).map { meta, _fa, fai -> [meta, fai] }.first()
 
     // Combine cram and intervals, account for 0 intervals
     cram_intervals = cram.combine(intervals).map{ it ->

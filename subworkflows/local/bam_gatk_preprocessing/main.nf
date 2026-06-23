@@ -40,7 +40,7 @@ workflow BAM_GATK_PREPROCESSING {
     versions  = Channel.empty()
     cram_variant_calling = Channel.empty()
     dict_path = dict.map { _meta, d -> d }
-    fasta_with_fai = fasta.combine(fasta_fai).map { meta, fa, fai -> [meta, fa, fai] }
+    fasta_with_fai = fasta.combine(fasta_fai).map { meta, fa, fai -> [meta, fa, fai] }.first()
     // Markduplicates
     if (params.step in ['mapping', 'markduplicates'] || realignment) {
 

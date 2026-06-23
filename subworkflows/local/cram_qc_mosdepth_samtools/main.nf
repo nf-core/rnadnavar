@@ -17,7 +17,7 @@ workflow CRAM_QC_MOSDEPTH_SAMTOOLS {
     main:
     versions = Channel.empty()
     reports = Channel.empty()
-    fasta_with_fai = fasta.combine(fasta_fai).map { meta, fa, fai -> [meta, fa, fai] }
+    fasta_with_fai = fasta.combine(fasta_fai).map { meta, fa, fai -> [meta, fa, fai] }.first()
 
     // Reports run on cram
     SAMTOOLS_STATS(

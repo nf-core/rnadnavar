@@ -15,7 +15,7 @@ workflow CRAM_MERGE_INDEX_SAMTOOLS {
 
     main:
     versions = Channel.empty()
-    fasta_with_fai_gzi = fasta.combine(fasta_fai).map { fa, fai -> [[id: fa.baseName], fa, fai, []] }
+    fasta_with_fai_gzi = fasta.combine(fasta_fai).map { fa, fai -> [[id: fa.baseName], fa, fai, []] }.first()
 
     // Figuring out if there is one or more cram(s) from the same sample
     cram_to_merge = cram.branch{ meta, c ->

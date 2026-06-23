@@ -30,7 +30,7 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN {
     main:
         versions   = Channel.empty()
         bam_mapped = Channel.empty()
-        fasta_with_fai = fasta.combine(fasta_fai).map { meta, fa, fai -> [meta, fa, fai] }
+        fasta_with_fai = fasta.combine(fasta_fai).map { meta, fa, fai -> [meta, fa, fai] }.first()
 
         if (params.step in ['mapping', 'markduplicates', 'splitncigar',
         'prepare_recalibration', 'recalibrate', 'variant_calling', 'norm', 'consensus',

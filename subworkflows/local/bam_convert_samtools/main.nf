@@ -20,8 +20,8 @@ workflow BAM_CONVERT_SAMTOOLS {
 
     main:
     versions = Channel.empty()
-    fasta_with_fai = fasta.combine(fasta_fai).map { meta, fa, fai -> [meta, fa, fai] }
-    fasta_with_fai_gzi = fasta.combine(fasta_fai).map { meta, fa, fai -> [meta, fa, fai, []] }
+    fasta_with_fai = fasta.combine(fasta_fai).map { meta, fa, fai -> [meta, fa, fai] }.first()
+    fasta_with_fai_gzi = fasta.combine(fasta_fai).map { meta, fa, fai -> [meta, fa, fai, []] }.first()
 
     // Index File if not PROVIDED -> this also requires updates to samtools view possibly URGH
 
