@@ -3,7 +3,8 @@
 //
 // For all modules here:
 // A when clause condition is defined in the conf/modules.config to determine if the module should be run
-include { VCF2MAF                                  } from '../../../modules/local/vcf2maf/vcf2maf/main'
+include { GUNZIP as GUNZIP_VCF2MAF                 } from '../../../modules/nf-core/gunzip/main'
+include { VCF2MAF                                  } from '../../../modules/nf-core/vcf2maf/main'
 include { RUN_CONSENSUS                            } from '../../../modules/local/consensus/main'
 include { RUN_CONSENSUS as RUN_CONSENSUS_RESCUE    } from '../../../modules/local/consensus/main'
 // Create samplesheets to restart from consensus
@@ -26,6 +27,8 @@ workflow VCF_CONSENSUS {
     mafs_from_varcal_dna    = Channel.empty()
     consensus_maf           = Channel.empty()
 
+    fasta_for_consensus = fasta.map { _meta, fa -> fa }
+
     if (params.step == 'consensus' && !realignment) vcf_to_consensus = input_sample
 
     if ((params.step in ['mapping', 'markduplicates', 'splitncigar',
@@ -44,9 +47,27 @@ workflow VCF_CONSENSUS {
         } else {
             tools_list = params.tools.split(',').toList().findAll { it in ['sage', 'strelka', 'mutect2'] }.unique()
         }
-        // First we transform the maf to MAF
-        VCF2MAF(vcf_to_consensus_type.vcf.map{metaVCF -> [metaVCF[0], metaVCF[1]]},
-                fasta)
+        // The nf-core vcf2maf module only accepts uncompressed VCF input, so
+        // decompress here while preserving metadata and keeping plain VCFs untouched.
+        vcf_for_vcf2maf = vcf_to_consensus_type.vcf
+            .map { entry -> [entry[0], entry[1]] }
+            .branch { meta, vcf_file ->
+                gzipped: vcf_file.name.endsWith('.gz')
+                plain: !vcf_file.name.endsWith('.gz')
+            }
+
+        GUNZIP_VCF2MAF(vcf_for_vcf2maf.gzipped)
+        versions = versions.mix(GUNZIP_VCF2MAF.out.versions_gunzip)
+
+        vcf_for_vcf2maf = vcf_for_vcf2maf.plain
+            .mix(GUNZIP_VCF2MAF.out.gunzip)
+
+        // First convert VCF inputs to MAF.
+        VCF2MAF(
+            vcf_for_vcf2maf,
+            fasta_for_consensus,
+            Channel.value([]) // empty vep - we already call it independently
+        )
         maf_to_consensus = VCF2MAF.out.maf
                 .mix(vcf_to_consensus_type.maf)
                 .map { meta, maf ->
@@ -195,9 +216,25 @@ workflow VCF_CONSENSUS {
                                 vcf: it[0].data_type == "vcf"
                                 maf: it[0].data_type == "maf"
                                 }
-            // First we transform the vcf to MAF
-            VCF2MAF(vcf_to_consensus_type.vcf.map{metaVCF -> [metaVCF[0], metaVCF[1]]},
-                    fasta)
+            vcf_for_vcf2maf = vcf_to_consensus_type.vcf
+                .map { entry -> [entry[0], entry[1]] }
+                .branch { meta, vcf_file ->
+                    gzipped: vcf_file.name.endsWith('.gz')
+                    plain: !vcf_file.name.endsWith('.gz')
+                }
+
+            GUNZIP_VCF2MAF(vcf_for_vcf2maf.gzipped)
+            versions = versions.mix(GUNZIP_VCF2MAF.out.versions_gunzip)
+
+            vcf_for_vcf2maf = vcf_for_vcf2maf.plain
+                .mix(GUNZIP_VCF2MAF.out.gunzip)
+
+            // First convert VCF inputs to MAF.
+            VCF2MAF(
+                vcf_for_vcf2maf,
+                fasta_for_consensus,
+                Channel.value([]) // empty vep - we already call it independently
+            )
             consensus_maf    = VCF2MAF.out.maf.mix(vcf_to_consensus_type.maf)
             versions         = versions.mix(VCF2MAF.out.versions)
 
