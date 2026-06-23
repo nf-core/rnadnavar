@@ -2,6 +2,5 @@ name: maf_filtering
 channels:
   - conda-forge
   - bioconda
-  - defaults
 dependencies:
-  - bioconda::pandas=1.4.3
+  - conda-forge::pandas=1.4.3
