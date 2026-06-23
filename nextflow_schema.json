@@ -740,32 +740,32 @@
                 "chain": {
                     "type": "string",
                     "fa_icon": "fas fa-database",
-                    "description": "Chain file to do liftover - only if `rna_pon2` is provided"
+                    "description": "Chain file to do liftover - only if `secondary_pon` is provided"
                 },
-                "rna_pon": {
+                "reference_pon": {
                     "type": "string",
                     "fa_icon": "fas fa-database",
-                    "description": "Path to  RNA PoN"
+                    "description": "Path to the primary RNA PoN used for RNA-specific filtering (see DOI: 10.1016/j.cels.2018.03.002)"
                 },
-                "rna_pon2": {
+                "secondary_pon": {
                     "type": "string",
                     "fa_icon": "fas fa-database",
-                    "description": "Path to  second RNA PoN"
+                    "description": "Path to the optional secondary RNA PoN used for RNA-specific filtering (see DOI: 10.1016/j.cels.2018.03.002)"
                 },
-                "fasta2": {
+                "secondary_reference_fasta": {
                     "type": "string",
                     "fa_icon": "fas fa-database",
-                    "description": "Path to second fasta file - only is `rna_pon2` provided"
+                    "description": "Path to the optional secondary reference FASTA - only if `secondary_pon` is provided"
                 },
-                "refname2": {
+                "secondary_reference_name": {
                     "type": "string",
                     "fa_icon": "fas fa-database",
-                    "description": "RNA filtering - name of the second reference being used (e.g. HG19) - only if `rna_pon2` is provided"
+                    "description": "RNA filtering - name of the secondary reference being used (e.g. hg19) - only if `secondary_pon` is provided"
                 },
-                "refname": {
+                "reference_name": {
                     "type": "string",
                     "fa_icon": "fas fa-database",
-                    "description": "RNA filtering - name of the reference being used (e.g. HG38)"
+                    "description": "RNA filtering - name of the primary reference being used (e.g. hg38)"
                 }
             }
         },
