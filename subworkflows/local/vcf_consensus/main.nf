@@ -47,14 +47,22 @@ workflow VCF_CONSENSUS {
         // First we transform the maf to MAF
         VCF2MAF(vcf_to_consensus_type.vcf.map{metaVCF -> [metaVCF[0], metaVCF[1]]},
                 fasta)
-        maf_to_consensus = VCF2MAF.out.maf.mix(vcf_to_consensus_type.maf).map { meta, maf ->
-                                                // change data type to maf
-                                                def key = meta + [data_type: 'maf']
-                                                // selectdata type
-                                                key = key.subMap('id', 'patient', 'status', 'data_type')
-                                                [key, maf, meta.variantcaller]
-                                            }.groupTuple(size: tools_list ? tools_list.size() : 1) // [meta, maf, variantcaller]
-        versions         = versions.mix(VCF2MAF.out.versions)
+        maf_to_consensus = VCF2MAF.out.maf
+                .mix(vcf_to_consensus_type.maf)
+                .map { meta, maf ->
+                    // change data type to maf
+                    def key = meta + [data_type: 'maf']
+                    // selectdata type
+                    key = key.subMap('id', 'patient', 'status', 'data_type')
+                    [key, maf, meta.variantcaller]
+                    }
+                .groupTuple(size: tools_list ? tools_list.size() : 1) // [meta, maf, variantcaller]
+                // this will order the channel to avoid issues with resume
+                .map { meta, mafs, callers ->
+                    def paired = callers.indices.collect { i -> [callers[i], mafs[i]] }.sort { a, b -> a[0] <=> b[0] }
+                    [meta, paired.collect { it[1] }, paired.collect { it[0] }]
+                    }
+        versions = versions.mix(VCF2MAF.out.versions)
 
 //        maf_to_consensus.dump(tag:"maf_to_consensus")
         // count number of callers to generate groupKey
@@ -124,14 +132,16 @@ workflow VCF_CONSENSUS {
             mafs_dna_crossed_with_rna_rescue = mafs_status_dna_to_cross
                                                 .cross(maf_consensus_status_rna_to_cross)
                                                 .map { dna, rna ->
-                                                def meta = [:]
-                                                meta.patient = dna[0]
-                                                meta.dna_id  = dna[1].id
-                                                meta.rna_id  = rna[1].id
-                                                meta.status  = dna[1].status
-                                                meta.id      = "${meta.dna_id}_with_${meta.rna_id}".toString()
-                                                [meta, dna[2] + rna[2], dna[3] + rna[3]]
-                                            }
+                                                    def meta = [:]
+                                                    meta.patient = dna[0]
+                                                    meta.dna_id  = dna[1].id
+                                                    meta.rna_id  = rna[1].id
+                                                    meta.status  = dna[1].status
+                                                    meta.id      = "${meta.dna_id}_with_${meta.rna_id}".toString()
+                                                    def paired = (dna[3] + rna[3]).indices.collect { i -> [(dna[3] + rna[3])[i], (dna[2] + rna[2])[i]] }
+                                                        .sort { a, b -> a[0] <=> b[0] }
+                                                    [meta, paired.collect { it[1] }, paired.collect { it[0] }]
+                                                    }
             mafs_rna_crossed_with_dna_rescue = mafs_status_rna_to_cross
                                                 .cross(maf_consensus_status_dna_to_cross)
                                                 .map { rna, dna ->
@@ -141,7 +151,9 @@ workflow VCF_CONSENSUS {
                                                 meta.dna_id  = dna[1].id
                                                 meta.status  = rna[1].status
                                                 meta.id      = "${meta.rna_id}_with_${meta.dna_id}".toString()
-                                                [meta, rna[2] + dna[2], rna[3] + dna[3]]
+                                                def paired = (rna[3] + dna[3]).indices.collect { i -> [(rna[3] + dna[3])[i], (rna[2] + dna[2])[i]] }
+                                                    .sort { a, b -> a[0] <=> b[0] }
+                                                [meta, paired.collect { it[1] }, paired.collect { it[0] }]
                                             }
 
             mafs_to_rescue = mafs_dna_crossed_with_rna_rescue.mix(mafs_rna_crossed_with_dna_rescue)
