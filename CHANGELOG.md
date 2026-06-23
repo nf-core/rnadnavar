@@ -64,6 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated test configurations and `.nftignore` files
 - Improved subworkflow organization and consistency (typos, remove unused code blocks, spacing, comments, readability)
 - Massive speed up to run_consensus.R
+- Migrated consensus module from custom Docker container to Seqera Wave containers
 
 ### `Removed`
 
