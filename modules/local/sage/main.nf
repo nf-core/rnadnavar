@@ -10,9 +10,9 @@ process SAGE {
     input:
     tuple val(meta),  path(input_normal), path(input_index_normal), path(input_tumor), path(input_index_tumor), path(intervals)
     tuple val(meta1), path(ensembl_dir)
-    tuple val(meta2), path(sage_highconfidence)
-    tuple val(meta3), path(sage_actionablepanel)
-    tuple val(meta4), path(sage_knownhotspots)
+    tuple val(meta2), path(sage_high_confidence)
+    tuple val(meta3), path(sage_actionable_panel)
+    tuple val(meta4), path(sage_known_hotspots)
     tuple val(meta5), path(fasta)
     tuple val(meta6), path(fai)
     tuple val(meta7), path(dict)
@@ -48,9 +48,9 @@ process SAGE {
         -ref_genome $fasta \\
         -threads $task.cpus \\
         -tumor ${meta.tumor_id} -tumor_bam ${input_tumor} \\
-        -high_confidence_bed ${sage_highconfidence} \\
-        -panel_bed ${sage_actionablepanel} \\
-        -hotspots ${sage_knownhotspots} \\
+        -high_confidence_bed ${sage_high_confidence} \\
+        -panel_bed ${sage_actionable_panel} \\
+        -hotspots ${sage_known_hotspots} \\
         $reference \\
         $interval \\
         $ensembl_data_dir \\
@@ -71,9 +71,9 @@ process SAGE {
         -threads $task.cpus \\
         -tumor ${meta.tumor_id} \\
         -tumor_bam ${input_tumor} \\
-        -high_confidence_bed ${sage_highconfidence} \\
-        -panel_bed ${sage_actionablepanel} \\
-        -hotspots ${sage_knownhotspots} \\
+        -high_confidence_bed ${sage_high_confidence} \\
+        -panel_bed ${sage_actionable_panel} \\
+        -hotspots ${sage_known_hotspots} \\
         $ensembl_data_dir \\
         $reference \\
         $args
