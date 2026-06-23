@@ -40,7 +40,7 @@ workflow VCF_CONSENSUS {
                                 }
         def tools_list
         if (realignment || (params.step in ['consensus', 'annotate','filtering', 'rna_filtering'] && params.tools && params.tools.split(',').contains("realignment")) ) {
-            tools_list = params.defaultvariantcallers.split(',').toList().unique()
+            tools_list = params.default_variant_callers.split(',').toList().unique()
         } else {
             tools_list = params.tools.split(',').toList().findAll { it in ['sage', 'strelka', 'mutect2'] }.unique()
         }

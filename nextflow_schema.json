@@ -485,7 +485,7 @@
             "default": "",
             "fa_icon": "fas fa-toolbox",
             "properties": {
-                "defaultvariantcallers": {
+                "default_variant_callers": {
                     "type": "string",
                     "default": "sage,strelka,mutect2",
                     "fa_icon": "fas fa-play",
@@ -550,19 +550,19 @@
                     "help_text": "Must be provided together with `--mutect2_alleles`.",
                     "hidden": true
                 },
-                "sage_highconfidence": {
+                "sage_high_confidence": {
                     "type": "string",
                     "fa_icon": "fas fa-file",
                     "description": "Bed file with known high confidence used as input in Sage variant caller",
                     "hidden": true
                 },
-                "sage_actionablepanel": {
+                "sage_actionable_panel": {
                     "type": "string",
                     "fa_icon": "fas fa-file",
                     "description": "Bed file with ac actionable list of variants used as input in Sage variant caller",
                     "hidden": true
                 },
-                "sage_knownhotspots": {
+                "sage_known_hotspots": {
                     "type": "string",
                     "fa_icon": "fas fa-file",
                     "description": "Known hotspots used as input in Sage variant caller",
