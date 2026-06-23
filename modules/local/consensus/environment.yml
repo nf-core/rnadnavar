@@ -1,10 +1,10 @@
 channels:
-- conda-forge
-- bioconda
+  - conda-forge
+  - bioconda
 dependencies:
-- bioconda::bioconductor-complexheatmap=2.26.1
-- bioconda::bioconductor-rtracklayer=1.70.1
-- conda-forge::r-data.table=1.17.8
-- conda-forge::r-dplyr=1.2.1
-- conda-forge::r-ggpubr=0.6.3
-- conda-forge::r-ggrepel=0.9.8
+  - bioconda::bioconductor-complexheatmap=2.26.1
+  - bioconda::bioconductor-rtracklayer=1.70.1
+  - conda-forge::r-data.table=1.17.8
+  - conda-forge::r-dplyr=1.2.1
+  - conda-forge::r-ggpubr=0.6.3
+  - conda-forge::r-ggrepel=0.9.8
