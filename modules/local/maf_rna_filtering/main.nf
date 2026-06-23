@@ -8,7 +8,6 @@ process RNA_FILTERING {
     input:
         tuple val(meta), path(maf), path(maf_realignment)
         tuple val(meta1), path(fasta)
-        path fasta_fai
 
     output:
         tuple val(meta), path('*.maf'), emit: maf
@@ -30,7 +29,7 @@ process RNA_FILTERING {
             $args
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
-            python: \$(echo \$(python --version 2>&1) | sed 's/^.*Python (//;s/).*//')
+            python: \$(echo \$(python --version 2>&1) | sed -e "s/Python //g")
         END_VERSIONS
         """
 

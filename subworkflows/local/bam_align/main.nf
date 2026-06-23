@@ -35,6 +35,7 @@ workflow BAM_ALIGN {
     main:
     reports   = Channel.empty()
     versions  = Channel.empty()
+    fasta_with_fai = fasta.combine(fasta_fai).map { meta, fa, fai -> [meta, fa, fai] }.first()
 
     // Initialize outputs to emit
     bam_mapped_rna   = Channel.empty()
@@ -50,16 +51,16 @@ workflow BAM_ALIGN {
     if (params.step == 'mapping') {
 
         // Figure out if input is bam or fastq
-        input_sample_type = input_sample.branch{
-            bam:   it[0].data_type == "bam"
-            fastq: it[0].data_type == "fastq"
+        input_sample_type = input_sample.branch { item ->
+            bam:   item[0].data_type == "bam"
+            fastq: item[0].data_type == "fastq"
         }
         // QC & TRIM
         interleave_input = false // Currently don't allow interleaved input
         CONVERT_FASTQ_INPUT(
             input_sample_type.bam,
-            [ [ id:"fasta" ], [] ], // fasta
-            [ [ id:'null' ], [] ],  // fasta_fai
+            fasta, // fasta
+            fasta_fai,  // fasta_fai
             interleave_input)
 
         // Gather fastq (inputed or converted)
@@ -72,7 +73,7 @@ workflow BAM_ALIGN {
             FASTQC(input_fastq)
 
             reports = reports.mix(FASTQC.out.zip.collect{ meta, logs -> logs })
-            versions = versions.mix(FASTQC.out.versions.first())
+            versions = versions.mix(FASTQC.out.versions_fastqc)
         }
         //  Trimming and/or splitting
         if (params.trim_fastq || params.split_fastq > 0) {
@@ -80,8 +81,8 @@ workflow BAM_ALIGN {
             save_trimmed_fail = false
             save_merged = false
             FASTP(
-                input_fastq,
-                [], // we are not using any adapter fastas at the moment
+                // we are not using any adapter fastas at the moment, that's why last element is empty
+                input_fastq.map { meta, reads -> [meta, reads, []] },
                 false, // we don't use discard_trimmed_pass at the moment
                 save_trimmed_fail,
                 save_merged
@@ -91,13 +92,15 @@ workflow BAM_ALIGN {
             reports = reports.mix(FASTP.out.html.collect{ _meta, html -> html })
 
             if (params.split_fastq) {
-                reads_for_alignment = FASTP.out.reads.map{ meta, reads ->
-                    def read_files = reads.sort(false) { a,b -> a.getName().tokenize('.')[0] <=> b.getName().tokenize('.')[0] }.collate(2)
+                reads_for_alignment = FASTP.out.reads.map { item ->
+                    def meta = item[0]
+                    def reads = item[1]
+                    def read_files = reads.sort(false) { a, b -> a.getName().tokenize('.')[0] <=> b.getName().tokenize('.')[0] }.collate(2)
                     [ meta + [ n_fastq: read_files.size() ], read_files ]
                 }.transpose()
             } else reads_for_alignment = FASTP.out.reads
 
-            versions = versions.mix(FASTP.out.versions)
+            versions = versions.mix(FASTP.out.versions_fastp)
 
         } else {
             reads_for_alignment = input_fastq
@@ -110,24 +113,30 @@ workflow BAM_ALIGN {
         // First, we must calculate number of lanes for each sample (meta.n_fastq)
         // This is needed to group reads from the same sample together using groupKey to avoid stalling the workflow
         // when reads from different samples are mixed together
-        reads_for_alignment.map { meta, reads ->
+        reads_for_alignment.map { item ->
+                def meta = item[0]
+                def reads = item[1]
                 [ meta.subMap('patient', 'sample', 'status'), reads ]
             }
             .groupTuple()
-            .map { meta, reads ->
+            .map { item ->
+                def meta = item[0]
+                def reads = item[1]
                 meta + [ n_fastq: reads.size() ] // We can drop the FASTQ files now that we know how many there are
             }
             .set { reads_grouping_key }
 
-        reads_for_alignment = reads_for_alignment.map{ meta, reads ->
+        reads_for_alignment = reads_for_alignment.map { item ->
+            def meta = item[0]
+            def reads = item[1]
             // Update meta.id to meta.sample no multiple lanes or splitted fastqs
             if (meta.size * meta.num_lanes == 1) [ meta + [ id:meta.sample ], reads ]
             else [ meta, reads ]
         }
         // Separate DNA from RNA samples, DNA samples will be aligned with bwa, and RNA samples with star
-        reads_for_alignment_status = reads_for_alignment.branch{
-                dna: it[0].status < 2
-                rna: it[0].status == 2
+        reads_for_alignment_status = reads_for_alignment.branch { item ->
+                dna: item[0].status < 2
+                rna: item[0].status == 2
             }
 
         //  DNA mapping
@@ -162,10 +171,8 @@ workflow BAM_ALIGN {
             star_index,
             gtf,
             params.star_ignore_sjdbgtf,
-            params.seq_platform ? params.seq_platform : [],
-            params.seq_center ? params.seq_center : [],
-            fasta,
-            [ [ id:"transcript_fasta" ], [] ] // transcript_fasta
+            fasta_with_fai,
+            [ [ id:"transcript_fasta" ], [], [] ]
         )
         // Grouping the bams from the same samples not to stall the workflow
         bam_mapped_rna = FASTQ_ALIGN_STAR.out.bam.combine(reads_grouping_key) // Creates a tuple of [ meta, bam, reads_grouping_key ]
@@ -188,7 +195,6 @@ workflow BAM_ALIGN {
         // Gather QC reports
         reports           = reports.mix(FASTQ_ALIGN_STAR.out.stats.collect{it[1]}.ifEmpty([]))
         reports           = reports.mix(FASTQ_ALIGN_STAR.out.log_final.collect{it[1]}.ifEmpty([]))
-        versions          = versions.mix(FASTQ_ALIGN_STAR.out.versions)
 
         // mix dna and rna in one channel
         bam_mapped = bam_mapped_dna.mix(bam_mapped_rna)
@@ -200,20 +206,19 @@ workflow BAM_ALIGN {
             // bams are merged (when multiple lanes from the same sample), indexed and then converted to cram
             BAM_MERGE_INDEX_SAMTOOLS(bam_mapped)
 
-            BAM_TO_CRAM_MAPPING(BAM_MERGE_INDEX_SAMTOOLS.out.bam_bai, fasta, fasta_fai)
+            BAM_TO_CRAM_MAPPING(BAM_MERGE_INDEX_SAMTOOLS.out.bam_bai, fasta_with_fai)
             // Create CSV to restart from this step
             if (params.save_output_as_bam) CHANNEL_ALIGN_CREATE_CSV(BAM_MERGE_INDEX_SAMTOOLS.out.bam_bai, params.outdir, params.save_output_as_bam)
             else CHANNEL_ALIGN_CREATE_CSV(BAM_TO_CRAM_MAPPING.out.cram.join(BAM_TO_CRAM_MAPPING.out.crai, failOnDuplicate: true, failOnMismatch: true), params.outdir, params.save_output_as_bam)
 
             // Gather used softwares versions
             versions = versions.mix(BAM_MERGE_INDEX_SAMTOOLS.out.versions)
-            versions = versions.mix(BAM_TO_CRAM_MAPPING.out.versions)
+            versions = versions.mix(BAM_TO_CRAM_MAPPING.out.versions_samtools)
         }
 
         // Gather used softwares versions
         versions = versions.mix(CONVERT_FASTQ_INPUT.out.versions)
         versions = versions.mix(FASTQ_ALIGN.out.versions)
-        versions = versions.mix(FASTQ_ALIGN_STAR.out.versions)
 
     }
 

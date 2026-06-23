@@ -3,21 +3,44 @@
 //
 include { PREPARE_GENOME                                       } from './../prepare_genome/main'
 include { PREPARE_INTERVALS                                    } from './../prepare_intervals/main'
-include { GATK4_BEDTOINTERVALLIST                              } from '../../../modules/nf-core/gatk4/bedtointervallist/main'
 
 workflow PREPARE_REFERENCE_AND_INTERVALS {
+    take:
+    dbsnp_input
+    known_snps_input
+    fasta_input
+    germline_resource_input
+    known_indels_input
+    pon_input
+    whitelist_input
+    bwa_input
+    bwamem2_input
+    dragmap_input
+    hisat2_index_input
+    splicesites_input
+    dict_input
+    fasta_fai_input
+    dbsnp_tbi_input
+    germline_resource_tbi_input
+    known_indels_tbi_input
+    known_snps_tbi_input
+    pon_tbi_input
+    intervals_input
+    no_intervals_input
+    step
+    nucleotides_per_second
+    wes
 
     main:
     versions = Channel.empty()
 
-    // Initialize file channels based on params, defined in the params.genomes[params.genome] scope
-    dbsnp              = params.dbsnp              ? Channel.fromPath(params.dbsnp).collect()                    : Channel.value([])
-    known_snps         = params.known_snps         ? Channel.fromPath(params.known_snps).collect()               : Channel.value([])
-    fasta              = params.fasta              ? Channel.fromPath(params.fasta).collect()                    : Channel.empty()
-    germline_resource  = params.germline_resource  ? Channel.fromPath(params.germline_resource).collect()        : Channel.value([]) //Mutec2 does not require a germline resource, so set to optional input
-    known_indels       = params.known_indels       ? Channel.fromPath(params.known_indels).collect()             : Channel.value([])
-    pon                = params.pon                ? Channel.fromPath(params.pon).collect()                      : Channel.value([]) //PON is optional for Mutect2 (but highly recommended)
-    whitelist          = params.whitelist          ? Channel.fromPath(params.whitelist).collect()                : Channel.value([]) // whitelist optional for filtering
+    dbsnp              = dbsnp_input              ? Channel.fromPath(dbsnp_input).collect()                    : Channel.value([])
+    known_snps         = known_snps_input         ? Channel.fromPath(known_snps_input).collect()               : Channel.value([])
+    fasta              = fasta_input              ? Channel.fromPath(fasta_input).collect()                    : Channel.empty()
+    germline_resource  = germline_resource_input  ? Channel.fromPath(germline_resource_input).collect()        : Channel.value([]) //Mutec2 does not require a germline resource, so set to optional input
+    known_indels       = known_indels_input       ? Channel.fromPath(known_indels_input).collect()             : Channel.value([])
+    pon                = pon_input                ? Channel.fromPath(pon_input).collect()                      : Channel.value([]) //PON is optional for Mutect2 (but highly recommended)
+    whitelist          = whitelist_input          ? Channel.fromPath(whitelist_input).collect()                : Channel.value([]) // whitelist optional for filtering
 
     // Build indexes if needed
     PREPARE_GENOME(
@@ -31,18 +54,25 @@ workflow PREPARE_REFERENCE_AND_INTERVALS {
 
     // Gather built indices or get them from the params
     fasta                  = PREPARE_GENOME.out.fasta   // unbgzipped if .gz
-    bwa                    = params.fasta                   ? params.bwa                        ? Channel.fromPath(params.bwa).collect()                           : PREPARE_GENOME.out.bwa                   : []
-    bwamem2                = params.fasta                   ? params.bwamem2                    ? Channel.fromPath(params.bwamem2).collect()                       : PREPARE_GENOME.out.bwamem2               : []
-    dragmap                = params.fasta                   ? params.dragmap                    ? Channel.fromPath(params.dragmap).collect()                       : PREPARE_GENOME.out.hashtable             : []
-    hisat2_index           = params.fasta                   ? params.hisat2_index               ? Channel.fromPath(params.hisat2_index).map{ it -> [ [id:'ht_idx'], it ] }.collect()                          : PREPARE_GENOME.out.hisat2_index : []
-    splicesites            = params.fasta                   ? params.splicesites                ? Channel.fromPath(params.splicesites).collect()                   : PREPARE_GENOME.out.splicesites           : []
-    dict                   = params.dict                    ? Channel.fromPath(params.dict).map{ it -> [ [id:'dict'], it ] }.collect()                             : PREPARE_GENOME.out.dict
-    fasta_fai              = params.fasta                   ? params.fasta_fai                  ? Channel.fromPath(params.fasta_fai).collect()                     : PREPARE_GENOME.out.fasta_fai             : []
-    dbsnp_tbi              = params.dbsnp                   ? params.dbsnp_tbi                  ? Channel.fromPath(params.dbsnp_tbi).collect()                     : PREPARE_GENOME.out.dbsnp_tbi             : Channel.value([])
-    germline_resource_tbi  = params.germline_resource       ? params.germline_resource_tbi      ? Channel.fromPath(params.germline_resource_tbi).collect()         : PREPARE_GENOME.out.germline_resource_tbi : []
-    known_indels_tbi       = params.known_indels            ? params.known_indels_tbi           ? Channel.fromPath(params.known_indels_tbi).collect()              : PREPARE_GENOME.out.known_indels_tbi      : Channel.value([])
-    known_snps_tbi         = params.known_snps              ? params.known_snps_tbi             ? Channel.fromPath(params.known_snps_tbi).collect()                : PREPARE_GENOME.out.known_snps_tbi        : Channel.value([])
-    pon_tbi                = params.pon                     ? params.pon_tbi                    ? Channel.fromPath(params.pon_tbi).collect()                       : PREPARE_GENOME.out.pon_tbi               : []
+    bwa                    = fasta_input                   ? bwa_input                        ? Channel.fromPath(bwa_input).collect()                           : PREPARE_GENOME.out.bwa                   : []
+    bwamem2                = fasta_input                   ? bwamem2_input                    ? Channel.fromPath(bwamem2_input).collect()                       : PREPARE_GENOME.out.bwamem2               : []
+    dragmap                = fasta_input                   ? dragmap_input                    ? Channel.fromPath(dragmap_input).collect()                       : PREPARE_GENOME.out.hashtable             : []
+    hisat2_index           = fasta_input                   ? hisat2_index_input               ? Channel.fromPath(hisat2_index_input).map{ it -> [ [id:'ht_idx'], it ] }.collect()                          : PREPARE_GENOME.out.hisat2_index : []
+    splicesites            = fasta_input                   ? splicesites_input                ? Channel.fromPath(splicesites_input).collect()                   : PREPARE_GENOME.out.splicesites           : []
+    dict                   = dict_input                    ? Channel.fromPath(dict_input).map{ it -> [ [id:'dict'], it ] }.first()                               : PREPARE_GENOME.out.dict
+    fasta_fai              = fasta_input                   ? fasta_fai_input                  ? Channel.fromPath(fasta_fai_input).collect()                     : PREPARE_GENOME.out.fasta_fai             : []
+    // If no external index was supplied, consume the rebuilt resource emitted by PREPARE_GENOME
+    // so the resource path and generated TBI keep matching basenames downstream.
+    dbsnp                  = dbsnp_input                   ? dbsnp_tbi_input                  ? Channel.fromPath(dbsnp_input).collect()                         : PREPARE_GENOME.out.dbsnp                  : Channel.value([])
+    germline_resource      = germline_resource_input       ? germline_resource_tbi_input      ? Channel.fromPath(germline_resource_input).collect()             : PREPARE_GENOME.out.germline_resource      : []
+    known_indels           = known_indels_input            ? known_indels_tbi_input           ? Channel.fromPath(known_indels_input).collect()                  : PREPARE_GENOME.out.known_indels           : Channel.value([])
+    known_snps             = known_snps_input              ? known_snps_tbi_input             ? Channel.fromPath(known_snps_input).collect()                    : PREPARE_GENOME.out.known_snps             : Channel.value([])
+    pon                    = pon_input                     ? pon_tbi_input                    ? Channel.fromPath(pon_input).collect()                           : PREPARE_GENOME.out.pon                    : []
+    dbsnp_tbi              = dbsnp_input                   ? dbsnp_tbi_input                  ? Channel.fromPath(dbsnp_tbi_input).collect()                     : PREPARE_GENOME.out.dbsnp_tbi             : Channel.value([])
+    germline_resource_tbi  = germline_resource_input       ? germline_resource_tbi_input      ? Channel.fromPath(germline_resource_tbi_input).collect()         : PREPARE_GENOME.out.germline_resource_tbi : []
+    known_indels_tbi       = known_indels_input            ? known_indels_tbi_input           ? Channel.fromPath(known_indels_tbi_input).collect()              : PREPARE_GENOME.out.known_indels_tbi      : Channel.value([])
+    known_snps_tbi         = known_snps_input              ? known_snps_tbi_input             ? Channel.fromPath(known_snps_tbi_input).collect()                : PREPARE_GENOME.out.known_snps_tbi        : Channel.value([])
+    pon_tbi                = pon_input                     ? pon_tbi_input                    ? Channel.fromPath(pon_tbi_input).collect()                       : PREPARE_GENOME.out.pon_tbi               : []
     // known_sites is made by grouping both the dbsnp and the known snps/indels resources
     // Which can either or both be optional
     known_sites_indels     = dbsnp.concat(known_indels).collect()
@@ -52,7 +82,14 @@ workflow PREPARE_REFERENCE_AND_INTERVALS {
     known_sites_snps_tbi   = dbsnp_tbi.concat(known_snps_tbi).collect()
 
     // Build intervals if needed
-    PREPARE_INTERVALS(fasta_fai, params.intervals, params.no_intervals)
+    PREPARE_INTERVALS(
+        fasta_fai,
+        intervals_input,
+        no_intervals_input,
+        step,
+        nucleotides_per_second,
+        wes
+    )
     versions = versions.mix(PREPARE_INTERVALS.out.versions)
 
 
@@ -76,8 +113,6 @@ workflow PREPARE_REFERENCE_AND_INTERVALS {
     dbsnp_tbi
     pon
     pon_tbi
-    germline_resource
-    germline_resource_tbi
     hisat2_index
     splicesites
     known_sites_indels

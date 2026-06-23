@@ -9,14 +9,17 @@
 include { BUILD_INTERVALS                                        } from '../../../modules/local/build_intervals'
 include { CREATE_INTERVALS_BED                                   } from '../../../modules/local/create_intervals_bed'
 include { GATK4_INTERVALLISTTOBED                                } from '../../../modules/nf-core/gatk4/intervallisttobed'
-include { TABIX_BGZIPTABIX as TABIX_BGZIPTABIX_INTERVAL_SPLIT    } from '../../../modules/nf-core/tabix/bgziptabix'
-include { TABIX_BGZIPTABIX as TABIX_BGZIPTABIX_INTERVAL_COMBINED } from '../../../modules/nf-core/tabix/bgziptabix'
+include { HTSLIB_BGZIPTABIX as TABIX_BGZIPTABIX_INTERVAL_SPLIT    } from '../../../modules/nf-core/htslib/bgziptabix/main'
+include { HTSLIB_BGZIPTABIX as TABIX_BGZIPTABIX_INTERVAL_COMBINED } from '../../../modules/nf-core/htslib/bgziptabix/main'
 
 workflow PREPARE_INTERVALS {
     take:
-    fasta_fai    // mandatory [ fasta_fai ]
-    intervals    // [ params.intervals ]
-    no_intervals // [ params.no_intervals ]
+    fasta_fai              // channel: [mandatory] fasta FAI path
+    intervals              // input intervals path
+    no_intervals           // boolean: skip intervals entirely
+    step                   // pipeline step
+    nucleotides_per_second // interval duration scaling
+    wes                    // whether this is targeted sequencing
 
     main:
     versions = Channel.empty()
@@ -28,7 +31,7 @@ workflow PREPARE_INTERVALS {
         intervals_combined                     = Channel.of([[id:"no_intervals"], 0 ])
         intervals_bed_gz_tbi_combined          = Channel.of([[], []])
         intervals_bed_gz_tbi_and_num_intervals = Channel.of([[],[], 0 ])
-    } else if (params.step != 'annotate') {
+    } else if (step != 'annotate') {
         // If no interval/target file is provided, then generated intervals from FASTA file
         if (!intervals) {
             BUILD_INTERVALS(fasta_fai.map{it -> [ [ id:it.baseName ], it ] })
@@ -51,7 +54,7 @@ workflow PREPARE_INTERVALS {
             if (intervals.endsWith(".interval_list")) {
                 GATK4_INTERVALLISTTOBED(intervals_combined)
                 intervals_combined = GATK4_INTERVALLISTTOBED.out.bed
-                versions = versions.mix(GATK4_INTERVALLISTTOBED.out.versions)
+                versions = versions.mix(GATK4_INTERVALLISTTOBED.out.versions_gatk4)
             }
         }
 
@@ -62,14 +65,13 @@ workflow PREPARE_INTERVALS {
         // 1. Intervals file is split up into multiple bed files for scatter/gather & grouping together small intervals
         intervals_bed = intervals_bed.flatten()
             .map{ intervalFile ->
-                def duration = 0.0
-                for (line in intervalFile.readLines()) {
-                    final fields = line.split('\t')
-                    if (fields.size() >= 5) duration += fields[4].toFloat()
+                def duration = intervalFile.readLines().inject(0.0) { acc, line ->
+                    def fields = line.split('\t')
+                    if (fields.size() >= 5) acc + fields[4].toFloat()
                     else {
-                        start = fields[1].toInteger()
-                        end = fields[2].toInteger()
-                        duration += (end - start) / params.nucleotides_per_second
+                        def start = fields[1].toInteger()
+                        def end = fields[2].toInteger()
+                        acc + (end - start) / nucleotides_per_second
                     }
                 }
                 [ duration, intervalFile ]
@@ -80,23 +82,39 @@ workflow PREPARE_INTERVALS {
             .transpose()
 
         // 2. Create bed.gz and bed.gz.tbi for each interval file. They are split by region (see above)
-        TABIX_BGZIPTABIX_INTERVAL_SPLIT(intervals_bed.map{ file, num_intervals -> [ [ id:file.baseName], file ] })
+        TABIX_BGZIPTABIX_INTERVAL_SPLIT(
+            intervals_bed.map{ file, num_intervals -> [ [ id:file.baseName], file, [], [] ] },
+            'compress',
+            true,
+            'bed'
+        )
 
-        intervals_bed_gz_tbi = TABIX_BGZIPTABIX_INTERVAL_SPLIT.out.gz_tbi.map{ meta, bed, tbi -> [ bed, tbi ] }.toList()
+        intervals_bed_gz_tbi = TABIX_BGZIPTABIX_INTERVAL_SPLIT.out.output
+            .join(TABIX_BGZIPTABIX_INTERVAL_SPLIT.out.index, failOnMismatch: true)
+            .map{ meta, bed, tbi -> [ bed, tbi ] }.toList()
             // Adding number of intervals as elements
             .map{ it -> [ it, it.size() ] }
             .transpose()
 
-        versions = versions.mix(TABIX_BGZIPTABIX_INTERVAL_SPLIT.out.versions)
+        versions = versions.mix(TABIX_BGZIPTABIX_INTERVAL_SPLIT.out.versions_htslib)
+        versions = versions.mix(TABIX_BGZIPTABIX_INTERVAL_SPLIT.out.versions_xz)
 
-        TABIX_BGZIPTABIX_INTERVAL_COMBINED(intervals_combined)
-        versions = versions.mix(TABIX_BGZIPTABIX_INTERVAL_COMBINED.out.versions)
+        TABIX_BGZIPTABIX_INTERVAL_COMBINED(
+            intervals_combined.map{ meta, file -> [ meta, file, [], [] ] },
+            'compress',
+            true,
+            'bed'
+        )
+        versions = versions.mix(TABIX_BGZIPTABIX_INTERVAL_COMBINED.out.versions_htslib)
+        versions = versions.mix(TABIX_BGZIPTABIX_INTERVAL_COMBINED.out.versions_xz)
 
 
-        intervals_bed_gz_tbi_combined = TABIX_BGZIPTABIX_INTERVAL_COMBINED.out.gz_tbi.map{meta, gz, tbi -> [gz, tbi] }.collect()
-        intervals_bed_gz_tbi_and_num_intervals = intervals_bed_gz_tbi.map{ intervals, num_intervals ->
+        intervals_bed_gz_tbi_combined = TABIX_BGZIPTABIX_INTERVAL_COMBINED.out.output
+            .join(TABIX_BGZIPTABIX_INTERVAL_COMBINED.out.index, failOnMismatch: true)
+            .map{meta, gz, tbi -> [gz, tbi] }.collect()
+        intervals_bed_gz_tbi_and_num_intervals = intervals_bed_gz_tbi.map{ interval_pair, num_intervals ->
         if ( num_intervals < 1 ) [ [], [], num_intervals ]
-        else [ intervals[0], intervals[1], num_intervals ]
+        else [ interval_pair[0], interval_pair[1], num_intervals ]
         }
     }
 
@@ -105,7 +123,7 @@ workflow PREPARE_INTERVALS {
         Channel.value([]) :
         intervals_combined.map{meta, bed -> bed }.collect()
     // For QC during preprocessing, we don't need any intervals (MOSDEPTH doesn't take them for WGS)
-    intervals_for_preprocessing = params.wes ?
+    intervals_for_preprocessing = wes ?
         intervals_bed_combined.map{it -> [ [ id:it.baseName ], it ]}.collect() :
         Channel.value([ [ id:'null' ], [] ])
 

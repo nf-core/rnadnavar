@@ -32,7 +32,9 @@ workflow ANNOTATION_CACHE_INITIALISATION {
                 error("Path provided with VEP cache is invalid.\nMake sure there is a directory named ${vep_cache_dir} in ${vep_cache}./n${help_message}")
             }
         }
-        ensemblvep_cache = Channel.fromPath(file("${vep_cache}/${vep_annotation_cache_key}"), checkIfExists: true).collect()
+        // Keep the cache channel aligned with the nf-core VEP module contract:
+        // a single reusable value channel carrying [meta, cache_dir].
+        ensemblvep_cache = Channel.value([[id: vep_cache_path_full.baseName], vep_cache_path_full])
     } else ensemblvep_cache = []
 
     emit:
