@@ -38,6 +38,9 @@
                     "gatk4": "4.6.2.0",
                     "samtools": 1.21
                 },
+                "GUNZIP_VCF2MAF": {
+                    "gunzip": 1.13
+                },
                 "INDEX_CRAM": {
                     "samtools": "1.23.1"
                 },
@@ -65,7 +68,7 @@
                     "xz": "5.8.3"
                 },
                 "VCF2MAF": {
-                    "vcf2maf": "1.6.21"
+                    "vcf2maf": "1.6.22"
                 },
                 "VCFTOOLS_TSTV_COUNT": {
                     "vcftools": "0.1.16"
@@ -88,6 +91,9 @@
                 "filtering/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.filtered.maf",
                 "filtering/TCRBOA7-T_vs_TCRBOA7-N",
                 "filtering/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.filtered.maf",
+                "gunzip",
+                "gunzip/TCRBOA7-T-RNA_vs_TCRBOA7-N.strelka.variants.vcf",
+                "gunzip/TCRBOA7-T_vs_TCRBOA7-N.strelka.variants.vcf",
                 "pipeline_info",
                 "pipeline_info/nf_core_rnadnavar_software_mqc_versions.yml",
                 "preprocessing",
@@ -218,10 +224,12 @@
                 "variant_calling/strelka/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.strelka.variants.vcf.gz.tbi"
             ],
             [
-                "TCRBOA7-T-RNA_vs_TCRBOA7-N.strelka.maf:md5,954ff0d996607a59669af9bc8dadea56",
-                "TCRBOA7-T_vs_TCRBOA7-N.strelka.maf:md5,fae7532e022765fcbeaf2f1419a2139f",
-                "TCRBOA7-T-RNA_vs_TCRBOA7-N.filtered.maf:md5,184db72b9501f2d16e44cf1f478c29f2",
-                "TCRBOA7-T_vs_TCRBOA7-N.filtered.maf:md5,84d4dafe5b00520c66adf090208e8f5c",
+                "TCRBOA7-T-RNA_vs_TCRBOA7-N.strelka.maf:md5,134af46701ef1c95e9d13aaeec0322c9",
+                "TCRBOA7-T_vs_TCRBOA7-N.strelka.maf:md5,6efd9ef36183c28087d42a4177bc447d",
+                "TCRBOA7-T-RNA_vs_TCRBOA7-N.filtered.maf:md5,209d4978f0f9f0690f356e735a8356bd",
+                "TCRBOA7-T_vs_TCRBOA7-N.filtered.maf:md5,92d160b5d6e426a84e8abbac77f6e06c",
+                "TCRBOA7-T-RNA_vs_TCRBOA7-N.strelka.variants.vcf:md5,d9f4a5dcc0c6cf46e6a4579dcc1adbf3",
+                "TCRBOA7-T_vs_TCRBOA7-N.strelka.variants.vcf:md5,b0554e0b8f8428354a98c7e59f93e5ff",
                 "TCRBOA7-N.recal.table:md5,4771abf3f2f413562282d88d16fd6ad0",
                 "TCRBOA7-T-RNA.recal.table:md5,18cf3ff38a750f9ee8b82ede645a5bf8",
                 "TCRBOA7-T.recal.table:md5,9730abf3cc295cdab573dde542116517",
@@ -259,7 +267,7 @@
                 "TCRBOA7-T_vs_TCRBOA7-N.strelka.variants.TsTv.qual:md5,29da677ef4e152719905df4b2b7cb798"
             ]
         ],
-        "timestamp": "2026-06-23T10:34:23.013144078",
+        "timestamp": "2026-06-23T15:35:28.725966111",
         "meta": {
             "nf-test": "0.9.5",
             "nextflow": "26.04.3"
