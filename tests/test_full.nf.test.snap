@@ -462,15 +462,6 @@
                 "filtering/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N.filtered.maf",
                 "gunzip",
                 "gunzip/GRCh38.d1.vd1.chr7.mini.fa",
-                "gunzip/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.mutect2.filtered.dec.norm_VEP.ann.vcf",
-                "gunzip/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.sage.dec.norm_VEP.ann.vcf",
-                "gunzip/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.strelka.variants.dec.norm_VEP.ann.vcf",
-                "gunzip/TCRBOA7-T-RNA_vs_TCRBOA7-N.mutect2.filtered.dec.norm_VEP.ann.vcf",
-                "gunzip/TCRBOA7-T-RNA_vs_TCRBOA7-N.sage.dec.norm_VEP.ann.vcf",
-                "gunzip/TCRBOA7-T-RNA_vs_TCRBOA7-N.strelka.variants.dec.norm_VEP.ann.vcf",
-                "gunzip/TCRBOA7-T_vs_TCRBOA7-N.mutect2.filtered.dec.norm_VEP.ann.vcf",
-                "gunzip/TCRBOA7-T_vs_TCRBOA7-N.sage.dec.norm_VEP.ann.vcf",
-                "gunzip/TCRBOA7-T_vs_TCRBOA7-N.strelka.variants.dec.norm_VEP.ann.vcf",
                 "normalised",
                 "normalised/mutect2",
                 "normalised/mutect2/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign",
@@ -713,7 +704,7 @@
                 "variant_calling/strelka/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.strelka.variants.vcf.gz.tbi"
             ]
         ],
-        "timestamp": "2026-06-24T14:10:32.564739057",
+        "timestamp": "2026-06-24T16:38:39.016235561",
         "meta": {
             "nf-test": "0.9.5",
             "nextflow": "26.04.3"
