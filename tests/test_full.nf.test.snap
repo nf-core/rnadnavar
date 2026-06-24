@@ -218,7 +218,7 @@
     },
     "Run with -profile test_full": {
         "content": [
-            165,
+            174,
             {
                 "BCFTOOLS_STATS": {
                     "bcftools": "1.23.1"
@@ -266,6 +266,9 @@
                     "gatk4": "4.6.2.0"
                 },
                 "GUNZIP_FASTA": {
+                    "gunzip": 1.13
+                },
+                "GUNZIP_VCF2MAF": {
                     "gunzip": 1.13
                 },
                 "HISAT2_BUILD": {
@@ -338,7 +341,7 @@
                     "7za": 16.02
                 },
                 "VCF2MAF": {
-                    "vcf2maf": "1.6.21"
+                    "vcf2maf": "1.6.22"
                 },
                 "VCFTOOLS_TSTV_COUNT": {
                     "vcftools": "0.1.16"
@@ -350,7 +353,7 @@
                     "vt": "2015.11.10"
                 },
                 "Workflow": {
-                    "nf-core/rnadnavar": "v1.0"
+                    "nf-core/rnadnavar": "v1.0.0"
                 }
             },
             [
@@ -701,7 +704,7 @@
                 "variant_calling/strelka/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.strelka.variants.vcf.gz.tbi"
             ]
         ],
-        "timestamp": "2026-06-23T10:41:03.709931404",
+        "timestamp": "2026-06-24T16:38:39.016235561",
         "meta": {
             "nf-test": "0.9.5",
             "nextflow": "26.04.3"

@@ -4,7 +4,7 @@ process RUN_CONSENSUS {
 
     conda "${moduleDir}/environment.yml"
     container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container
-        ? 'https://community-cr-prod.seqera.io/docker/registry/v2/blobs/sha256/ed/ed5e97c2fc53fb46675998f4f5472807f217043994cd4f490b0eb8887c31ceed/data'
+        ? 'https://community-cr-prod.seqera.io/docker/registry/v2/blobs/sha256/00/0003a3962c416b4c458909d28e343758adf347e614507137b70ac5e4a3c094bb/data'
         : 'community.wave.seqera.io/library/bioconductor-complexheatmap_bioconductor-rtracklayer_r-data.table_r-dplyr_pruned:b2d4632cc9bf5c6e'}"
 
     input:

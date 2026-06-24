@@ -23,7 +23,7 @@ process RNA_FILTERING {
         """
         filter_rna_mutations.py \\
             --maf $maf \\
-            --ref $fasta \\
+            --reference-fasta $fasta \\
             --output ${prefix}.maf \\
             $maf_realign_opt \\
             $args

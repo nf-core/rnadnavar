@@ -18,15 +18,15 @@ def argparser():
     parser = argparse.ArgumentParser(description="")
     parser.add_argument("--maf", help="Input MAF file")
     parser.add_argument("--maf_realign", help="Input MAF file after a second pass")
-    parser.add_argument("--pon2", help="Path to optional second binary pon")
-    parser.add_argument("--pon", help="Path to binary pon")
+    parser.add_argument("--secondary-pon", dest="secondary_pon", help="Path to optional secondary RNA PoN binary generated for RNA-specific filtering (see DOI: 10.1016/j.cels.2018.03.002)")
+    parser.add_argument("--reference-pon", dest="reference_pon", help="Path to primary RNA PoN binary generated for RNA-specific filtering (see DOI: 10.1016/j.cels.2018.03.002)")
     parser.add_argument("--whitelist", help="BED file with variants to keep (CHROM POS REF ALT)")
     parser.add_argument("--output", help="output file name")
     parser.add_argument("--out_suffix", help="Suffix for intermediate output", default="withRNAfilters")
-    parser.add_argument("--ref", help="FASTA - e.g. HG38")
-    parser.add_argument("--refname", help="e.g. hg38", default="hg38")
-    parser.add_argument("--ref2", help="FASTA - e.g. hg19 (hs37d5)")
-    parser.add_argument("--refname2", help="e.g. HG19", default="hg19")
+    parser.add_argument("--reference-fasta", dest="reference_fasta", help="Primary reference FASTA - e.g. hg38")
+    parser.add_argument("--reference-name", dest="reference_name", help="Primary reference name - e.g. hg38", default="hg38")
+    parser.add_argument("--secondary-reference-fasta", dest="secondary_reference_fasta", help="Secondary reference FASTA - e.g. hg19 (hs37d5)")
+    parser.add_argument("--secondary-reference-name", dest="secondary_reference_name", help="Secondary reference name - e.g. hg19", default="hg19")
     parser.add_argument("--rnaedits", help="BED file(s) with known RNA editing events separated by space", nargs="+", default=[])
     parser.add_argument("--thr", default=-2.8)
     parser.add_argument("--chain", help="Chain file")
@@ -115,16 +115,16 @@ def extract_coords(df):
     return coords
 
 
-def run_capy(M, pon, ref, thr, chroms, suffix="_hg38", refname2="hg19"):
+def run_capy(M, pon, reference_fasta, thr, chroms, suffix="_hg38", secondary_reference_name="hg19"):
     """
     Runs CApy with RNA PoN generated with tokenizer (https://github.com/getzlab/aggregate_tokens_files_TOOL)
     """
     print("- Running CApy" + suffix)
     chrom = "Chromosome"
     start = "Start_Position"
-    if refname2:
-        chrom += "_" + refname2
-        start += "_" + refname2
+    if secondary_reference_name:
+        chrom += "_" + secondary_reference_name
+        start += "_" + secondary_reference_name
     # Remove alt contigs
     M = M[M[chrom].isin(chroms)]
     # Perform string replacements and type casting
@@ -138,7 +138,7 @@ def run_capy(M, pon, ref, thr, chroms, suffix="_hg38", refname2="hg19"):
     M = M.astype({"chr": "int32", "pos": "int32"})
     M.reset_index(inplace=True, drop=True)
     # Get PoN scores
-    pon_scores = mut.filter_mutations_against_token_PoN(M=M, ponfile=pon, ref=ref)
+    pon_scores = mut.filter_mutations_against_token_PoN(M=M, ponfile=pon, ref=reference_fasta)
     assert len(pon_scores) == M.shape[0], "PoN scores are not same length as nrow"
     # Create a DataFrame with the necessary columns including PoN scores and threshold
     pon_scores_df = pd.DataFrame({
@@ -239,14 +239,14 @@ def main():
         if calls.empty:
             results[idx] = calls
             continue
-        if "Chromosome"+args.refname2 in calls.columns:
-            calls.drop(["Chromosome"+args.refname2, "Start_Position"+args.refname2], axis=1, inplace=True)
+        if "Chromosome"+args.secondary_reference_name in calls.columns:
+            calls.drop(["Chromosome"+args.secondary_reference_name, "Start_Position"+args.secondary_reference_name], axis=1, inplace=True)
         # RNA panel of normals
-        if args.pon2 is not None and args.chain is not None and args.ref2 is not None:
-            calls = add_coords2_with_liftover(calls, chain_file=args.chain,ref1=args.refname,ref2=args.refname2)
-            calls = run_capy(M=calls, pon=args.pon2, ref=args.ref2, thr=args.thr, suffix='_'+args.refname2, chroms=chroms, refname2=args.refname2)
-        if args.pon:
-            calls = run_capy(M=calls, pon=args.pon,  ref=args.ref,  thr=args.thr, suffix='_'+args.refname, chroms=chroms, refname2=False)
+        if args.secondary_pon is not None and args.chain is not None and args.secondary_reference_fasta is not None:
+            calls = add_coords2_with_liftover(calls, chain_file=args.chain,ref1=args.reference_name,ref2=args.secondary_reference_name)
+            calls = run_capy(M=calls, pon=args.secondary_pon, reference_fasta=args.secondary_reference_fasta, thr=args.thr, suffix='_'+args.secondary_reference_name, chroms=chroms, secondary_reference_name=args.secondary_reference_name)
+        if args.reference_pon:
+            calls = run_capy(M=calls, pon=args.reference_pon, reference_fasta=args.reference_fasta, thr=args.thr, suffix='_'+args.reference_name, chroms=chroms, secondary_reference_name=False)
         # Annotate known RNA editing
         if args.rnaedits:
             rnadbs = check_rnaediting(args.rnaedits)

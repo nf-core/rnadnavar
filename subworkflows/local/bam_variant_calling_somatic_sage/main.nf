@@ -44,9 +44,9 @@ workflow BAM_VARIANT_CALLING_SOMATIC_SAGE {
     SAGE(
         cram_intervals,
         sage_ensembl,
-        Channel.fromPath(params.sage_highconfidence).collect().map{ it -> [ [ id:it[0].baseName ], it ] },
-        Channel.fromPath(params.sage_actionablepanel).collect().map{ it -> [ [ id:it[0].baseName ], it ] },
-        Channel.fromPath(params.sage_knownhotspots).collect().map{ it -> [ [ id:it[0].baseName ], it ] },
+        Channel.fromPath(params.sage_high_confidence).collect().map{ it -> [ [ id:it[0].baseName ], it ] },
+        Channel.fromPath(params.sage_actionable_panel).collect().map{ it -> [ [ id:it[0].baseName ], it ] },
+        Channel.fromPath(params.sage_known_hotspots).collect().map{ it -> [ [ id:it[0].baseName ], it ] },
         fasta,
         fasta_fai,
         dict)
