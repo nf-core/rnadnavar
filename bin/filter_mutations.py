@@ -113,13 +113,14 @@ def filter_homopolymer(ref_context, alt, hp_length=6):
     """
     Checks if the variant is in a homopolymer context
     """
+    # check if we have context
+    if ref_context is None or ref_context == "":
+        return None
     homopolymer = False
     if len(alt) > 1:
         alt = alt[1:]  # if insertion the check will be done
     elif alt == "-":  # if deletion no homopolymer
         return False
-    elif ref_context == None:
-        return None
     # we calculatate the actual length of the sequence we need to check
     # context is as follows: flank_before:REF:flank_after (flanks are same length)
     try:
@@ -158,12 +159,16 @@ def add_context(chrom, pos, ref, genome, flank=10):
         )
         return None
     if ref != "-":  # if it is a deletion we cannot check
-        try:
-            assert ref[0] == context[flank]  # check that the REF matches the context we just extracted
-        except AssertionError:
-            print(
-                f"[WGN] This ref base ({chrom}:{int(pos)} {ref[0]} != {context[flank]}) does not correspond to its context {context[flank]}."
-            )
+        if context == "":
+            print("[WARNING] Context not fetched properly - unable to check for homopolymers")
+            context = None
+        else:
+            try:
+                assert ref[0] == context[flank]  # check that the REF matches the context we just extracted
+            except AssertionError:
+                print(
+                    f"[WGN] This ref base ({chrom}:{int(pos)} {ref[0]} != {context[flank]}) does not correspond to its context {context[flank]}."
+                )
     return context
 
 
