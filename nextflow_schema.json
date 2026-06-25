@@ -75,6 +75,7 @@
                         "consensus",
                         "annotate",
                         "filtering",
+                        "rna_filtering",
                         "realignment"
                     ]
                 },
