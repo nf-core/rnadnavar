@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 """
-Author: Raquel Manzano - @RaqManzano
-Script: Filters MAF file with realignment (could it run with the consensus?), noncoding(?), homopolymers and RNA editing database
+Author: @RaqManzano
+Script: Apply RNA-specific post-filtering to MAF files by annotating variants
+with RNA-editing, RNA panel-of-normals, and optional realignment-support evidence.
+The script can compare first-pass and realigned MAFs, optionally liftover coordinates
+to score a secondary RNA PoN on an alternate reference, and writes filtered MAF
+output with updated `RaVeX_FILTER` annotations.
 """
 print("Note that importing CApy, might throw some unnecessary messages.")
 import argparse
@@ -49,8 +53,8 @@ def realignment(maf1, maf2):
             + maf["Tumor_Seq_Allele2"]
         )
     # Filter out consensus 'DNAchange' values from both mafs (consensus is unrelated to realignment)
-    maf1_non_consensus = maf1[~maf1["Caller"].str.contains("consensus", case=False)]
-    maf2_non_consensus = maf2[~maf2["Caller"].str.contains("consensus", case=False)]
+    maf1_non_consensus = maf1[~maf1["Caller"].str.contains("consensus", case=False, na=False)]
+    maf2_non_consensus = maf2[~maf2["Caller"].str.contains("consensus", case=False, na=False)]
     # Find intersection of non-consensus 'DNAchange' values
     is_intersect = maf1_non_consensus["DNAchange"].isin(maf2_non_consensus["DNAchange"])
     intersect_changes = maf1_non_consensus["DNAchange"][is_intersect]
@@ -64,11 +68,43 @@ def realignment(maf1, maf2):
     return maf1, maf2, maf_intersect
 
 
-def add_filters(maf, rnaeditingsites, realignment, whitelist):
+def read_whitelist_bed(bed_file):
+    """
+    Read a whitelist BED-like file containing variant coordinates and alleles.
+    Expected columns are CHROM, POS[, END], REF and ALT without a header.
+    """
+    if not bed_file:
+        return []
+
+    bed = pd.read_csv(bed_file, sep="\t", comment="#", header=None)
+    if len(bed.columns) == 5:
+        colnames = ["#CHROM", "POS", "END", "REF", "ALT"]
+    else:
+        colnames = ["#CHROM", "POS", "REF", "ALT"]
+    bed.columns = colnames
+
+    try:
+        bed["DNAchange"] = bed["#CHROM"].map(str) + ":g." + bed["POS"].map(str) + bed["REF"] + ">" + bed["ALT"]
+    except TypeError:
+        print("[ERROR] BED file for whitelist should contain CHROM, START, END, REF and ALT columns with no headers.")
+        print(f"Please check your file: {bed_file}")
+        return []
+
+    return bed["DNAchange"].tolist()
+
+
+def add_filters(maf, rnaeditingsites, realignment, whitelist, secondary_reference_name=None):
     """
     Check for RNA editing sites in the MAF table
     """
     print("- Annotating RNA filters")
+    # Standalone MAF inputs may not have gone through the first-pass filtering step.
+    # Initialise the column here so RNA-specific filtering can still annotate consistently.
+    if "RaVeX_FILTER" not in maf.columns:
+        maf["RaVeX_FILTER"] = "PASS"
+    else:
+        maf["RaVeX_FILTER"] = maf["RaVeX_FILTER"].fillna("PASS")
+
     if not rnaeditingsites.empty:
         # if mut is in a editing position T>C; A>G; G>A; C>T
         maf = maf.assign(mut=maf["Reference_Allele"] + ">" + maf["Tumor_Seq_Allele2"])
@@ -79,6 +115,17 @@ def add_filters(maf, rnaeditingsites, realignment, whitelist):
         maf = pd.merge(maf, rnaedits, left_index=True, right_index=True)
     else:
         maf["rnaediting"] = False
+    if whitelist:
+        if "DNAchange" not in maf.columns:
+            maf["DNAchange"] = (
+                maf["Chromosome"].map(str)
+                + ":g."
+                + maf["Start_Position"].map(str)
+                + maf["Reference_Allele"]
+                + ">"
+                + maf["Tumor_Seq_Allele2"]
+            )
+        maf["whitelist"] = maf["DNAchange"].isin(whitelist)
     # change filter accordingly
     pon_cols = [x for x in maf.columns if "pon_thr" in x]
     for idx, row in maf.iterrows():
@@ -93,27 +140,18 @@ def add_filters(maf, rnaeditingsites, realignment, whitelist):
         for pon_col in pon_cols:
             if row[pon_col]:
                 ravex_filter += ["rna_pon" + pon_col[-5:]]
-        if whitelist:
-            if row["whitelist"]:
-                ravex_filter = ["PASS"]
+        if whitelist and "whitelist" in maf.columns and row["whitelist"]:
+            ravex_filter = ["PASS"]
         if not ravex_filter:
             ravex_filter = ["PASS"]
         ravex_filter = ";".join(ravex_filter)
         maf.at[idx, "RaVeX_FILTER"] = ravex_filter
     # column cleanup
-    if "coordinates_hg19" in maf.columns:
-        maf.drop(["coordinates_hg19"], axis=1, inplace=True)
+    coord_col = f"coordinates_{secondary_reference_name}" if secondary_reference_name else None
+    if coord_col and coord_col in maf.columns:
+        maf.drop([coord_col], axis=1, inplace=True)
 
     return maf
-
-
-def extract_coords(df):
-    """
-    Extract coordinates from maf and stores them in a bed format file
-    """
-    coords = df["Chromosome"] + ":" + df["Start_Position"].astype(str) + "-" + df["Start_Position"].astype(str)
-    return coords
-
 
 def run_capy(M, pon, reference_fasta, thr, chroms, suffix="_hg38", secondary_reference_name="hg19"):
     """
@@ -212,9 +250,25 @@ def check_rnaediting(rnaedits):
 def main():
     args = argparser()
     print("- Running script")
+    # checking for arguments when using RNA PoN
+    if args.reference_pon and args.reference_fasta is None:
+        raise ValueError("--reference-pon requires --reference-fasta")
+    if args.secondary_pon is not None:
+        if args.chain is None or args.secondary_reference_fasta is None:
+            raise ValueError("--secondary-pon requires --chain and --secondary-reference-fasta")
+    # Get rna editing files list
     if args.rnaedits:
         if "," in args.rnaedits[0]:
             args.rnaedits = args.rnaedits[0].strip().split(",")
+    # Read known RNA editing files
+    if args.rnaedits:
+        rnadbs = check_rnaediting(args.rnaedits)
+    else:
+        rnadbs = pd.DataFrame()
+    if args.whitelist:
+        whitelist = read_whitelist_bed(args.whitelist)
+    else:
+        whitelist = False
     # chromosomes
     chroms = [f"chr{x}" for x in list(range(1, 23)) + ["X", "Y"]]
 
@@ -239,24 +293,26 @@ def main():
         if calls.empty:
             results[idx] = calls
             continue
-        if "Chromosome"+args.secondary_reference_name in calls.columns:
-            calls.drop(["Chromosome"+args.secondary_reference_name, "Start_Position"+args.secondary_reference_name], axis=1, inplace=True)
+        chrom_col = f"Chromosome_{args.secondary_reference_name}"
+        start_col = f"Start_Position_{args.secondary_reference_name}"
+        if chrom_col in calls.columns and start_col in calls.columns:
+            calls.drop([chrom_col, start_col], axis=1, inplace=True)
         # RNA panel of normals
         if args.secondary_pon is not None and args.chain is not None and args.secondary_reference_fasta is not None:
             calls = add_coords2_with_liftover(calls, chain_file=args.chain,ref1=args.reference_name,ref2=args.secondary_reference_name)
             calls = run_capy(M=calls, pon=args.secondary_pon, reference_fasta=args.secondary_reference_fasta, thr=args.thr, suffix='_'+args.secondary_reference_name, chroms=chroms, secondary_reference_name=args.secondary_reference_name)
         if args.reference_pon:
             calls = run_capy(M=calls, pon=args.reference_pon, reference_fasta=args.reference_fasta, thr=args.thr, suffix='_'+args.reference_name, chroms=chroms, secondary_reference_name=False)
-        # Annotate known RNA editing
-        if args.rnaedits:
-            rnadbs = check_rnaediting(args.rnaedits)
-        else:
-            rnadbs = pd.DataFrame()
-        calls = add_filters(maf=calls, rnaeditingsites=rnadbs, realignment=didrealignment, whitelist=args.whitelist)
+        calls = add_filters(
+            maf=calls,
+            rnaeditingsites=rnadbs,
+            realignment=didrealignment,
+            whitelist=whitelist,
+            secondary_reference_name=args.secondary_reference_name,
+        )
         results[idx] = calls
     # write maf files
     write_output(args, results, args.output, args.out_suffix)
-
 
 if __name__ == "__main__":
     main()

@@ -41,6 +41,18 @@ workflow  SAMPLESHEET_TO_CHANNEL{
                 else {
                     error("Samplesheet contains fastq files but step is `$params.step`. Please check your samplesheet or adjust the step parameter.\nhttps://nf-co.re/rnadnavar/usage#input-samplesheet-configurations")
                 }
+            // start directly from MAFs for downstream restart paths
+            } else if (maf && params.step in ['consensus', 'filtering', 'rna_filtering']) {
+                if (meta.status == 0) {
+                    error("Samplesheet contains MAF files with status 0, MAFs should only be for tumours (1|2).")
+                }
+                meta = meta + [data_type: 'maf', variantcaller: variantcaller ?: 'unknown']
+                if (meta.normal_id) {
+                    meta = meta + [id: "${meta.sample}_vs_${meta.normal_id}".toString()]
+                } else {
+                    meta = meta + [id: meta.sample]
+                }
+                return [meta - meta.subMap('lane'), maf]
             // start for realignment or will do realignment later starting after pre-processing
             } else if ((maf || vcf) && (params.step=="realignment" || (params.tools && params.tools.split(',').contains("realignment")))){
                 if (meta.lane == null) meta.lane = "LX"

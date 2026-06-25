@@ -1,0 +1,37 @@
+nextflow_process {
+    name "Test Process MAF_FILTERING"
+
+    process "MAF_FILTERING"
+    script "../main.nf"
+
+    tag "modules"
+    tag "modules_local"
+    tag "maf_filtering"
+
+    test("Run MAF filtering on RNA MAF") {
+        when {
+            process {
+                """
+                input[0] = [
+                    [ id:'TCRBOA7-T-RNA_vs_TCRBOA7-N', patient:'TCRBOA7', status:2 ],
+                    file('https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/data/tcrb/maf/TCRBOA7-T-RNA.maf', checkIfExists: true)
+                ]
+                input[1] = [
+                    [ id:'fasta' ],
+                    file('https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/reference/chr7_hg38/GRCh38.d1.vd1.chr7.mini.fa', checkIfExists: true)
+                ]
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                { assert snapshot(
+                    path(process.out.maf[0][1]).readLines(),
+                    path(process.out.versions[0]).readLines()
+                ).match() }
+            )
+        }
+    }
+}
