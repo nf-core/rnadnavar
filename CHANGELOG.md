@@ -20,6 +20,8 @@ Initial release of nf-core/rnadnavar.
 - Added support for optional Mutect2 force-calling inputs (`mutect2_alleles` and `mutect2_alleles_tbi`)
 - Added `conf/empty.config` to support strict-syntax-safe config loading
 - Added full pipeline nf-test (`test_full.nf.test`) and test snapshots
+- Added pipeline restart nf-tests for `filtering`, `rna_filtering`, and `consensus`
+- Added local nf-tests for MAF filtering, RNA-specific filtering, and consensus generation
 - Added VCF simple test data for annotation testing
 - Added GitHub Actions for automated testing with nf-test
 - Added support for multiple template versions (3.2.0, 3.2.1, 3.3.1)
@@ -33,6 +35,9 @@ Initial release of nf-core/rnadnavar.
 - Fixed local wrappers and callers to match updated nf-core module input/output signatures and version emits
 - Fixed reference-channel consumption bugs affecting FASTA/FAI/DICT propagation in preprocessing, realignment and variant-calling paths
 - Fixed realignment-specific logic in RNA filtering and downstream consensus handling
+- Fixed direct restart from MAF inputs for `filtering`, `rna_filtering`, and `consensus`
+- Fixed local RNA-filtering pairing logic to support both single-input and first-pass/realigned MAF restart modes
+- Fixed `filter_rna_mutations.py` to accept MAF inputs that do not already contain `RaVeX_FILTER`
 - Fixed MultiQC input/config channel handling and mixed software-version aggregation
 - Fixed consensus input ordering to improve deterministic behaviour when resuming runs
 - Fixed non-deterministic nf-test outputs and updated snapshots accordingly
@@ -59,6 +64,7 @@ Initial release of nf-core/rnadnavar.
 - Updated local GATK and Picard integrations, including restored patches for `picard/filtersamreads` and `gatk4/splitncigarreads`
 - Replaced deprecated tabix usage with current htslib-based handling where appropriate
 - Updated nf-test plugin configuration and test snapshots
+- Updated restart-path test coverage to exercise post-calling stages independently of full pipeline runs
 - Cleaned up code formatting and style across configuration files
 - Updated test configurations and `.nftignore` files
 - Improved subworkflow organization and consistency
