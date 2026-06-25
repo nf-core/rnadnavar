@@ -41,8 +41,8 @@ workflow  SAMPLESHEET_TO_CHANNEL{
                 else {
                     error("Samplesheet contains fastq files but step is `$params.step`. Please check your samplesheet or adjust the step parameter.\nhttps://nf-co.re/rnadnavar/usage#input-samplesheet-configurations")
                 }
-            // start directly from MAFs for filtering-only restart paths
-            } else if (maf && params.step in ['filtering', 'rna_filtering']) {
+            // start directly from MAFs for downstream restart paths
+            } else if (maf && params.step in ['consensus', 'filtering', 'rna_filtering']) {
                 if (meta.status == 0) {
                     error("Samplesheet contains MAF files with status 0, MAFs should only be for tumours (1|2).")
                 }

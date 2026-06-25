@@ -50,7 +50,12 @@ workflow MAF_FILTERING_RNA {
 
         maf_crossed = maf_to_cross_first_pass
                         .join(maf_to_cross_realignment, remainder: true)
-                        .map{ patient, first_meta, first_maf, second_meta, second_maf ->
+                        .map{ row ->
+                                def patient = row[0]
+                                def first_meta = row[1]
+                                def first_maf = row[2]
+                                def second_meta = row.size() > 3 ? row[3] : null
+                                def second_maf = row.size() > 4 ? row[4] : null
                                 if (second_meta) {
                                     def meta = [:]
                                     meta.patient    = patient

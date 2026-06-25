@@ -68,7 +68,7 @@ workflow VCF_CONSENSUS {
             fasta_for_consensus,
             Channel.value([]) // empty vep - we already call it independently
         )
-        maf_to_consensus = VCF2MAF.out.maf
+        maf_to_consensus_input = VCF2MAF.out.maf
                 .mix(vcf_to_consensus_type.maf)
                 .map { meta, maf ->
                     // change data type to maf
@@ -77,9 +77,15 @@ workflow VCF_CONSENSUS {
                     key = key.subMap('id', 'patient', 'status', 'data_type')
                     [key, maf, meta.variantcaller]
                     }
-                .groupTuple(size: tools_list ? tools_list.size() : 1) // [meta, maf, variantcaller]
-                // this will order the channel to avoid issues with resume
-                .map { meta, mafs, callers ->
+
+        // For direct consensus restarts, gather all provided MAFs per sample key. This lets
+        // users start from precomputed MAFs without having to encode an artificial caller
+        // count in --tools. Forward runs still use the expected caller count for streaming.
+        maf_to_consensus = (params.step == 'consensus')
+                ? maf_to_consensus_input.groupTuple()
+                : maf_to_consensus_input.groupTuple(size: tools_list ? tools_list.size() : 1)
+        // this will order the channel to avoid issues with resume
+        maf_to_consensus = maf_to_consensus.map { meta, mafs, callers ->
                     def paired = callers.indices.collect { i -> [callers[i], mafs[i]] }.sort { a, b -> a[0] <=> b[0] }
                     [meta, paired.collect { it[1] }, paired.collect { it[0] }]
                     }
