@@ -1,3 +1,0 @@
-patient,status,sample,variantcaller,maf
-TCRBOA7,2,TCRBOA7-T-RNA_vs_TCRBOA7-N,caller1,https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/data/tcrb/maf/TCRBOA7-T-RNA.maf
-TCRBOA7,2,TCRBOA7-T-RNA_vs_TCRBOA7-N,caller2,https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/data/tcrb/maf/TCRBOA7-T-RNA_realign.maf
