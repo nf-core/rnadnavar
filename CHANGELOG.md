@@ -82,3 +82,4 @@ Initial release of nf-core/rnadnavar.
 - Cleaned up unused VCFlib and VT variant processing modules
 - Removed obsolete module configurations and test files
 - Removed redundant workflow components
+- Removed `conda` from github nf-test checks as some local modules do not run with `conda` at the moment
