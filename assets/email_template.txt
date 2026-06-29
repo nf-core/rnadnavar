@@ -4,9 +4,8 @@
   |\\ | |__  __ /  ` /  \\ |__) |__         }  {
   | \\| |       \\__, \\__/ |  \\ |___     \\`-._,-`-,
                                         `._,._,'
-  nf-core/rnadnavar v${version}
+  nf-core/rnadnavar ${version}
 ----------------------------------------------------
-
 Run Name: $runName
 
 <% if (success){

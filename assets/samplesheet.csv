@@ -1,3 +1,4 @@
-sample,fastq_1,fastq_2
-SAMPLE_PAIRED_END,/path/to/fastq/files/AEG588A1_S1_L002_R1_001.fastq.gz,/path/to/fastq/files/AEG588A1_S1_L002_R2_001.fastq.gz
-SAMPLE_SINGLE_END,/path/to/fastq/files/AEG588A4_S4_L003_R1_001.fastq.gz,
+patient,status,sample,lane,fastq_1,fastq_2
+P1,0,DNA_NORMAL,L001,/path/to/fastq/files/DNA_NORMAL_L001_R1.fastq.gz,/path/to/fastq/files/DNA_NORMAL_L001_R2.fastq.gz
+P1,1,DNA_TUMOUR,L001,/path/to/fastq/files/DNA_TUMOUR_L001_R1.fastq.gz,/path/to/fastq/files/DNA_TUMOUR_L001_R2.fastq.gz
+P1,2,RNA_TUMOUR,L001,/path/to/fastq/files/RNA_TUMOUR_L001_R1.fastq.gz,/path/to/fastq/files/RNA_TUMOUR_L001_R2.fastq.gz

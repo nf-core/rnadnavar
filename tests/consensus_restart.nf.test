@@ -1,0 +1,36 @@
+nextflow_pipeline {
+
+    name "Test pipeline restart from consensus"
+    script "../main.nf"
+    tag "pipeline"
+    tag "pipeline_restart"
+    tag "consensus"
+
+    config "conf/test.config"
+
+    test("Run only consensus from MAF input") {
+
+        when {
+            params {
+                input      = "${projectDir}/tests/csv/maf_consensus_pair.csv"
+                step       = "consensus"
+                tools      = "consensus"
+                outdir     = "$outputDir"
+                skip_tools = "multiqc"
+            }
+        }
+
+        then {
+            def consensus_maf = file("${params.outdir}/consensus/consensus/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.consensus.maf")
+
+            assertAll(
+                { assert workflow.success },
+                { assert consensus_maf.exists() },
+                { assert snapshot(
+                    removeFromYamlMap("${params.outdir}/pipeline_info/nf_core_rnadnavar_software_mqc_versions.yml", "Workflow"),
+                    getAllFilesFromDir(params.outdir, relative: true, includeDir: true, ignore: ['pipeline_info/*.{html,json,txt}', 'reports/samtools/**', 'reports/multiqc_data/**', 'reports/multiqc_plots/**', 'reports/multiqc_report.html'])
+                ).match() }
+            )
+        }
+    }
+}

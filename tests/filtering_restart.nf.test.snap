@@ -1,0 +1,36 @@
+{
+    "Run from filtering through RNA filtering": {
+        "content": [
+            {
+                "FILTERING": {
+                    "python": "3.9.13"
+                },
+                "GATK4_CREATESEQUENCEDICTIONARY": {
+                    "gatk4": "4.6.2.0"
+                },
+                "RNA_FILTERING": {
+                    "python": "3.9.19"
+                },
+                "SAMTOOLS_FAIDX": {
+                    "samtools": "1.23.1"
+                }
+            },
+            [
+                "csv",
+                "filtering",
+                "filtering/TCRBOA7-T-RNA",
+                "filtering/TCRBOA7-T-RNA/TCRBOA7-T-RNA.filtered.maf",
+                "filtering/TCRBOA7-T-RNA/TCRBOA7-T-RNA.rna_filt.maf",
+                "pipeline_info",
+                "pipeline_info/nf_core_rnadnavar_software_mqc_versions.yml",
+                "reports",
+                "reports/multiqc_data"
+            ]
+        ],
+        "timestamp": "2026-06-25T12:59:27.793884",
+        "meta": {
+            "nf-test": "0.9.5",
+            "nextflow": "26.04.4"
+        }
+    }
+}

@@ -1,0 +1,257 @@
+//
+// Consensus
+//
+// For all modules here:
+// A when clause condition is defined in the conf/modules.config to determine if the module should be run
+include { GUNZIP as GUNZIP_VCF2MAF                 } from '../../../modules/nf-core/gunzip/main'
+include { VCF2MAF                                  } from '../../../modules/nf-core/vcf2maf/main'
+include { RUN_CONSENSUS                            } from '../../../modules/local/consensus/main'
+include { RUN_CONSENSUS as RUN_CONSENSUS_RESCUE    } from '../../../modules/local/consensus/main'
+// Create samplesheets to restart from consensus
+include { CHANNEL_CONSENSUS_CREATE_CSV                              } from '../channel_consensus_create_csv/main'
+include { CHANNEL_CONSENSUS_CREATE_CSV as CHANNEL_RESCUE_CREATE_CSV } from '../channel_consensus_create_csv/main'
+
+workflow VCF_CONSENSUS {
+    take:
+    vcf_to_consensus
+    fasta
+    previous_maf_consensus_dna  // results already done to avoid a second run when rna filterig
+    previous_mafs_status_dna    // results already done to avoid a second run when rna filterig
+    input_sample
+    realignment
+
+    main:
+    versions                = Channel.empty()
+
+    maf_from_consensus_dna  = Channel.empty()
+    mafs_from_varcal_dna    = Channel.empty()
+    consensus_maf           = Channel.empty()
+
+    fasta_for_consensus = fasta.map { _meta, fa -> fa }
+
+    if (params.step == 'consensus' && !realignment) vcf_to_consensus = input_sample
+
+    if ((params.step in ['mapping', 'markduplicates', 'splitncigar',
+                        'prepare_recalibration', 'recalibrate', 'variant_calling', 'annotate',
+                        'norm', 'consensus'] &&
+                        ((params.tools && params.tools.split(",").contains("consensus")))) ||
+                        realignment) {
+
+        vcf_to_consensus_type = vcf_to_consensus.branch{
+                                vcf: it[0].data_type == "vcf"
+                                maf: it[0].data_type == "maf"
+                                }
+        def tools_list
+        if (realignment || (params.step in ['consensus', 'annotate','filtering', 'rna_filtering'] && params.tools && params.tools.split(',').contains("realignment")) ) {
+            tools_list = params.default_variant_callers.split(',').toList().unique()
+        } else {
+            tools_list = params.tools.split(',').toList().findAll { it in ['sage', 'strelka', 'mutect2'] }.unique()
+        }
+        // The nf-core vcf2maf module only accepts uncompressed VCF input, so
+        // decompress here while preserving metadata and keeping plain VCFs untouched.
+        vcf_for_vcf2maf = vcf_to_consensus_type.vcf
+            .map { entry -> [entry[0], entry[1]] }
+            .branch { meta, vcf_file ->
+                gzipped: vcf_file.name.endsWith('.gz')
+                plain: !vcf_file.name.endsWith('.gz')
+            }
+
+        GUNZIP_VCF2MAF(vcf_for_vcf2maf.gzipped)
+        versions = versions.mix(GUNZIP_VCF2MAF.out.versions_gunzip)
+
+        vcf_for_vcf2maf = vcf_for_vcf2maf.plain
+            .mix(GUNZIP_VCF2MAF.out.gunzip)
+
+        // First convert VCF inputs to MAF.
+        VCF2MAF(
+            vcf_for_vcf2maf,
+            fasta_for_consensus,
+            Channel.value([]) // empty vep - we already call it independently
+        )
+        maf_to_consensus_input = VCF2MAF.out.maf
+                .mix(vcf_to_consensus_type.maf)
+                .map { meta, maf ->
+                    // change data type to maf
+                    def key = meta + [data_type: 'maf']
+                    // selectdata type
+                    key = key.subMap('id', 'patient', 'status', 'data_type')
+                    [key, maf, meta.variantcaller]
+                    }
+
+        // For direct consensus restarts, gather all provided MAFs per sample key. This lets
+        // users start from precomputed MAFs without having to encode an artificial caller
+        // count in --tools. Forward runs still use the expected caller count for streaming.
+        maf_to_consensus = (params.step == 'consensus')
+                ? maf_to_consensus_input.groupTuple()
+                : maf_to_consensus_input.groupTuple(size: tools_list ? tools_list.size() : 1)
+        // this will order the channel to avoid issues with resume
+        maf_to_consensus = maf_to_consensus.map { meta, mafs, callers ->
+                    def paired = callers.indices.collect { i -> [callers[i], mafs[i]] }.sort { a, b -> a[0] <=> b[0] }
+                    [meta, paired.collect { it[1] }, paired.collect { it[0] }]
+                    }
+        versions = versions.mix(VCF2MAF.out.versions)
+
+//        maf_to_consensus.dump(tag:"maf_to_consensus")
+        // count number of callers to generate groupKey
+        maf_to_consensus.dump(tag:"maf_to_consensus0")
+        RUN_CONSENSUS ( maf_to_consensus )
+
+        consensus_maf = RUN_CONSENSUS.out.maf  // 1 consensus_maf from all callers
+        // Separate DNA from RNA
+        // VCFs from variant calling
+        mafs_from_varcal   = maf_to_consensus.branch{
+                                dna: it[0].status <= 1
+                                rna: it[0].status == 2
+                                }
+        // VCF from consensus
+        maf_from_consensus = consensus_maf.branch{
+                                dna: it[0].status <= 1
+                                rna: it[0].status == 2
+                                }
+
+        // Tag consensus-derived MAFs explicitly so restart CSVs and downstream logic do not
+        // need to infer their origin from filename or tuple shape.
+        maf_from_consensus_rna = maf_from_consensus.rna.map{meta, maf -> [meta + [variantcaller:'consensus'], maf]}
+        mafs_from_varcal_rna   = mafs_from_varcal.rna
+
+        // Only RNA mafs are processed again if second run
+        if (previous_maf_consensus_dna && ((params.tools && params.tools.split(',').contains('realignment')))){
+            maf_from_consensus_dna = previous_maf_consensus_dna   // VCF with consensus calling
+            mafs_from_varcal_dna   = previous_mafs_status_dna     // VCFs with consensus calling
+        } else {
+            maf_from_consensus_dna = maf_from_consensus.dna.map{meta, maf -> [meta + [variantcaller:'consensus'], maf]}
+            mafs_from_varcal_dna   = mafs_from_varcal.dna
+        }
+
+        CHANNEL_CONSENSUS_CREATE_CSV(
+                                        maf_from_consensus_dna
+                                        .mix(maf_from_consensus_rna)
+                                        .mix(mafs_from_varcal_dna)
+                                        .mix(mafs_from_varcal_rna)
+                                        .transpose(),
+                                        !realignment? "consensus" : "consensus_realigned"
+                                        )
+
+        // RESCUE STEP: cross dna / rna for a crossed second consensus
+        if (params.tools && params.tools.split(',').contains('rescue')) {
+            // VCF from consensus
+            maf_consensus_status_dna_to_cross = maf_from_consensus_dna.map{
+                                                    meta, maf ->
+                                                    [meta.patient, meta, [maf], ['ConsensusDNA']]
+                                                    }
+
+            maf_consensus_status_rna_to_cross = maf_from_consensus_rna.map{
+                                                    meta, maf ->
+                                                    [meta.patient, meta, [maf], ['ConsensusRNA']]
+                                                    }
+            // VCFs from variant calling
+            mafs_status_dna_to_cross = mafs_from_varcal_dna.map{
+                                                    meta, mafs, callers ->
+                                                    [meta.patient, meta, mafs, callers]
+                                                    }
+
+            mafs_status_rna_to_cross = mafs_from_varcal_rna.map{
+                                                    meta, mafs, callers ->
+                                                    [meta.patient, meta, mafs, callers]
+                                                    }
+
+            // cross results keeping metadata // TODO make the id somehow shorter (atm is tumor_vs_normal_with_tumor_vs_normal -- too long)
+            mafs_dna_crossed_with_rna_rescue = mafs_status_dna_to_cross
+                                                .cross(maf_consensus_status_rna_to_cross)
+                                                .map { dna, rna ->
+                                                    def meta = [:]
+                                                    meta.patient = dna[0]
+                                                    meta.dna_id  = dna[1].id
+                                                    meta.rna_id  = rna[1].id
+                                                    meta.status  = dna[1].status
+                                                    meta.id      = "${meta.dna_id}_with_${meta.rna_id}".toString()
+                                                    def paired = (dna[3] + rna[3]).indices.collect { i -> [(dna[3] + rna[3])[i], (dna[2] + rna[2])[i]] }
+                                                        .sort { a, b -> a[0] <=> b[0] }
+                                                    [meta, paired.collect { it[1] }, paired.collect { it[0] }]
+                                                    }
+            mafs_rna_crossed_with_dna_rescue = mafs_status_rna_to_cross
+                                                .cross(maf_consensus_status_dna_to_cross)
+                                                .map { rna, dna ->
+                                                def meta = [:]
+                                                meta.patient = rna[0]
+                                                meta.rna_id  = rna[1].id
+                                                meta.dna_id  = dna[1].id
+                                                meta.status  = rna[1].status
+                                                meta.id      = "${meta.rna_id}_with_${meta.dna_id}".toString()
+                                                def paired = (rna[3] + dna[3]).indices.collect { i -> [(rna[3] + dna[3])[i], (rna[2] + dna[2])[i]] }
+                                                    .sort { a, b -> a[0] <=> b[0] }
+                                                [meta, paired.collect { it[1] }, paired.collect { it[0] }]
+                                            }
+
+            mafs_to_rescue = mafs_dna_crossed_with_rna_rescue.mix(mafs_rna_crossed_with_dna_rescue)
+                        RUN_CONSENSUS_RESCUE ( mafs_dna_crossed_with_rna_rescue.mix(mafs_rna_crossed_with_dna_rescue) )
+
+            maf_from_rescue = RUN_CONSENSUS_RESCUE.out.maf.branch{
+                                dna: it[0].status <= 1
+                                rna: it[0].status == 2
+                                }
+
+
+            run_rescue_out = RUN_CONSENSUS_RESCUE.out.maf.branch{
+                intervals:    it[0].num_intervals > 1
+                no_intervals: it[0].num_intervals <= 1
+            }
+
+            // Keep rescue outputs distinguishable while still matching the historical
+            // "contains consensus" pattern used elsewhere in the pipeline.
+            maf_from_consensus_dna = maf_from_rescue.dna.map{meta, maf -> [meta + [variantcaller:'consensus_rescue'], maf]}
+            maf_from_consensus_rna = maf_from_rescue.rna.map{meta, maf -> [meta + [variantcaller:'consensus_rescue'], maf]}
+            consensus_maf = maf_from_consensus_dna.mix(maf_from_consensus_rna)
+            maf_from_consensus_dna
+                                        .mix(maf_from_consensus_rna)
+                                        .mix(mafs_from_varcal_dna)
+                                        .mix(mafs_from_varcal_rna).transpose().dump(tag:'rescued')
+            CHANNEL_RESCUE_CREATE_CSV(
+                                        maf_from_consensus_dna
+                                        .mix(maf_from_consensus_rna)
+                                        .mix(mafs_from_varcal_dna)
+                                        .mix(mafs_from_varcal_rna)
+                                        .transpose(),
+                                        !realignment? "rescued" : "rescued_realigned"
+                                        )
+        }
+    } else {
+
+        if (params.tools && (params.tools.split(",").contains('filtering') || params.tools.split(",").contains('rna_filtering') )){
+            vcf_to_consensus_type = vcf_to_consensus.branch{
+                                vcf: it[0].data_type == "vcf"
+                                maf: it[0].data_type == "maf"
+                                }
+            vcf_for_vcf2maf = vcf_to_consensus_type.vcf
+                .map { entry -> [entry[0], entry[1]] }
+                .branch { meta, vcf_file ->
+                    gzipped: vcf_file.name.endsWith('.gz')
+                    plain: !vcf_file.name.endsWith('.gz')
+                }
+
+            GUNZIP_VCF2MAF(vcf_for_vcf2maf.gzipped)
+            versions = versions.mix(GUNZIP_VCF2MAF.out.versions_gunzip)
+
+            vcf_for_vcf2maf = vcf_for_vcf2maf.plain
+                .mix(GUNZIP_VCF2MAF.out.gunzip)
+
+            // First convert VCF inputs to MAF.
+            VCF2MAF(
+                vcf_for_vcf2maf,
+                fasta_for_consensus,
+                Channel.value([]) // empty vep - we already call it independently
+            )
+            consensus_maf    = VCF2MAF.out.maf.mix(vcf_to_consensus_type.maf)
+            versions         = versions.mix(VCF2MAF.out.versions)
+
+        }
+
+
+    }
+
+    emit:
+    maf_consensus_dna   = maf_from_consensus_dna
+    mafs_dna            = mafs_from_varcal_dna
+    maf                 = consensus_maf // channel: [ [meta], maf ]
+    versions            = versions // channel: [ versions.yml ]
+}

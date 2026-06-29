@@ -1,0 +1,49 @@
+nextflow_process {
+    name "Test Process RNA_FILTERING"
+
+    process "RNA_FILTERING"
+    script "../main.nf"
+
+    tag "modules"
+    tag "modules_local"
+    tag "maf_rna_filtering"
+
+    test("Run RNA filtering with realignment MAF") {
+        config "./nextflow.config"
+
+        when {
+            params {
+                rnaedits = 'https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/resources/rnaedits/hg38/atlas.chr7.hg38.bed'
+            }
+            process {
+                """
+                input[0] = [
+                    [ id:'TCRBOA7-T-RNA_with_TCRBOA7-T-RNA_realign', patient:'TCRBOA7', status:2 ],
+                    file('https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/data/tcrb/maf/TCRBOA7-T-RNA.maf', checkIfExists: true),
+                    file('https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/data/tcrb/maf/TCRBOA7-T-RNA_realign.maf', checkIfExists: true)
+                ]
+                input[1] = [
+                    [ id:'fasta' ],
+                    file('https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/reference/chr7_hg38/GRCh38.d1.vd1.chr7.mini.fa', checkIfExists: true)
+                ]
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                {
+                    def maf_outputs = process.out.maf[0][1]
+                        .collect { maf_file -> [ file(maf_file.toString()).name, path(maf_file.toString()).readLines() ] }
+                        .sort { left, right -> left[0] <=> right[0] }
+
+                    assert snapshot(
+                        maf_outputs,
+                        path(process.out.versions[0]).readLines()
+                    ).match()
+                }
+            )
+        }
+    }
+}

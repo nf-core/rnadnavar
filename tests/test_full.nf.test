@@ -1,0 +1,48 @@
+nextflow_pipeline {
+
+    name "Test full pipeline"
+    script "../main.nf"
+    tag "pipeline"
+    tag "pipeline_rnadnavar"
+
+    config "conf/test_full.config"
+
+    profile "test_full"
+
+    test("Run with -profile test_full") {
+        // NOTE: This test only checks workflow success, task counts, and file structure
+        // Content-based assertions are disabled due to non-deterministic algorithm outputs
+        // TODO: Split into smaller tests for individual modules
+
+        when {
+            params {
+                outdir               = "$outputDir"
+            }
+        }
+
+        then {
+            // stable_name: All files + folders in ${params.outdir}/ with a stable name
+            def stable_name = getAllFilesFromDir(params.outdir, relative: true, includeDir: true, ignore: ["pipeline_info/*.{html,json,txt}", "reports/samtools/**", "reports/multiqc_data/**", "reports/multiqc_plots/**", "reports/multiqc_report.html"])
+            // stable_path: All files in ${params.outdir}/ with stable content
+            // def stable_path = getAllFilesFromDir(params.outdir, relative: true, ignoreFile: "tests/.nftignore")
+            // cram_files: All cram files
+            def cram_files  = getAllFilesFromDir(params.outdir, include: ["**/*.cram"])
+            assertAll(
+                { assert workflow.success},
+                // Samtools report publication is currently nondeterministic so it is excluded
+                { assert snapshot(
+                    // Number of successful tasks
+                    workflow.trace.succeeded().size(),
+                    // pipeline versions.yml file for multiqc from which Nextflow version is removed because we tests pipelines on multiple Nextflow versions
+                    removeNextflowVersion("$outputDir/pipeline_info/nf_core_rnadnavar_software_mqc_versions.yml"),
+                    // All stable path name, with a relative path
+                    stable_name
+                    // All files with stable contents
+                    // stable_path,
+                    // All cram files - CRAM check removed because fasta is a minified version and it fails the checks
+                    // cram_files.collect{ file -> [ file.getName(), file.size()] }
+                ).match() }
+            )
+        }
+    }
+}

@@ -1,0 +1,85 @@
+{
+    "Should run without failures": {
+        "content": [
+            {
+                "0": [
+                    [
+                        {
+                            "patient": "test",
+                            "sample": "test",
+                            "status": 0,
+                            "lane": "test_L1",
+                            "id": "test-test_L1",
+                            "num_lanes": 2,
+                            "read_group": "\"@RG\\tID:null.test.test_L1\\tPU:test_L1\\tSM:test\\tLB:test\\tDS:https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/reference/chr7_hg38/GRCh38.d1.vd1.chr7.mini.fa\\tPL:ILLUMINA\"",
+                            "data_type": "fastq",
+                            "size": 1
+                        },
+                        [
+                            "/nf-core/test-datasets/modules/data/genomics/homo_sapiens/illumina/fastq/test_1.fastq.gz",
+                            "/nf-core/test-datasets/modules/data/genomics/homo_sapiens/illumina/fastq/test_2.fastq.gz"
+                        ]
+                    ],
+                    [
+                        {
+                            "patient": "test",
+                            "sample": "test",
+                            "status": 2,
+                            "lane": "test_L2",
+                            "id": "test-test_L2",
+                            "num_lanes": 2,
+                            "read_group": "ID:null.test.test_L2 PU:test_L2 SM:test LB:test DS:https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/reference/chr7_hg38/GRCh38.d1.vd1.chr7.mini.fa PL:ILLUMINA",
+                            "data_type": "fastq",
+                            "size": 1
+                        },
+                        [
+                            "/nf-core/test-datasets/modules/data/genomics/homo_sapiens/illumina/fastq/test_1.fastq.gz",
+                            "/nf-core/test-datasets/modules/data/genomics/homo_sapiens/illumina/fastq/test_2.fastq.gz"
+                        ]
+                    ]
+                ],
+                "input_sample": [
+                    [
+                        {
+                            "patient": "test",
+                            "sample": "test",
+                            "status": 0,
+                            "lane": "test_L1",
+                            "id": "test-test_L1",
+                            "num_lanes": 2,
+                            "read_group": "\"@RG\\tID:null.test.test_L1\\tPU:test_L1\\tSM:test\\tLB:test\\tDS:https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/reference/chr7_hg38/GRCh38.d1.vd1.chr7.mini.fa\\tPL:ILLUMINA\"",
+                            "data_type": "fastq",
+                            "size": 1
+                        },
+                        [
+                            "/nf-core/test-datasets/modules/data/genomics/homo_sapiens/illumina/fastq/test_1.fastq.gz",
+                            "/nf-core/test-datasets/modules/data/genomics/homo_sapiens/illumina/fastq/test_2.fastq.gz"
+                        ]
+                    ],
+                    [
+                        {
+                            "patient": "test",
+                            "sample": "test",
+                            "status": 2,
+                            "lane": "test_L2",
+                            "id": "test-test_L2",
+                            "num_lanes": 2,
+                            "read_group": "ID:null.test.test_L2 PU:test_L2 SM:test LB:test DS:https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/reference/chr7_hg38/GRCh38.d1.vd1.chr7.mini.fa PL:ILLUMINA",
+                            "data_type": "fastq",
+                            "size": 1
+                        },
+                        [
+                            "/nf-core/test-datasets/modules/data/genomics/homo_sapiens/illumina/fastq/test_1.fastq.gz",
+                            "/nf-core/test-datasets/modules/data/genomics/homo_sapiens/illumina/fastq/test_2.fastq.gz"
+                        ]
+                    ]
+                ]
+            }
+        ],
+        "meta": {
+            "nf-test": "0.9.3",
+            "nextflow": "25.10.0"
+        },
+        "timestamp": "2026-05-20T11:41:16.553384"
+    }
+}

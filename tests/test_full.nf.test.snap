@@ -1,0 +1,713 @@
+{
+    "-profile test": {
+        "content": [
+            {
+                "BCFTOOLS_STATS": {
+                    "bcftools": "1.23.1"
+                },
+                "BWAMEM1_INDEX": {
+                    "bwa": "0.7.19-r1273"
+                },
+                "BWAMEM1_MEM": {
+                    "bwa": "0.7.19-r1273",
+                    "samtools": "1.22.1"
+                },
+                "FASTP": {
+                    "fastp": "1.1.0"
+                },
+                "FASTQC": {
+                    "fastqc": "0.12.1"
+                },
+                "FILTERING": {
+                    "python": "3.9.13"
+                },
+                "GATK4_APPLYBQSR": {
+                    "gatk4": "4.6.2.0"
+                },
+                "GATK4_BASERECALIBRATOR": {
+                    "gatk4": "4.6.2.0"
+                },
+                "GATK4_CREATESEQUENCEDICTIONARY": {
+                    "gatk4": "4.6.2.0"
+                },
+                "GATK4_MARKDUPLICATES": {
+                    "gatk4": "4.6.2.0",
+                    "samtools": 1.21
+                },
+                "INDEX_CRAM": {
+                    "samtools": "1.23.1"
+                },
+                "MERGE_STRELKA": {
+                    "gatk4": "4.6.2.0"
+                },
+                "MOSDEPTH": {
+                    "gzip": 1.14,
+                    "mosdepth": "0.3.14"
+                },
+                "SAMTOOLS_FAIDX": {
+                    "samtools": "1.23.1"
+                },
+                "SAMTOOLS_STATS": {
+                    "samtools": "1.23.1"
+                },
+                "STAR_GENOMEGENERATE": {
+                    "star": "2.7.11b"
+                },
+                "STRELKA_SOMATIC": {
+                    "strelka": "2.9.10"
+                },
+                "TABIX_DBSNP": {
+                    "htslib": "1.23.1",
+                    "xz": "5.8.3"
+                },
+                "VCF2MAF": {
+                    "vcf2maf": "1.6.21"
+                },
+                "VCFTOOLS_TSTV_COUNT": {
+                    "vcftools": "0.1.16"
+                }
+            },
+            [
+                "consensus",
+                "consensus/vcf2maf",
+                "consensus/vcf2maf/TCRBOA7-T_vs_TCRBOA7-N",
+                "consensus/vcf2maf/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.strelka.maf",
+                "csv",
+                "csv/markduplicates.csv",
+                "csv/markduplicates_no_table.csv",
+                "csv/recalibrated.csv",
+                "csv/variantcalled.csv",
+                "filtering",
+                "filtering/TCRBOA7-T_vs_TCRBOA7-N",
+                "filtering/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.filtered.maf",
+                "pipeline_info",
+                "pipeline_info/nf_core_rnadnavar_software_mqc_versions.yml",
+                "preprocessing",
+                "preprocessing/markduplicates",
+                "preprocessing/markduplicates/TCRBOA7-N",
+                "preprocessing/markduplicates/TCRBOA7-N/TCRBOA7-N.md.cram",
+                "preprocessing/markduplicates/TCRBOA7-N/TCRBOA7-N.md.cram.crai",
+                "preprocessing/markduplicates/TCRBOA7-T",
+                "preprocessing/markduplicates/TCRBOA7-T/TCRBOA7-T.md.cram",
+                "preprocessing/markduplicates/TCRBOA7-T/TCRBOA7-T.md.cram.crai",
+                "preprocessing/recal_table",
+                "preprocessing/recal_table/TCRBOA7-N",
+                "preprocessing/recal_table/TCRBOA7-N/TCRBOA7-N.recal.table",
+                "preprocessing/recal_table/TCRBOA7-T",
+                "preprocessing/recal_table/TCRBOA7-T/TCRBOA7-T.recal.table",
+                "preprocessing/recalibrated",
+                "preprocessing/recalibrated/TCRBOA7-N",
+                "preprocessing/recalibrated/TCRBOA7-N/TCRBOA7-N.recal.cram",
+                "preprocessing/recalibrated/TCRBOA7-N/TCRBOA7-N.recal.cram.crai",
+                "preprocessing/recalibrated/TCRBOA7-T",
+                "preprocessing/recalibrated/TCRBOA7-T/TCRBOA7-T.recal.cram",
+                "preprocessing/recalibrated/TCRBOA7-T/TCRBOA7-T.recal.cram.crai",
+                "reports",
+                "reports/bcftools",
+                "reports/bcftools/strelka",
+                "reports/bcftools/strelka/TCRBOA7-T_vs_TCRBOA7-N",
+                "reports/bcftools/strelka/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.strelka.variants.bcftools_stats.txt",
+                "reports/fastp",
+                "reports/fastp/TCRBOA7-N",
+                "reports/fastp/TCRBOA7-N/TCRBOA7-N-LX.fastp.html",
+                "reports/fastp/TCRBOA7-N/TCRBOA7-N-LX.fastp.json",
+                "reports/fastp/TCRBOA7-N/TCRBOA7-N-LX.fastp.log",
+                "reports/fastp/TCRBOA7-T",
+                "reports/fastp/TCRBOA7-T-RNA",
+                "reports/fastp/TCRBOA7-T-RNA/TCRBOA7-T-RNA-LX.fastp.html",
+                "reports/fastp/TCRBOA7-T-RNA/TCRBOA7-T-RNA-LX.fastp.json",
+                "reports/fastp/TCRBOA7-T-RNA/TCRBOA7-T-RNA-LX.fastp.log",
+                "reports/fastp/TCRBOA7-T/TCRBOA7-T-LX.fastp.html",
+                "reports/fastp/TCRBOA7-T/TCRBOA7-T-LX.fastp.json",
+                "reports/fastp/TCRBOA7-T/TCRBOA7-T-LX.fastp.log",
+                "reports/fastqc",
+                "reports/fastqc/TCRBOA7-N-LX",
+                "reports/fastqc/TCRBOA7-N-LX/TCRBOA7-N-LX_1_fastqc.html",
+                "reports/fastqc/TCRBOA7-N-LX/TCRBOA7-N-LX_1_fastqc.zip",
+                "reports/fastqc/TCRBOA7-N-LX/TCRBOA7-N-LX_2_fastqc.html",
+                "reports/fastqc/TCRBOA7-N-LX/TCRBOA7-N-LX_2_fastqc.zip",
+                "reports/fastqc/TCRBOA7-T-LX",
+                "reports/fastqc/TCRBOA7-T-LX/TCRBOA7-T-LX_1_fastqc.html",
+                "reports/fastqc/TCRBOA7-T-LX/TCRBOA7-T-LX_1_fastqc.zip",
+                "reports/fastqc/TCRBOA7-T-LX/TCRBOA7-T-LX_2_fastqc.html",
+                "reports/fastqc/TCRBOA7-T-LX/TCRBOA7-T-LX_2_fastqc.zip",
+                "reports/fastqc/TCRBOA7-T-RNA-LX",
+                "reports/fastqc/TCRBOA7-T-RNA-LX/TCRBOA7-T-RNA-LX_1_fastqc.html",
+                "reports/fastqc/TCRBOA7-T-RNA-LX/TCRBOA7-T-RNA-LX_1_fastqc.zip",
+                "reports/fastqc/TCRBOA7-T-RNA-LX/TCRBOA7-T-RNA-LX_2_fastqc.html",
+                "reports/fastqc/TCRBOA7-T-RNA-LX/TCRBOA7-T-RNA-LX_2_fastqc.zip",
+                "reports/markduplicates",
+                "reports/markduplicates/TCRBOA7-N",
+                "reports/markduplicates/TCRBOA7-N/TCRBOA7-N.md.cram.metrics",
+                "reports/markduplicates/TCRBOA7-T",
+                "reports/markduplicates/TCRBOA7-T/TCRBOA7-T.md.cram.metrics",
+                "reports/mosdepth",
+                "reports/mosdepth/TCRBOA7-N",
+                "reports/mosdepth/TCRBOA7-N/TCRBOA7-N.md.mosdepth.global.dist.txt",
+                "reports/mosdepth/TCRBOA7-N/TCRBOA7-N.md.mosdepth.summary.txt",
+                "reports/mosdepth/TCRBOA7-N/TCRBOA7-N.md.per-base.bed.gz",
+                "reports/mosdepth/TCRBOA7-N/TCRBOA7-N.md.per-base.bed.gz.csi",
+                "reports/mosdepth/TCRBOA7-N/TCRBOA7-N.recal.mosdepth.global.dist.txt",
+                "reports/mosdepth/TCRBOA7-N/TCRBOA7-N.recal.mosdepth.summary.txt",
+                "reports/mosdepth/TCRBOA7-N/TCRBOA7-N.recal.per-base.bed.gz",
+                "reports/mosdepth/TCRBOA7-N/TCRBOA7-N.recal.per-base.bed.gz.csi",
+                "reports/mosdepth/TCRBOA7-T",
+                "reports/mosdepth/TCRBOA7-T/TCRBOA7-T.md.mosdepth.global.dist.txt",
+                "reports/mosdepth/TCRBOA7-T/TCRBOA7-T.md.mosdepth.summary.txt",
+                "reports/mosdepth/TCRBOA7-T/TCRBOA7-T.md.per-base.bed.gz",
+                "reports/mosdepth/TCRBOA7-T/TCRBOA7-T.md.per-base.bed.gz.csi",
+                "reports/mosdepth/TCRBOA7-T/TCRBOA7-T.recal.mosdepth.global.dist.txt",
+                "reports/mosdepth/TCRBOA7-T/TCRBOA7-T.recal.mosdepth.summary.txt",
+                "reports/mosdepth/TCRBOA7-T/TCRBOA7-T.recal.per-base.bed.gz",
+                "reports/mosdepth/TCRBOA7-T/TCRBOA7-T.recal.per-base.bed.gz.csi",
+                "reports/samtools",
+                "reports/samtools/TCRBOA7-N",
+                "reports/samtools/TCRBOA7-N/TCRBOA7-N.recal.cram.stats",
+                "reports/samtools/TCRBOA7-T-RNA",
+                "reports/samtools/TCRBOA7-T-RNA/TCRBOA7-T-RNA.idxstats",
+                "reports/samtools/TCRBOA7-T-RNA/TCRBOA7-T-RNA.stats",
+                "reports/samtools/markduplicates",
+                "reports/samtools/markduplicates/samtools_stats",
+                "reports/samtools/markduplicates/samtools_stats/TCRBOA7-N.md.cram.stats",
+                "reports/vcftools",
+                "reports/vcftools/strelka",
+                "reports/vcftools/strelka/TCRBOA7-T_vs_TCRBOA7-N",
+                "reports/vcftools/strelka/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.strelka.variants.FILTER.summary",
+                "reports/vcftools/strelka/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.strelka.variants.TsTv.count",
+                "reports/vcftools/strelka/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.strelka.variants.TsTv.qual",
+                "samtools",
+                "samtools/TCRBOA7-T-RNA.flagstat",
+                "variant_calling",
+                "variant_calling/strelka",
+                "variant_calling/strelka/TCRBOA7-T_vs_TCRBOA7-N",
+                "variant_calling/strelka/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.strelka.variants.vcf.gz",
+                "variant_calling/strelka/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.strelka.variants.vcf.gz.tbi"
+            ],
+            [
+                "TCRBOA7-T_vs_TCRBOA7-N.strelka.maf:md5,fae7532e022765fcbeaf2f1419a2139f",
+                "TCRBOA7-T_vs_TCRBOA7-N.filtered.maf:md5,84d4dafe5b00520c66adf090208e8f5c",
+                "TCRBOA7-N.recal.table:md5,4771abf3f2f413562282d88d16fd6ad0",
+                "TCRBOA7-T.recal.table:md5,9730abf3cc295cdab573dde542116517",
+                "TCRBOA7-T_vs_TCRBOA7-N.strelka.variants.bcftools_stats.txt:md5,3b3ca259d254d3a5d5e1b55c5305e451",
+                "TCRBOA7-N.md.mosdepth.global.dist.txt:md5,c3850b2f2be5742f87bab3f446aed477",
+                "TCRBOA7-N.md.mosdepth.summary.txt:md5,c9b752548642fb18f2ec818db5db6475",
+                "TCRBOA7-N.md.per-base.bed.gz:md5,db5b8c4b07a8494a03d6cd17a834b7d5",
+                "TCRBOA7-N.md.per-base.bed.gz.csi:md5,7c54e9e69d5061a757bd08d1d2d34a2b",
+                "TCRBOA7-N.recal.mosdepth.global.dist.txt:md5,c3850b2f2be5742f87bab3f446aed477",
+                "TCRBOA7-N.recal.mosdepth.summary.txt:md5,c9b752548642fb18f2ec818db5db6475",
+                "TCRBOA7-N.recal.per-base.bed.gz:md5,db5b8c4b07a8494a03d6cd17a834b7d5",
+                "TCRBOA7-N.recal.per-base.bed.gz.csi:md5,7c54e9e69d5061a757bd08d1d2d34a2b",
+                "TCRBOA7-T.md.mosdepth.global.dist.txt:md5,c001a2f095b4f6c00af48264d41730ea",
+                "TCRBOA7-T.md.mosdepth.summary.txt:md5,0daef9dceaa0e33a59b678a63db883f4",
+                "TCRBOA7-T.md.per-base.bed.gz:md5,aeed88b4172eb605a610e295a459f053",
+                "TCRBOA7-T.md.per-base.bed.gz.csi:md5,f992ff01a33640fd56108000e914d24e",
+                "TCRBOA7-T.recal.mosdepth.global.dist.txt:md5,c001a2f095b4f6c00af48264d41730ea",
+                "TCRBOA7-T.recal.mosdepth.summary.txt:md5,0daef9dceaa0e33a59b678a63db883f4",
+                "TCRBOA7-T.recal.per-base.bed.gz:md5,aeed88b4172eb605a610e295a459f053",
+                "TCRBOA7-T.recal.per-base.bed.gz.csi:md5,f992ff01a33640fd56108000e914d24e",
+                "TCRBOA7-T_vs_TCRBOA7-N.strelka.variants.FILTER.summary:md5,6c47080ddcb5a1ff8c690732f3a81eff",
+                "TCRBOA7-T_vs_TCRBOA7-N.strelka.variants.TsTv.count:md5,5b63c8b3aa96cf92726b576d2cb7da12",
+                "TCRBOA7-T_vs_TCRBOA7-N.strelka.variants.TsTv.qual:md5,29da677ef4e152719905df4b2b7cb798"
+            ]
+        ],
+        "timestamp": "2026-06-17T09:50:54.534498102",
+        "meta": {
+            "nf-test": "0.9.5",
+            "nextflow": "26.04.3"
+        }
+    },
+    "Run with -profile test_full": {
+        "content": [
+            174,
+            {
+                "BCFTOOLS_STATS": {
+                    "bcftools": "1.23.1"
+                },
+                "BGZIPTABIX_VC_SAGE": {
+                    "htslib": "1.23.1",
+                    "xz": "5.8.3"
+                },
+                "CALCULATECONTAMINATION": {
+                    "gatk4": "4.6.2.0"
+                },
+                "CAT_FASTQ": {
+                    "cat": 9.5
+                },
+                "COLLATE_FASTQ_MAP": {
+                    "samtools": "1.23.1"
+                },
+                "COLLATE_FASTQ_UNMAP": {
+                    "samtools": "1.23.1"
+                },
+                "CONVERT_CRAM2BAM": {
+                    "samtools": "1.23.1"
+                },
+                "FILTERING": {
+                    "python": "3.9.13"
+                },
+                "FILTERMUTECTCALLS": {
+                    "gatk4": "4.6.2.0"
+                },
+                "GATK4_CREATESEQUENCEDICTIONARY": {
+                    "gatk4": "4.6.2.0"
+                },
+                "GATK4_MARKDUPLICATES": {
+                    "gatk4": "4.6.2.0",
+                    "samtools": 1.21
+                },
+                "GATK4_SPLITNCIGARREADS": {
+                    "gatk4": "4.6.2.0",
+                    "samtools": 1.21
+                },
+                "GETPILEUPSUMMARIES_NORMAL": {
+                    "gatk4": "4.6.2.0"
+                },
+                "GETPILEUPSUMMARIES_TUMOR": {
+                    "gatk4": "4.6.2.0"
+                },
+                "GUNZIP_FASTA": {
+                    "gunzip": 1.13
+                },
+                "GUNZIP_VCF2MAF": {
+                    "gunzip": 1.13
+                },
+                "HISAT2_BUILD": {
+                    "hisat2": "2.2.2"
+                },
+                "HISAT2_EXTRACTSPLICESITES": {
+                    "hisat2": "2.2.1"
+                },
+                "INDEX_CRAM": {
+                    "samtools": "1.23.1"
+                },
+                "LEARNREADORIENTATIONMODEL": {
+                    "gatk4": "4.6.2.0"
+                },
+                "MERGE_STRELKA": {
+                    "gatk4": "4.6.2.0"
+                },
+                "MOSDEPTH": {
+                    "gzip": 1.14,
+                    "mosdepth": "0.3.14"
+                },
+                "MUTECT2_PAIRED": {
+                    "gatk4": "4.6.2.0"
+                },
+                "PICARD_FILTERSAMREADS": {
+                    "picard": "3.4.0"
+                },
+                "RNA_FILTERING": {
+                    "python": "3.9.19"
+                },
+                "SAGE": {
+                    "SAGE": "3.2.3"
+                },
+                "SAMTOOLS_FAIDX": {
+                    "samtools": "1.23.1"
+                },
+                "SAMTOOLS_MERGE_UNMAP": {
+                    "samtools": "1.23.1"
+                },
+                "SAMTOOLS_STATS": {
+                    "samtools": "1.23.1"
+                },
+                "SAMTOOLS_VIEW_MAP_MAP": {
+                    "samtools": "1.23.1"
+                },
+                "SAMTOOLS_VIEW_MAP_UNMAP": {
+                    "samtools": "1.23.1"
+                },
+                "SAMTOOLS_VIEW_UNMAP_MAP": {
+                    "samtools": "1.23.1"
+                },
+                "SAMTOOLS_VIEW_UNMAP_UNMAP": {
+                    "samtools": "1.23.1"
+                },
+                "STRELKA_SOMATIC": {
+                    "strelka": "2.9.10"
+                },
+                "TABIX_DBSNP": {
+                    "htslib": "1.23.1",
+                    "xz": "5.8.3"
+                },
+                "TABIX_GERMLINE_RESOURCE": {
+                    "htslib": "1.23.1",
+                    "xz": "5.8.3"
+                },
+                "UNZIP_SAGE_ENSEMBL": {
+                    "7za": 16.02
+                },
+                "UNZIP_VEP_CACHE": {
+                    "7za": 16.02
+                },
+                "VCF2MAF": {
+                    "vcf2maf": "1.6.22"
+                },
+                "VCFTOOLS_TSTV_COUNT": {
+                    "vcftools": "0.1.16"
+                },
+                "VT_DECOMPOSE": {
+                    "vt": "2015.11.10"
+                },
+                "VT_NORMALIZE": {
+                    "vt": "2015.11.10"
+                },
+                "Workflow": {
+                    "nf-core/rnadnavar": "v1.0.0"
+                }
+            },
+            [
+                "annotation",
+                "annotation/mutect2",
+                "annotation/mutect2/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign",
+                "annotation/mutect2/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.mutect2.filtered.dec.norm_VEP.ann.vcf.gz",
+                "annotation/mutect2/TCRBOA7-T-RNA_vs_TCRBOA7-N",
+                "annotation/mutect2/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.mutect2.filtered.dec.norm_VEP.ann.vcf.gz",
+                "annotation/mutect2/TCRBOA7-T_vs_TCRBOA7-N",
+                "annotation/mutect2/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.mutect2.filtered.dec.norm_VEP.ann.vcf.gz",
+                "annotation/sage",
+                "annotation/sage/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign",
+                "annotation/sage/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.sage.dec.norm_VEP.ann.vcf.gz",
+                "annotation/sage/TCRBOA7-T-RNA_vs_TCRBOA7-N",
+                "annotation/sage/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.sage.dec.norm_VEP.ann.vcf.gz",
+                "annotation/sage/TCRBOA7-T_vs_TCRBOA7-N",
+                "annotation/sage/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.sage.dec.norm_VEP.ann.vcf.gz",
+                "annotation/strelka",
+                "annotation/strelka/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign",
+                "annotation/strelka/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.strelka.variants.dec.norm_VEP.ann.vcf.gz",
+                "annotation/strelka/TCRBOA7-T-RNA_vs_TCRBOA7-N",
+                "annotation/strelka/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.strelka.variants.dec.norm_VEP.ann.vcf.gz",
+                "annotation/strelka/TCRBOA7-T_vs_TCRBOA7-N",
+                "annotation/strelka/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.strelka.variants.dec.norm_VEP.ann.vcf.gz",
+                "consensus",
+                "consensus/consensus",
+                "consensus/consensus/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign",
+                "consensus/consensus/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.consensus.maf",
+                "consensus/consensus/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.consensus_mutect2.maf",
+                "consensus/consensus/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.consensus_sage.maf",
+                "consensus/consensus/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.consensus_strelka.maf",
+                "consensus/consensus/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign_with_TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N",
+                "consensus/consensus/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign_with_TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign_with_TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N.consensus.maf",
+                "consensus/consensus/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign_with_TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign_with_TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N.consensus_consensus.maf",
+                "consensus/consensus/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign_with_TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign_with_TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N.consensus_mutect2.maf",
+                "consensus/consensus/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign_with_TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign_with_TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N.consensus_sage.maf",
+                "consensus/consensus/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign_with_TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign_with_TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N.consensus_strelka.maf",
+                "consensus/consensus/TCRBOA7-T-RNA_vs_TCRBOA7-N",
+                "consensus/consensus/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.consensus.maf",
+                "consensus/consensus/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.consensus_mutect2.maf",
+                "consensus/consensus/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.consensus_sage.maf",
+                "consensus/consensus/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.consensus_strelka.maf",
+                "consensus/consensus/TCRBOA7-T-RNA_vs_TCRBOA7-N_with_TCRBOA7-T_vs_TCRBOA7-N",
+                "consensus/consensus/TCRBOA7-T-RNA_vs_TCRBOA7-N_with_TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N_with_TCRBOA7-T_vs_TCRBOA7-N.consensus.maf",
+                "consensus/consensus/TCRBOA7-T-RNA_vs_TCRBOA7-N_with_TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N_with_TCRBOA7-T_vs_TCRBOA7-N.consensus_consensus.maf",
+                "consensus/consensus/TCRBOA7-T-RNA_vs_TCRBOA7-N_with_TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N_with_TCRBOA7-T_vs_TCRBOA7-N.consensus_mutect2.maf",
+                "consensus/consensus/TCRBOA7-T-RNA_vs_TCRBOA7-N_with_TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N_with_TCRBOA7-T_vs_TCRBOA7-N.consensus_sage.maf",
+                "consensus/consensus/TCRBOA7-T-RNA_vs_TCRBOA7-N_with_TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N_with_TCRBOA7-T_vs_TCRBOA7-N.consensus_strelka.maf",
+                "consensus/consensus/TCRBOA7-T_vs_TCRBOA7-N",
+                "consensus/consensus/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.consensus.maf",
+                "consensus/consensus/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.consensus_mutect2.maf",
+                "consensus/consensus/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.consensus_sage.maf",
+                "consensus/consensus/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.consensus_strelka.maf",
+                "consensus/consensus/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign",
+                "consensus/consensus/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.consensus.maf",
+                "consensus/consensus/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.consensus_consensus.maf",
+                "consensus/consensus/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.consensus_mutect2.maf",
+                "consensus/consensus/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.consensus_sage.maf",
+                "consensus/consensus/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.consensus_strelka.maf",
+                "consensus/consensus/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N",
+                "consensus/consensus/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N.consensus.maf",
+                "consensus/consensus/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N.consensus_consensus.maf",
+                "consensus/consensus/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N.consensus_mutect2.maf",
+                "consensus/consensus/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N.consensus_sage.maf",
+                "consensus/consensus/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N.consensus_strelka.maf",
+                "consensus/vcf2maf",
+                "consensus/vcf2maf/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign",
+                "consensus/vcf2maf/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.mutect2.maf",
+                "consensus/vcf2maf/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.sage.maf",
+                "consensus/vcf2maf/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.strelka.maf",
+                "consensus/vcf2maf/TCRBOA7-T-RNA_vs_TCRBOA7-N",
+                "consensus/vcf2maf/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.mutect2.maf",
+                "consensus/vcf2maf/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.sage.maf",
+                "consensus/vcf2maf/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.strelka.maf",
+                "consensus/vcf2maf/TCRBOA7-T_vs_TCRBOA7-N",
+                "consensus/vcf2maf/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.mutect2.maf",
+                "consensus/vcf2maf/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.sage.maf",
+                "consensus/vcf2maf/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.strelka.maf",
+                "convert",
+                "convert/TCRBOA7-N_realign.bam",
+                "convert/TCRBOA7-N_realign.bam.bai",
+                "convert/TCRBOA7-T-RNA_realign.bam",
+                "convert/TCRBOA7-T-RNA_realign.bam.bai",
+                "csv",
+                "csv/annotated.csv",
+                "csv/consensus.csv",
+                "csv/consensus_realigned.csv",
+                "csv/markduplicates_no_table.csv",
+                "csv/normalized.csv",
+                "csv/rescued.csv",
+                "csv/rescued_realigned.csv",
+                "csv/variantcalled.csv",
+                "filtering",
+                "filtering/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign_with_TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N",
+                "filtering/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign_with_TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign_with_TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N.filtered.maf",
+                "filtering/TCRBOA7-T-RNA_vs_TCRBOA7-N_with_TCRBOA7-T_vs_TCRBOA7-N",
+                "filtering/TCRBOA7-T-RNA_vs_TCRBOA7-N_with_TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N_with_TCRBOA7-T_vs_TCRBOA7-N.filtered.maf",
+                "filtering/TCRBOA7-T-RNA_with_TCRBOA7-T-RNA_realign",
+                "filtering/TCRBOA7-T-RNA_with_TCRBOA7-T-RNA_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign_with_TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N.filtered.withRNAfilters.maf",
+                "filtering/TCRBOA7-T-RNA_with_TCRBOA7-T-RNA_realign/TCRBOA7-T-RNA_vs_TCRBOA7-N_with_TCRBOA7-T_vs_TCRBOA7-N.filtered.withRNAfilters.maf",
+                "filtering/TCRBOA7-T-RNA_with_TCRBOA7-T-RNA_realign/TCRBOA7-T-RNA_with_TCRBOA7-T-RNA_realign.rna_filt.maf",
+                "filtering/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign",
+                "filtering/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.filtered.maf",
+                "filtering/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N",
+                "filtering/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N.filtered.maf",
+                "gunzip",
+                "gunzip/GRCh38.d1.vd1.chr7.mini.fa",
+                "normalised",
+                "normalised/mutect2",
+                "normalised/mutect2/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign",
+                "normalised/mutect2/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.mutect2.filtered.dec.norm.vcf.gz",
+                "normalised/mutect2/TCRBOA7-T-RNA_vs_TCRBOA7-N",
+                "normalised/mutect2/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.mutect2.filtered.dec.norm.vcf.gz",
+                "normalised/mutect2/TCRBOA7-T_vs_TCRBOA7-N",
+                "normalised/mutect2/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.mutect2.filtered.dec.norm.vcf.gz",
+                "normalised/sage",
+                "normalised/sage/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign",
+                "normalised/sage/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.sage.dec.norm.vcf.gz",
+                "normalised/sage/TCRBOA7-T-RNA_vs_TCRBOA7-N",
+                "normalised/sage/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.sage.dec.norm.vcf.gz",
+                "normalised/sage/TCRBOA7-T_vs_TCRBOA7-N",
+                "normalised/sage/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.sage.dec.norm.vcf.gz",
+                "normalised/strelka",
+                "normalised/strelka/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign",
+                "normalised/strelka/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.strelka.variants.dec.norm.vcf.gz",
+                "normalised/strelka/TCRBOA7-T-RNA_vs_TCRBOA7-N",
+                "normalised/strelka/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.strelka.variants.dec.norm.vcf.gz",
+                "normalised/strelka/TCRBOA7-T_vs_TCRBOA7-N",
+                "normalised/strelka/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.strelka.variants.dec.norm.vcf.gz",
+                "pipeline_info",
+                "pipeline_info/nf_core_rnadnavar_software_mqc_versions.yml",
+                "preprocessing",
+                "preprocessing/markduplicates",
+                "preprocessing/markduplicates/TCRBOA7-N_realign",
+                "preprocessing/markduplicates/TCRBOA7-N_realign/TCRBOA7-N_realign.md.cram",
+                "preprocessing/markduplicates/TCRBOA7-N_realign/TCRBOA7-N_realign.md.cram.crai",
+                "preprocessing/markduplicates/TCRBOA7-T-RNA_realign",
+                "preprocessing/markduplicates/TCRBOA7-T-RNA_realign/TCRBOA7-T-RNA_realign.md.cram",
+                "preprocessing/markduplicates/TCRBOA7-T-RNA_realign/TCRBOA7-T-RNA_realign.md.cram.crai",
+                "preprocessing/realignment",
+                "preprocessing/realignment/maf2bed",
+                "preprocessing/realignment/maf2bed/TCRBOA7-N_realign",
+                "preprocessing/realignment/maf2bed/TCRBOA7-N_realign/TCRBOA7-N_realign.bed",
+                "preprocessing/realignment/maf2bed/TCRBOA7-T-RNA_realign",
+                "preprocessing/realignment/maf2bed/TCRBOA7-T-RNA_realign/TCRBOA7-T-RNA_realign.bed",
+                "preprocessing/realignment/readids",
+                "preprocessing/realignment/readids/TCRBOA7-N_realign",
+                "preprocessing/realignment/readids/TCRBOA7-N_realign/TCRBOA7-N_realign_IDs_all.txt",
+                "preprocessing/realignment/readids/TCRBOA7-T-RNA_realign",
+                "preprocessing/realignment/readids/TCRBOA7-T-RNA_realign/TCRBOA7-T-RNA_realign_IDs_all.txt",
+                "preprocessing/splitncigarreads",
+                "preprocessing/splitncigarreads/TCRBOA7-T-RNA_realign",
+                "preprocessing/splitncigarreads/TCRBOA7-T-RNA_realign/TCRBOA7-T-RNA_realign.sncr.cram",
+                "preprocessing/splitncigarreads/TCRBOA7-T-RNA_realign/TCRBOA7-T-RNA_realign.sncr.cram.crai",
+                "reports",
+                "reports/EnsemblVEP",
+                "reports/EnsemblVEP/mutect2",
+                "reports/EnsemblVEP/mutect2/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign",
+                "reports/EnsemblVEP/mutect2/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.mutect2.filtered.dec.norm_VEP.ann.vcf.gz_summary.html",
+                "reports/EnsemblVEP/mutect2/TCRBOA7-T-RNA_vs_TCRBOA7-N",
+                "reports/EnsemblVEP/mutect2/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.mutect2.filtered.dec.norm_VEP.ann.vcf.gz_summary.html",
+                "reports/EnsemblVEP/mutect2/TCRBOA7-T_vs_TCRBOA7-N",
+                "reports/EnsemblVEP/mutect2/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.mutect2.filtered.dec.norm_VEP.ann.vcf.gz_summary.html",
+                "reports/EnsemblVEP/sage",
+                "reports/EnsemblVEP/sage/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign",
+                "reports/EnsemblVEP/sage/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.sage.dec.norm_VEP.ann.vcf.gz_summary.html",
+                "reports/EnsemblVEP/sage/TCRBOA7-T-RNA_vs_TCRBOA7-N",
+                "reports/EnsemblVEP/sage/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.sage.dec.norm_VEP.ann.vcf.gz_summary.html",
+                "reports/EnsemblVEP/sage/TCRBOA7-T_vs_TCRBOA7-N",
+                "reports/EnsemblVEP/sage/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.sage.dec.norm_VEP.ann.vcf.gz_summary.html",
+                "reports/EnsemblVEP/strelka",
+                "reports/EnsemblVEP/strelka/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign",
+                "reports/EnsemblVEP/strelka/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.strelka.variants.dec.norm_VEP.ann.vcf.gz_summary.html",
+                "reports/EnsemblVEP/strelka/TCRBOA7-T-RNA_vs_TCRBOA7-N",
+                "reports/EnsemblVEP/strelka/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.strelka.variants.dec.norm_VEP.ann.vcf.gz_summary.html",
+                "reports/EnsemblVEP/strelka/TCRBOA7-T_vs_TCRBOA7-N",
+                "reports/EnsemblVEP/strelka/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.strelka.variants.dec.norm_VEP.ann.vcf.gz_summary.html",
+                "reports/bcftools",
+                "reports/bcftools/mutect2",
+                "reports/bcftools/mutect2/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign",
+                "reports/bcftools/mutect2/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.mutect2.filtered.bcftools_stats.txt",
+                "reports/bcftools/mutect2/TCRBOA7-T-RNA_vs_TCRBOA7-N",
+                "reports/bcftools/mutect2/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.mutect2.filtered.bcftools_stats.txt",
+                "reports/bcftools/mutect2/TCRBOA7-T_vs_TCRBOA7-N",
+                "reports/bcftools/mutect2/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.mutect2.filtered.bcftools_stats.txt",
+                "reports/bcftools/sage",
+                "reports/bcftools/sage/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign",
+                "reports/bcftools/sage/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.sage.bcftools_stats.txt",
+                "reports/bcftools/sage/TCRBOA7-T-RNA_vs_TCRBOA7-N",
+                "reports/bcftools/sage/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.sage.bcftools_stats.txt",
+                "reports/bcftools/sage/TCRBOA7-T_vs_TCRBOA7-N",
+                "reports/bcftools/sage/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.sage.bcftools_stats.txt",
+                "reports/bcftools/strelka",
+                "reports/bcftools/strelka/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign",
+                "reports/bcftools/strelka/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.strelka.variants.bcftools_stats.txt",
+                "reports/bcftools/strelka/TCRBOA7-T-RNA_vs_TCRBOA7-N",
+                "reports/bcftools/strelka/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.strelka.variants.bcftools_stats.txt",
+                "reports/bcftools/strelka/TCRBOA7-T_vs_TCRBOA7-N",
+                "reports/bcftools/strelka/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.strelka.variants.bcftools_stats.txt",
+                "reports/consensus",
+                "reports/consensus/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.consensus.pdf",
+                "reports/consensus/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign_with_TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N.consensus.pdf",
+                "reports/consensus/TCRBOA7-T-RNA_vs_TCRBOA7-N.consensus.pdf",
+                "reports/consensus/TCRBOA7-T-RNA_vs_TCRBOA7-N_with_TCRBOA7-T_vs_TCRBOA7-N.consensus.pdf",
+                "reports/consensus/TCRBOA7-T_vs_TCRBOA7-N.consensus.pdf",
+                "reports/consensus/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.consensus.pdf",
+                "reports/consensus/TCRBOA7-T_vs_TCRBOA7-N_with_TCRBOA7-T-RNA_vs_TCRBOA7-N.consensus.pdf",
+                "reports/markduplicates",
+                "reports/markduplicates/TCRBOA7-N_realign",
+                "reports/markduplicates/TCRBOA7-N_realign/TCRBOA7-N_realign.md.cram.metrics",
+                "reports/markduplicates/TCRBOA7-T-RNA_realign",
+                "reports/markduplicates/TCRBOA7-T-RNA_realign/TCRBOA7-T-RNA_realign.md.cram.metrics",
+                "reports/mosdepth",
+                "reports/mosdepth/TCRBOA7-N_realign",
+                "reports/mosdepth/TCRBOA7-N_realign/TCRBOA7-N_realign.md.mosdepth.global.dist.txt",
+                "reports/mosdepth/TCRBOA7-N_realign/TCRBOA7-N_realign.md.mosdepth.summary.txt",
+                "reports/mosdepth/TCRBOA7-N_realign/TCRBOA7-N_realign.md.per-base.bed.gz",
+                "reports/mosdepth/TCRBOA7-N_realign/TCRBOA7-N_realign.md.per-base.bed.gz.csi",
+                "reports/mosdepth/TCRBOA7-T-RNA_realign",
+                "reports/mosdepth/TCRBOA7-T-RNA_realign/TCRBOA7-T-RNA_realign.md.mosdepth.global.dist.txt",
+                "reports/mosdepth/TCRBOA7-T-RNA_realign/TCRBOA7-T-RNA_realign.md.mosdepth.summary.txt",
+                "reports/mosdepth/TCRBOA7-T-RNA_realign/TCRBOA7-T-RNA_realign.md.per-base.bed.gz",
+                "reports/mosdepth/TCRBOA7-T-RNA_realign/TCRBOA7-T-RNA_realign.md.per-base.bed.gz.csi",
+                "reports/multiqc_data",
+                "reports/multiqc_plots",
+                "reports/samtools",
+                "reports/vcftools",
+                "reports/vcftools/mutect2",
+                "reports/vcftools/mutect2/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign",
+                "reports/vcftools/mutect2/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.mutect2.filtered.FILTER.summary",
+                "reports/vcftools/mutect2/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.mutect2.filtered.TsTv.count",
+                "reports/vcftools/mutect2/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.mutect2.filtered.TsTv.qual",
+                "reports/vcftools/mutect2/TCRBOA7-T-RNA_vs_TCRBOA7-N",
+                "reports/vcftools/mutect2/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.mutect2.filtered.FILTER.summary",
+                "reports/vcftools/mutect2/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.mutect2.filtered.TsTv.count",
+                "reports/vcftools/mutect2/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.mutect2.filtered.TsTv.qual",
+                "reports/vcftools/mutect2/TCRBOA7-T_vs_TCRBOA7-N",
+                "reports/vcftools/mutect2/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.mutect2.filtered.FILTER.summary",
+                "reports/vcftools/mutect2/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.mutect2.filtered.TsTv.count",
+                "reports/vcftools/mutect2/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.mutect2.filtered.TsTv.qual",
+                "reports/vcftools/sage",
+                "reports/vcftools/sage/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign",
+                "reports/vcftools/sage/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.sage.FILTER.summary",
+                "reports/vcftools/sage/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.sage.TsTv.count",
+                "reports/vcftools/sage/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.sage.TsTv.qual",
+                "reports/vcftools/sage/TCRBOA7-T-RNA_vs_TCRBOA7-N",
+                "reports/vcftools/sage/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.sage.FILTER.summary",
+                "reports/vcftools/sage/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.sage.TsTv.count",
+                "reports/vcftools/sage/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.sage.TsTv.qual",
+                "reports/vcftools/sage/TCRBOA7-T_vs_TCRBOA7-N",
+                "reports/vcftools/sage/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.sage.FILTER.summary",
+                "reports/vcftools/sage/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.sage.TsTv.count",
+                "reports/vcftools/sage/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.sage.TsTv.qual",
+                "reports/vcftools/strelka",
+                "reports/vcftools/strelka/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign",
+                "reports/vcftools/strelka/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.strelka.variants.FILTER.summary",
+                "reports/vcftools/strelka/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.strelka.variants.TsTv.count",
+                "reports/vcftools/strelka/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.strelka.variants.TsTv.qual",
+                "reports/vcftools/strelka/TCRBOA7-T-RNA_vs_TCRBOA7-N",
+                "reports/vcftools/strelka/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.strelka.variants.FILTER.summary",
+                "reports/vcftools/strelka/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.strelka.variants.TsTv.count",
+                "reports/vcftools/strelka/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.strelka.variants.TsTv.qual",
+                "reports/vcftools/strelka/TCRBOA7-T_vs_TCRBOA7-N",
+                "reports/vcftools/strelka/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.strelka.variants.FILTER.summary",
+                "reports/vcftools/strelka/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.strelka.variants.TsTv.count",
+                "reports/vcftools/strelka/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.strelka.variants.TsTv.qual",
+                "reports/vt",
+                "reports/vt/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign",
+                "reports/vt/TCRBOA7-T-RNA_vs_TCRBOA7-N",
+                "reports/vt/TCRBOA7-T_vs_TCRBOA7-N",
+                "unzip",
+                "unzip/sage_ensembl",
+                "unzip/sage_ensembl/ensembl_gene_data.csv",
+                "unzip/sage_ensembl/ensembl_protein_features.csv",
+                "unzip/sage_ensembl/ensembl_trans_exon_data.csv",
+                "unzip/sage_ensembl/ensembl_trans_splice_data.csv",
+                "unzip/vep_hs",
+                "unzip/vep_hs/homo_sapiens",
+                "unzip/vep_hs/homo_sapiens/999_GRCh38",
+                "unzip/vep_hs/homo_sapiens/999_GRCh38/7",
+                "unzip/vep_hs/homo_sapiens/999_GRCh38/7/116000001-117000000.gz",
+                "unzip/vep_hs/homo_sapiens/999_GRCh38/7/116000001-117000000_reg.gz",
+                "unzip/vep_hs/homo_sapiens/999_GRCh38/7/18000001-19000000.gz",
+                "unzip/vep_hs/homo_sapiens/999_GRCh38/7/18000001-19000000_reg.gz",
+                "unzip/vep_hs/homo_sapiens/999_GRCh38/7/29000001-30000000.gz",
+                "unzip/vep_hs/homo_sapiens/999_GRCh38/7/29000001-30000000_reg.gz",
+                "unzip/vep_hs/homo_sapiens/999_GRCh38/7/44000001-45000000.gz",
+                "unzip/vep_hs/homo_sapiens/999_GRCh38/7/44000001-45000000_reg.gz",
+                "unzip/vep_hs/homo_sapiens/999_GRCh38/7/all_vars",
+                "unzip/vep_hs/homo_sapiens/999_GRCh38/7/all_vars.gz",
+                "unzip/vep_hs/homo_sapiens/999_GRCh38/7/all_vars.gz.csi",
+                "unzip/vep_hs/homo_sapiens/999_GRCh38/info.txt",
+                "variant_calling",
+                "variant_calling/mutect2",
+                "variant_calling/mutect2/TCRBOA7-N",
+                "variant_calling/mutect2/TCRBOA7-N/TCRBOA7-N.mutect2.pileups.table",
+                "variant_calling/mutect2/TCRBOA7-T",
+                "variant_calling/mutect2/TCRBOA7-T-RNA",
+                "variant_calling/mutect2/TCRBOA7-T-RNA/TCRBOA7-T-RNA.mutect2.pileups.table",
+                "variant_calling/mutect2/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign",
+                "variant_calling/mutect2/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.mutect2.filtered.vcf.gz",
+                "variant_calling/mutect2/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.mutect2.filtered.vcf.gz.filteringStats.tsv",
+                "variant_calling/mutect2/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.mutect2.filtered.vcf.gz.tbi",
+                "variant_calling/mutect2/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.mutect2.vcf.gz",
+                "variant_calling/mutect2/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.mutect2.vcf.gz.stats",
+                "variant_calling/mutect2/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.mutect2.vcf.gz.tbi",
+                "variant_calling/mutect2/TCRBOA7-T-RNA_vs_TCRBOA7-N",
+                "variant_calling/mutect2/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.mutect2.artifactprior.tar.gz",
+                "variant_calling/mutect2/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.mutect2.contamination.table",
+                "variant_calling/mutect2/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.mutect2.filtered.vcf.gz",
+                "variant_calling/mutect2/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.mutect2.filtered.vcf.gz.filteringStats.tsv",
+                "variant_calling/mutect2/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.mutect2.filtered.vcf.gz.tbi",
+                "variant_calling/mutect2/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.mutect2.segmentation.table",
+                "variant_calling/mutect2/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.mutect2.vcf.gz",
+                "variant_calling/mutect2/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.mutect2.vcf.gz.stats",
+                "variant_calling/mutect2/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.mutect2.vcf.gz.tbi",
+                "variant_calling/mutect2/TCRBOA7-T/TCRBOA7-T.mutect2.pileups.table",
+                "variant_calling/mutect2/TCRBOA7-T_vs_TCRBOA7-N",
+                "variant_calling/mutect2/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.mutect2.artifactprior.tar.gz",
+                "variant_calling/mutect2/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.mutect2.contamination.table",
+                "variant_calling/mutect2/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.mutect2.filtered.vcf.gz",
+                "variant_calling/mutect2/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.mutect2.filtered.vcf.gz.filteringStats.tsv",
+                "variant_calling/mutect2/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.mutect2.filtered.vcf.gz.tbi",
+                "variant_calling/mutect2/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.mutect2.segmentation.table",
+                "variant_calling/mutect2/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.mutect2.vcf.gz",
+                "variant_calling/mutect2/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.mutect2.vcf.gz.stats",
+                "variant_calling/mutect2/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.mutect2.vcf.gz.tbi",
+                "variant_calling/sage",
+                "variant_calling/sage/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign",
+                "variant_calling/sage/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.sage.vcf.gz",
+                "variant_calling/sage/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.sage.vcf.gz.tbi",
+                "variant_calling/sage/TCRBOA7-T-RNA_vs_TCRBOA7-N",
+                "variant_calling/sage/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.sage.vcf.gz",
+                "variant_calling/sage/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.sage.vcf.gz.tbi",
+                "variant_calling/sage/TCRBOA7-T_vs_TCRBOA7-N",
+                "variant_calling/sage/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.sage.vcf.gz",
+                "variant_calling/sage/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.sage.vcf.gz.tbi",
+                "variant_calling/strelka",
+                "variant_calling/strelka/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign",
+                "variant_calling/strelka/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.strelka.variants.vcf.gz",
+                "variant_calling/strelka/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign/TCRBOA7-T-RNA_realign_vs_TCRBOA7-N_realign.strelka.variants.vcf.gz.tbi",
+                "variant_calling/strelka/TCRBOA7-T-RNA_vs_TCRBOA7-N",
+                "variant_calling/strelka/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.strelka.variants.vcf.gz",
+                "variant_calling/strelka/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.strelka.variants.vcf.gz.tbi",
+                "variant_calling/strelka/TCRBOA7-T_vs_TCRBOA7-N",
+                "variant_calling/strelka/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.strelka.variants.vcf.gz",
+                "variant_calling/strelka/TCRBOA7-T_vs_TCRBOA7-N/TCRBOA7-T_vs_TCRBOA7-N.strelka.variants.vcf.gz.tbi"
+            ]
+        ],
+        "timestamp": "2026-06-24T16:38:39.016235561",
+        "meta": {
+            "nf-test": "0.9.5",
+            "nextflow": "26.04.3"
+        }
+    }
+}

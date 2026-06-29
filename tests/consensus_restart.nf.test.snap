@@ -1,0 +1,34 @@
+{
+    "Run only consensus from MAF input": {
+        "content": [
+            {
+                "GATK4_CREATESEQUENCEDICTIONARY": {
+                    "gatk4": "4.6.2.0"
+                },
+                "SAMTOOLS_FAIDX": {
+                    "samtools": "1.23.1"
+                }
+            },
+            [
+                "consensus",
+                "consensus/consensus",
+                "consensus/consensus/TCRBOA7-T-RNA_vs_TCRBOA7-N",
+                "consensus/consensus/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.consensus.maf",
+                "consensus/consensus/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.consensus_realign.maf",
+                "consensus/consensus/TCRBOA7-T-RNA_vs_TCRBOA7-N/TCRBOA7-T-RNA_vs_TCRBOA7-N.consensus_unknown.maf",
+                "csv",
+                "csv/consensus.csv",
+                "pipeline_info",
+                "pipeline_info/nf_core_rnadnavar_software_mqc_versions.yml",
+                "reports",
+                "reports/consensus",
+                "reports/consensus/TCRBOA7-T-RNA_vs_TCRBOA7-N.consensus.pdf"
+            ]
+        ],
+        "timestamp": "2026-06-25T13:32:53.406081",
+        "meta": {
+            "nf-test": "0.9.5",
+            "nextflow": "26.04.4"
+        }
+    }
+}
