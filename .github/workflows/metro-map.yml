@@ -1,0 +1,48 @@
+name: Render metro map
+
+on:
+  push:
+    branches: [dev, master]
+    paths:
+      - "assets/metro_map.mmd"
+  pull_request:
+    paths:
+      - "assets/metro_map.mmd"
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Install nf-metro
+        run: uv tool install nf-metro
+
+      - name: Render metro map
+        run: |
+          nf-metro render assets/metro_map.mmd \
+            -o assets/metro_map.svg \
+            --theme nfcore \
+            --embed-font \
+            --fold-threshold 18
+
+      - name: Check for changes
+        id: diff
+        run: |
+          git diff --exit-code assets/metro_map.svg || echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Commit updated SVG
+        if: steps.diff.outputs.changed == 'true' && github.event_name == 'push'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add assets/metro_map.svg
+          git commit -m "chore: re-render metro map [skip ci]"
+          git push
+
+      - name: Warn on PR if SVG is stale
+        if: steps.diff.outputs.changed == 'true' && github.event_name == 'pull_request'
+        run: |
+          echo "::warning::assets/metro_map.svg is out of date with assets/metro_map.mmd — it will be re-rendered on merge."
