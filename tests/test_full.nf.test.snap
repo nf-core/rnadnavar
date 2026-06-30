@@ -353,7 +353,7 @@
                     "vt": "2015.11.10"
                 },
                 "Workflow": {
-                    "nf-core/rnadnavar": "v1.0.0"
+                    "nf-core/rnadnavar": "v1.0.1dev"
                 }
             },
             [
