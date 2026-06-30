@@ -1,5 +1,5 @@
 %%metro title: nf-core/rnadnavar
-%%metro logo: examples/nf-core-rnadnavar_logo_dark.png
+%%metro logo: docs/images/nf-core-rnadnavar_logo_light.png | docs/images/nf-core-rnadnavar_logo_dark.png
 %%metro style: dark
 %%metro file: fastq_in | FASTQ
 %%metro file: report_out | HTML
@@ -8,6 +8,11 @@
 %%metro line: realignment | Realignment (RNA) | #f5c542
 %%metro line_order: definition
 %%metro legend: bl
+%%metro grid: preprocessing | 0,0
+%%metro grid: gatk_preproc, variant_calling | 1,0
+%%metro grid: realign, reporting | 1,1
+%%metro grid: normalization | 3,0
+%%metro grid: consensus | 3,1
 
 graph LR
     subgraph preprocessing [Pre-processing & Alignment]
@@ -58,6 +63,7 @@ graph LR
     end
 
     subgraph normalization [Normalization & Annotation]
+        %%metro exit: bottom | dna, rna
         vt_decompose[VT Decompose]
         vt_normalize[VT Normalize]
         ensemblvep[Ensembl VEP]
@@ -67,6 +73,9 @@ graph LR
     end
 
     subgraph consensus [Consensus & Filtering]
+        %%metro direction: RL
+        %%metro entry: top | dna, rna
+        %%metro exit: left | rna, realignment
         vcf2maf[vcf2MAF]
         run_consensus[Consensus]
         maf_filtering[MAF Filtering]
@@ -76,6 +85,9 @@ graph LR
     end
 
     subgraph realign [Realignment (RNA)]
+        %%metro direction: RL
+        %%metro entry: right | realignment
+        %%metro exit: left | realignment
         maf2bed[MAF2BED]
         extract_reads[Extract Reads]
         hisat2[HISAT2]
@@ -101,6 +113,8 @@ graph LR
     end
 
     subgraph reporting [Reporting]
+        %%metro direction: RL
+        %%metro entry: right | rna, realignment
         rna_filter[RNA MAF Filtering]
         rna_filter -->|rna,realignment| multiqc
         multiqc[MultiQC]
