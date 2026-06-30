@@ -26,7 +26,7 @@ jobs:
             -o assets/metro_map.svg \
             --theme nfcore \
             --embed-font \
-            --fold-threshold 18
+            --fold-threshold 20
 
       - name: Check for changes
         id: diff
