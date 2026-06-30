@@ -10,7 +10,6 @@
 
 graph LR
     subgraph preprocessing [Pre-processing & Alignment]
-        %%metro exit: right | dna, rna
         fastq_in[ ]
         fastqc[FastQC]
         fastp[fastp]
@@ -27,8 +26,6 @@ graph LR
     end
 
     subgraph gatk_preproc [GATK Preprocessing]
-        %%metro entry: left | dna, rna
-        %%metro exit: right | dna, rna
         markduplicates[MarkDuplicates]
         splitncigar[SplitNCigarReads]
         baserecalibrator[BaseRecalibrator]
@@ -44,9 +41,7 @@ graph LR
         samtools_stats -->|dna,rna| mosdepth
     end
 
-    subgraph variant_calling [Variant Calling]
-        %%metro entry: left | dna, rna
-        %%metro exit: right | dna, rna
+    subgraph variant_calling [Variant Calling (parallel)]
         vc_fork[ ]
         mutect2[Mutect2]
         strelka[Strelka2]
@@ -62,8 +57,6 @@ graph LR
     end
 
     subgraph normalization [Normalization & Annotation]
-        %%metro entry: left | dna, rna
-        %%metro exit: right | dna, rna
         vt_decompose[VT Decompose]
         vt_normalize[VT Normalize]
         ensemblvep[Ensembl VEP]
@@ -73,8 +66,6 @@ graph LR
     end
 
     subgraph consensus [Consensus & Filtering]
-        %%metro entry: left | dna, rna
-        %%metro exit: right | rna, realignment
         vcf2maf[vcf2MAF]
         run_consensus[Consensus]
         maf_filtering[MAF Filtering]
@@ -83,8 +74,7 @@ graph LR
         run_consensus -->|dna,rna| maf_filtering
     end
 
-    subgraph realign [Realignment & RNA Filtering]
-        %%metro entry: left | rna, realignment
+    subgraph realign [Realignment (RNA)]
         maf2bed[MAF2BED]
         extract_reads[Extract Reads]
         hisat2[HISAT2]
@@ -96,9 +86,6 @@ graph LR
         annotate_re[Annotation]
         consensus_re[Consensus]
         filter_re[MAF Filtering]
-        rna_filter[RNA MAF Filtering]
-        multiqc[MultiQC]
-        report_out[ ]
 
         maf2bed -->|realignment| extract_reads
         extract_reads -->|realignment| hisat2
@@ -110,8 +97,13 @@ graph LR
         norm_re -->|realignment| annotate_re
         annotate_re -->|realignment| consensus_re
         consensus_re -->|realignment| filter_re
-        filter_re -->|realignment| rna_filter
-        maf2bed -->|rna| rna_filter
+    end
+
+    subgraph reporting [Reporting]
+        rna_filter[RNA MAF Filtering]
+        multiqc[MultiQC]
+        report_out[ ]
+
         rna_filter -->|rna,realignment| multiqc
         multiqc -->|rna,realignment| report_out
     end
@@ -121,4 +113,6 @@ graph LR
     mosdepth -->|dna,rna| vc_fork
     vc_join -->|dna,rna| vt_decompose
     ensemblvep -->|dna,rna| vcf2maf
-    maf_filtering -->|rna,realignment| maf2bed
+    filter_re -->|realignment| rna_filter
+    maf_filtering -->|rna| rna_filter
+    maf_filtering -->|realignment| maf2bed
