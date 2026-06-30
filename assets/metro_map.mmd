@@ -47,12 +47,18 @@ graph LR
     subgraph variant_calling [Variant Calling]
         %%metro entry: left | dna, rna
         %%metro exit: right | dna, rna
+        vc_fork[ ]
         mutect2[Mutect2]
         strelka[Strelka2]
         sage[SAGE]
+        vc_join[ ]
 
-        mutect2 -->|dna,rna| strelka
-        strelka -->|dna,rna| sage
+        vc_fork -->|dna,rna| mutect2
+        vc_fork -->|dna,rna| strelka
+        vc_fork -->|dna,rna| sage
+        mutect2 -->|dna,rna| vc_join
+        strelka -->|dna,rna| vc_join
+        sage -->|dna,rna| vc_join
     end
 
     subgraph normalization [Normalization & Annotation]
@@ -112,7 +118,7 @@ graph LR
 
     %% Inter-section edges
     samtools_merge -->|dna,rna| markduplicates
-    mosdepth -->|dna,rna| mutect2
-    sage -->|dna,rna| vt_decompose
+    mosdepth -->|dna,rna| vc_fork
+    vc_join -->|dna,rna| vt_decompose
     ensemblvep -->|dna,rna| vcf2maf
     maf_filtering -->|rna,realignment| maf2bed
