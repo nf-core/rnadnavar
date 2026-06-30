@@ -6,6 +6,7 @@
 %%metro line: dna | DNA (Tumor + Normal) | #4a90d9
 %%metro line: rna | RNA (Tumor) | #e63946
 %%metro line: realignment | Realignment (RNA) | #f5c542
+%%metro line_order: definition
 %%metro legend: bl
 
 graph LR
@@ -101,18 +102,18 @@ graph LR
 
     subgraph reporting [Reporting]
         rna_filter[RNA MAF Filtering]
+        rna_filter -->|rna,realignment| multiqc
         multiqc[MultiQC]
         report_out[ ]
 
-        rna_filter -->|rna,realignment| multiqc
         multiqc -->|rna,realignment| report_out
     end
 
     %% Inter-section edges
+    maf_filtering -->|realignment| maf2bed
     samtools_merge -->|dna,rna| markduplicates
     mosdepth -->|dna,rna| vc_fork
     vc_join -->|dna,rna| vt_decompose
     ensemblvep -->|dna,rna| vcf2maf
     filter_re -->|realignment| rna_filter
     maf_filtering -->|rna| rna_filter
-    maf_filtering -->|realignment| maf2bed

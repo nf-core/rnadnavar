@@ -58,13 +58,13 @@
 <path d="M658.5,358.0 L598.5,358.0" stroke="#f5c542" stroke-width="3.0" stroke-linecap="round" class="metro-line-realignment" data-line-id="realignment" />
 <path d="M397.5,358.0 L337.5,358.0" stroke="#f5c542" stroke-width="3.0" stroke-linecap="round" class="metro-line-realignment" data-line-id="realignment" />
 <path d="M337.5,358.0 L277.5,358.0" stroke="#f5c542" stroke-width="3.0" stroke-linecap="round" class="metro-line-realignment" data-line-id="realignment" />
-<path d="M598.5,358.0 L536.0,358.0" stroke="#f5c542" stroke-width="3.0" stroke-linecap="round" class="metro-line-realignment" data-line-id="realignment" />
-<path d="M478.0,358.0 L397.5,358.0" stroke="#f5c542" stroke-width="3.0" stroke-linecap="round" class="metro-line-realignment" data-line-id="realignment" />
 <path d="M1430.5,350.0 L1368.0,350.0" stroke="#f5c542" stroke-width="3.0" stroke-linecap="round" class="metro-line-realignment" data-line-id="realignment" />
 <path d="M1248.5,358.0 L1198.5,358.0" stroke="#f5c542" stroke-width="3.0" stroke-linecap="round" class="metro-line-realignment" data-line-id="realignment" />
-<path d="M536.0,358.0 L478.0,358.0" stroke="#f5c542" stroke-width="3.0" stroke-linecap="round" class="metro-line-realignment" data-line-id="realignment" />
+<path d="M598.5,358.0 L536.0,358.0" stroke="#f5c542" stroke-width="3.0" stroke-linecap="round" class="metro-line-realignment" data-line-id="realignment" />
+<path d="M478.0,358.0 L397.5,358.0" stroke="#f5c542" stroke-width="3.0" stroke-linecap="round" class="metro-line-realignment" data-line-id="realignment" />
 <path d="M1368.0,350.0 L1358.0,358.0" stroke="#f5c542" stroke-width="3.0" stroke-linecap="round" class="metro-line-realignment" data-line-id="realignment" />
 <path d="M1358.0,358.0 L1248.5,358.0" stroke="#f5c542" stroke-width="3.0" stroke-linecap="round" class="metro-line-realignment" data-line-id="realignment" />
+<path d="M536.0,358.0 L478.0,358.0" stroke="#f5c542" stroke-width="3.0" stroke-linecap="round" class="metro-line-realignment" data-line-id="realignment" />
 <path d="M80.0,124.0 L140.0,124.0" stroke="#e63946" stroke-width="3.0" stroke-linecap="round" class="metro-line-rna" data-line-id="rna" />
 <path d="M140.0,124.0 L200.0,124.0" stroke="#e63946" stroke-width="3.0" stroke-linecap="round" class="metro-line-rna" data-line-id="rna" />
 <path d="M200.0,124.0 L219.25,124.0 Q229.25,124.0,235.25,132.0 L253.25,156.0 Q259.25,164.0,269.25,164.0 L296.0,164.0" stroke="#e63946" stroke-width="3.0" fill="none" stroke-linecap="round" stroke-linejoin="round" class="metro-line-rna" data-line-id="rna" />
@@ -96,12 +96,12 @@
 <path d="M1600.5,354.0 L1550.5,354.0" stroke="#e63946" stroke-width="3.0" stroke-linecap="round" class="metro-line-rna" data-line-id="rna" />
 <path d="M1430.5,354.0 L1368.0,354.0" stroke="#e63946" stroke-width="3.0" stroke-linecap="round" class="metro-line-rna" data-line-id="rna" />
 <path d="M478.0,354.0 L397.5,354.0" stroke="#e63946" stroke-width="3.0" stroke-linecap="round" class="metro-line-rna" data-line-id="rna" />
+<path d="M1368.0,354.0 L1358.0,354.0" stroke="#e63946" stroke-width="3.0" stroke-linecap="round" class="metro-line-rna" data-line-id="rna" />
+<path d="M1358.0,354.0 L1320.25,354.0 Q1310.25,354.0,1310.25,364.0 L1310.25,415.0 Q1310.25,425.0,1300.25,425.0 L517.0,425.0 Q507.0,425.0,507.0,415.0 L507.0,364.0 Q507.0,354.0,497.0,354.0 L478.0,354.0" stroke="#e63946" stroke-width="3.0" fill="none" stroke-linecap="round" stroke-linejoin="round" class="metro-line-rna" data-line-id="rna" />
 <path d="M486.0,124.0 L696.5,124.0" stroke="#e63946" stroke-width="3.0" stroke-linecap="round" class="metro-line-rna" data-line-id="rna" />
 <path d="M1248.5,124.0 L1308.5,124.0" stroke="#e63946" stroke-width="3.0" stroke-linecap="round" class="metro-line-rna" data-line-id="rna" />
 <path d="M1600.5,124.0 L1652.5,124.0" stroke="#e63946" stroke-width="3.0" stroke-linecap="round" class="metro-line-rna" data-line-id="rna" />
 <path d="M1652.5,350.0 L1600.5,354.0" stroke="#e63946" stroke-width="3.0" stroke-linecap="round" class="metro-line-rna" data-line-id="rna" />
-<path d="M1368.0,354.0 L1358.0,354.0" stroke="#e63946" stroke-width="3.0" stroke-linecap="round" class="metro-line-rna" data-line-id="rna" />
-<path d="M1358.0,354.0 L1320.25,354.0 Q1310.25,354.0,1310.25,364.0 L1310.25,415.0 Q1310.25,425.0,1300.25,425.0 L517.0,425.0 Q507.0,425.0,507.0,415.0 L507.0,364.0 Q507.0,354.0,497.0,354.0 L478.0,354.0" stroke="#e63946" stroke-width="3.0" fill="none" stroke-linecap="round" stroke-linejoin="round" class="metro-line-rna" data-line-id="rna" />
 <path d="M80.0,120.0 L140.0,120.0" stroke="#4a90d9" stroke-width="3.0" stroke-linecap="round" class="metro-line-dna" data-line-id="dna" />
 <path d="M140.0,120.0 L200.0,120.0" stroke="#4a90d9" stroke-width="3.0" stroke-linecap="round" class="metro-line-dna" data-line-id="dna" />
 <path d="M200.0,120.0 L296.0,120.0" stroke="#4a90d9" stroke-width="3.0" stroke-linecap="round" class="metro-line-dna" data-line-id="dna" />
