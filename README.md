@@ -78,8 +78,7 @@ BaseRecalibrator` and `GATK ApplyBQSR`)
   `--tools` adding `rna_filtering`)
 
 <p align="center">
-    <img title="RNADNAVAR Workflow"
-src="docs/images/rnadnavar_schemav3.png">
+    <img title="RNADNAVAR Workflow" src="assets/metro_map.svg">
 </p>
 
 ## Usage
