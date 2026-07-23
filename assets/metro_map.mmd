@@ -3,9 +3,9 @@
 %%metro style: dark
 %%metro file: fastq_in | FASTQ
 %%metro file: report_out | HTML
-%%metro line: dna | DNA (Tumor + Normal) | #4a90d9
-%%metro line: rna | RNA (Tumor) | #e63946
-%%metro line: realignment | Realignment (RNA) | #f5c542
+%%metro line: rna | RNA (Tumor + DNA Normal) | #e63946
+%%metro line: dna | DNA (Tumor + Normal) [OPTIONAL] | #4a90d9 | dashed
+%%metro line: realignment | Realignment (RNA) [OPTIONAL] | #f5c542 | dashed
 %%metro line_order: definition
 %%metro legend: bl
 
@@ -75,7 +75,7 @@ graph LR
         run_consensus -->|dna,rna| maf_filtering
     end
 
-    subgraph realign [Realignment (RNA)]
+    subgraph realign [Realignment (RNA) [OPTIONAL]]
         maf2bed[MAF2BED]
         extract_reads[Extract Reads]
         hisat2[HISAT2]
