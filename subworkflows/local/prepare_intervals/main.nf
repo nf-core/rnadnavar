@@ -124,7 +124,7 @@ workflow PREPARE_INTERVALS {
         intervals_combined.map{meta, bed -> bed }.collect()
     // For QC during preprocessing, we don't need any intervals (MOSDEPTH doesn't take them for WGS)
     intervals_for_preprocessing = wes ?
-        intervals_bed_combined.map{it -> [ [ id:it.baseName ], it ]}.collect() :
+        intervals_bed_combined.map{ beds -> [ [ id: beds ? beds[0].baseName : 'null' ], beds ] }.collect() :
         Channel.value([ [ id:'null' ], [] ])
 
     intervals_and_num_intervals   = intervals_bed.map{ interval, num_intervals ->
