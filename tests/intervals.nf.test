@@ -1,0 +1,50 @@
+nextflow_pipeline {
+
+    name "Test pipeline with interval scatter/gather"
+    script "../main.nf"
+    tag "pipeline"
+    tag "intervals"
+
+    config "conf/test_intervals.config"
+    profile "test_intervals"
+
+    test("Scatter over two intervals and gather") {
+
+        when {
+            params {
+                outdir = "$outputDir"
+            }
+        }
+
+        then {
+            def stable_path = getAllFilesFromDir(params.outdir, relative: true, includeDir: true, ignore: ['pipeline_info/*.{html,json,txt}', 'reports/samtools/**', 'reports/multiqc_data/**', 'reports/multiqc_plots/**', 'reports/multiqc_report.html'])
+            def stable_content = getAllFilesFromDir(params.outdir, ignore: ['reports/samtools/**'], ignoreFile: 'tests/.nftignore')
+
+            assertAll(
+                { assert workflow.success },
+
+                // The scatter happened: two interval BEDs, not one.
+                // With the default nucleotides_per_second these would collapse into a
+                // single chunk and the gather below would never be exercised.
+                { assert file("${params.outdir}/reference/intervals/chr21_2-23354000.bed").exists() },
+                { assert file("${params.outdir}/reference/intervals/chr21_25689498-46709983.bed").exists() },
+
+                // The gather happened: one merged CRAM per sample, not one per interval.
+                // This is what regressed - MERGE_CRAM was handed a 2-element tuple.
+                { assert file("${params.outdir}/preprocessing/recalibrated/sample1/sample1.recal.cram").exists() },
+                { assert file("${params.outdir}/preprocessing/recalibrated/sample1/sample1.recal.cram.crai").exists() },
+                { assert file("${params.outdir}/preprocessing/recalibrated/sample2/sample2.recal.cram").exists() },
+                { assert file("${params.outdir}/preprocessing/recalibrated/sample2/sample2.recal.cram.crai").exists() },
+
+                // The per-interval VCFs were merged back together
+                { assert file("${params.outdir}/variant_calling/strelka/sample2_vs_sample1/sample2_vs_sample1.strelka.variants.vcf.gz").exists() },
+
+                { assert snapshot(
+                    removeFromYamlMap("${params.outdir}/pipeline_info/nf_core_rnadnavar_software_mqc_versions.yml", "Workflow"),
+                    stable_path,
+                    stable_content
+                ).match() }
+            )
+        }
+    }
+}
