@@ -208,7 +208,8 @@ workflow BAM_GATK_PREPROCESSING {
                 // Make sure correct data types are carried through
                 .map{ meta, cram, crai -> [ meta + [data_type: "cram"], cram, crai ] }
 
-            ch_cram_for_bam_baserecalibrator = Channel.empty().mix(ch_cram_for_bam_baserecalibrator, input_prepare_recal_convert.cram)
+            // Feed both the CRAMs converted from BAM input and the CRAM input to BQSR
+            ch_cram_for_bam_baserecalibrator = Channel.empty().mix(sncr_cram_from_bam, input_prepare_recal_convert.cram)
             ch_sncr_cram_for_restart = sncr_cram_from_bam
 
         } else {
