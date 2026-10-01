@@ -207,6 +207,7 @@ workflow PIPELINE_COMPLETION {
 def validateInputParameters() {
     genomeExistsError()
     validateMutect2AllelesParameters()
+    validateSageParameters()
 }
 
 /*
@@ -295,6 +296,32 @@ def normaliseRequestedTools(tools) {
 def validateMutect2AllelesParameters() {
     if ((params.mutect2_alleles && !params.mutect2_alleles_tbi) || (!params.mutect2_alleles && params.mutect2_alleles_tbi)) {
         error('Please provide both `--mutect2_alleles` and `--mutect2_alleles_tbi`, or leave both unset.')
+    }
+}
+
+// SAGE dereferences these resource params directly with `Channel.fromPath`, so leaving any of
+// them unset fails deep inside the subworkflow with an opaque "Missing `fromPath` parameter".
+// Reject the incomplete configuration up front instead.
+// `--sage_ensembl_dir` is deliberately not required: both the subworkflow and the module
+// treat it as optional and simply omit `-ensembl_data_dir` when it is not set.
+def validateSageParameters() {
+    if (!params.tools || !params.tools.split(',').collect { tool -> tool.trim() }.contains('sage')) {
+        return
+    }
+
+    def required = [
+        sage_high_confidence : '--sage_high_confidence',
+        sage_actionable_panel: '--sage_actionable_panel',
+        sage_known_hotspots  : '--sage_known_hotspots',
+    ]
+    def missing = required.findAll { param, _flag -> !params[param] }.collect { _param, flag -> flag }
+
+    if (missing) {
+        error(
+            "`--tools sage` requires the SAGE resource files, but the following are not set: ${missing.join(", ")}.\n" +
+            "  Provide all of them, or drop `sage` from `--tools`.\n" +
+            "  See https://nf-co.re/rnadnavar/parameters for details."
+        )
     }
 }
 
