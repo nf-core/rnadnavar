@@ -204,7 +204,9 @@ workflow BAM_GATK_PREPROCESSING {
             BAM_TO_CRAM(input_prepare_recal_convert.bam, fasta_with_fai)
             versions = versions.mix(BAM_TO_CRAM.out.versions_samtools)
 
+            // SAMTOOLS_CONVERT emits cram and crai separately, so join them back together
             sncr_cram_from_bam = BAM_TO_CRAM.out.cram
+                .join(BAM_TO_CRAM.out.crai, failOnDuplicate: true, failOnMismatch: true)
                 // Make sure correct data types are carried through
                 .map{ meta, cram, crai -> [ meta + [data_type: "cram"], cram, crai ] }
 
