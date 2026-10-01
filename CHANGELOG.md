@@ -9,13 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added Zenodo DOI (10.5281/zenodo.21038367) for citation
 - Added a `test_intervals` profile and `tests/intervals.nf.test`, the first pipeline test that exercises interval scatter/gather
+- Added `tests/bam_input.nf.test`, covering start-from-BAM at `--step prepare_recalibration`
 
 ### `Fixed`
 
 - Fixed `Input tuple does not match tuple declaration` crash in `MERGE_CRAM` and `MERGE_BAM`, which were passing a two-element tuple to a `samtools/merge` that expects three. This broke every run scattering over more than one interval, and every multi-lane run using `--save_mapped` or `--skip_tools markduplicates`
 - Fixed Strelka failing to read interval-merged CRAMs with `Failure to decode slice`. samtools 1.21 and newer write CRAM 3.1 by default, which the htslib bundled with Strelka 2.9.10 cannot decode; samtools-written CRAMs are now pinned to version 3.0, matching the CRAMs produced when intervals are disabled
 - Fixed `meta.id` of the preprocessing intervals channel being a list instead of a string when `--wes` is set
-- Fixed BAM inputs being silently dropped before base recalibration when starting from `--step prepare_recalibration`. A BAM-only samplesheet produced no output at all, and a mixed samplesheet processed only its CRAM rows, in both cases without raising an error
+- Fixed BAM inputs being silently dropped before base recalibration when starting from `--step prepare_recalibration`. A BAM-only samplesheet produced no output at all, and a mixed samplesheet processed only its CRAM rows, in both cases without raising an error. Routing them correctly also required joining the CRAM and index channels that `SAMTOOLS_CONVERT` emits separately
 - Fixed dbSNP and known-sites index creation not being triggered for `--step splitncigar`, leaving base recalibration without the indices it requires
 - Fixed `TABIX_KNOWN_SNPS` gating on the `known_indels` parameters instead of `known_snps`
 - Fixed `--tools sage` failing with an opaque `Missing 'fromPath' parameter` when the SAGE resource files are not provided; the pipeline now reports which `--sage_*` parameters are missing
