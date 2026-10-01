@@ -21,6 +21,10 @@ workflow BAM_MERGE_INDEX_SAMTOOLS {
         single:   b.size() <= 1
             return [ meta, b[0] ]
         multiple: b.size() > 1
+            // The updated nf-core samtools/merge module expects both input files and an
+            // index-files slot. The BAMs being merged here are not indexed, so pass an
+            // explicit empty list to satisfy the module interface.
+            return [ meta, b, [] ]
     }
 
     // Only when using intervals
