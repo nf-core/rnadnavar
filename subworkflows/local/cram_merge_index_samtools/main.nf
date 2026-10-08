@@ -23,6 +23,10 @@ workflow CRAM_MERGE_INDEX_SAMTOOLS {
         single:   c.size() <= 1
             return [ meta, c[0] ]
         multiple: c.size() > 1
+            // The updated nf-core samtools/merge module expects both input files and an
+            // index-files slot. The per-interval CRAMs are not indexed, so pass an
+            // explicit empty list to satisfy the module interface.
+            return [ meta, c, [] ]
     }
 
     // Only when using intervals

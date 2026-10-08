@@ -1,0 +1,159 @@
+{
+    "Start from BAM at prepare_recalibration": {
+        "content": [
+            {
+                "BAM_TO_CRAM": {
+                    "samtools": "1.23.1"
+                },
+                "BCFTOOLS_STATS": {
+                    "bcftools": "1.23.1"
+                },
+                "CREATE_INTERVALS_BED": {
+                    "gawk": "5.1.0"
+                },
+                "GATK4_APPLYBQSR": {
+                    "gatk4": "4.6.2.0"
+                },
+                "GATK4_BASERECALIBRATOR": {
+                    "gatk4": "4.6.2.0"
+                },
+                "GATK4_GATHERBQSRREPORTS": {
+                    "gatk4": "4.6.2.0"
+                },
+                "INDEX_CRAM": {
+                    "samtools": "1.23.1"
+                },
+                "MERGE_CRAM": {
+                    "samtools": "1.23.1"
+                },
+                "MERGE_STRELKA": {
+                    "gatk4": "4.6.2.0"
+                },
+                "MOSDEPTH": {
+                    "gzip": 1.14,
+                    "mosdepth": "0.3.14"
+                },
+                "SAMTOOLS_STATS": {
+                    "samtools": "1.23.1"
+                },
+                "STRELKA_SOMATIC": {
+                    "strelka": "2.9.10"
+                },
+                "TABIX_BGZIPTABIX_INTERVAL_COMBINED": {
+                    "htslib": "1.23.1",
+                    "xz": "5.8.3"
+                },
+                "TABIX_BGZIPTABIX_INTERVAL_SPLIT": {
+                    "htslib": "1.23.1",
+                    "xz": "5.8.3"
+                },
+                "VCFTOOLS_TSTV_COUNT": {
+                    "vcftools": "0.1.16"
+                }
+            },
+            [
+                "csv",
+                "csv/markduplicates.csv",
+                "csv/recalibrated.csv",
+                "csv/variantcalled.csv",
+                "pipeline_info",
+                "pipeline_info/nf_core_rnadnavar_software_mqc_versions.yml",
+                "preprocessing",
+                "preprocessing/converted",
+                "preprocessing/converted/sample1",
+                "preprocessing/converted/sample1/sample1.converted.cram",
+                "preprocessing/converted/sample1/sample1.converted.cram.crai",
+                "preprocessing/converted/sample2",
+                "preprocessing/converted/sample2/sample2.converted.cram",
+                "preprocessing/converted/sample2/sample2.converted.cram.crai",
+                "preprocessing/recal_table",
+                "preprocessing/recal_table/sample1",
+                "preprocessing/recal_table/sample1/sample1.recal.table",
+                "preprocessing/recal_table/sample2",
+                "preprocessing/recal_table/sample2/sample2.recal.table",
+                "preprocessing/recalibrated",
+                "preprocessing/recalibrated/sample1",
+                "preprocessing/recalibrated/sample1/sample1.recal.cram",
+                "preprocessing/recalibrated/sample1/sample1.recal.cram.crai",
+                "preprocessing/recalibrated/sample2",
+                "preprocessing/recalibrated/sample2/sample2.recal.cram",
+                "preprocessing/recalibrated/sample2/sample2.recal.cram.crai",
+                "reference",
+                "reference/intervals",
+                "reference/intervals/chr21_2-23354000.bed",
+                "reference/intervals/chr21_2-23354000.bed.gz",
+                "reference/intervals/chr21_25689498-46709983.bed",
+                "reference/intervals/chr21_25689498-46709983.bed.gz",
+                "reference/intervals/multi_intervals.bed.gz",
+                "reports",
+                "reports/bcftools",
+                "reports/bcftools/strelka",
+                "reports/bcftools/strelka/sample2_vs_sample1",
+                "reports/bcftools/strelka/sample2_vs_sample1/sample2_vs_sample1.strelka.variants.bcftools_stats.txt",
+                "reports/mosdepth",
+                "reports/mosdepth/sample1",
+                "reports/mosdepth/sample1/sample1.recal.mosdepth.global.dist.txt",
+                "reports/mosdepth/sample1/sample1.recal.mosdepth.region.dist.txt",
+                "reports/mosdepth/sample1/sample1.recal.mosdepth.summary.txt",
+                "reports/mosdepth/sample1/sample1.recal.per-base.bed.gz",
+                "reports/mosdepth/sample1/sample1.recal.per-base.bed.gz.csi",
+                "reports/mosdepth/sample1/sample1.recal.regions.bed.gz",
+                "reports/mosdepth/sample1/sample1.recal.regions.bed.gz.csi",
+                "reports/mosdepth/sample2",
+                "reports/mosdepth/sample2/sample2.recal.mosdepth.global.dist.txt",
+                "reports/mosdepth/sample2/sample2.recal.mosdepth.region.dist.txt",
+                "reports/mosdepth/sample2/sample2.recal.mosdepth.summary.txt",
+                "reports/mosdepth/sample2/sample2.recal.per-base.bed.gz",
+                "reports/mosdepth/sample2/sample2.recal.per-base.bed.gz.csi",
+                "reports/mosdepth/sample2/sample2.recal.regions.bed.gz",
+                "reports/mosdepth/sample2/sample2.recal.regions.bed.gz.csi",
+                "reports/multiqc_data",
+                "reports/multiqc_plots",
+                "reports/samtools",
+                "reports/vcftools",
+                "reports/vcftools/strelka",
+                "reports/vcftools/strelka/sample2_vs_sample1",
+                "reports/vcftools/strelka/sample2_vs_sample1/sample2_vs_sample1.strelka.variants.FILTER.summary",
+                "reports/vcftools/strelka/sample2_vs_sample1/sample2_vs_sample1.strelka.variants.TsTv.count",
+                "reports/vcftools/strelka/sample2_vs_sample1/sample2_vs_sample1.strelka.variants.TsTv.qual",
+                "variant_calling",
+                "variant_calling/strelka",
+                "variant_calling/strelka/sample2_vs_sample1",
+                "variant_calling/strelka/sample2_vs_sample1/sample2_vs_sample1.strelka.variants.vcf.gz",
+                "variant_calling/strelka/sample2_vs_sample1/sample2_vs_sample1.strelka.variants.vcf.gz.tbi"
+            ],
+            [
+                "sample1.recal.table:md5,e479a38fa8292e9001da8a4520a502ea",
+                "sample2.recal.table:md5,279ced6410a43dce695d98d62b992df2",
+                "chr21_2-23354000.bed:md5,b7381604b45d447aacef44a79147fe27",
+                "chr21_2-23354000.bed.gz:md5,b7381604b45d447aacef44a79147fe27",
+                "chr21_25689498-46709983.bed:md5,475ef3a6ccf62ba150e2124eed3879fe",
+                "chr21_25689498-46709983.bed.gz:md5,475ef3a6ccf62ba150e2124eed3879fe",
+                "multi_intervals.bed.gz:md5,571ded0aaefdb3be8c7025b9822eb009",
+                "sample2_vs_sample1.strelka.variants.bcftools_stats.txt:md5,6dae8241f120aef8741062b6c5c10a74",
+                "sample1.recal.mosdepth.global.dist.txt:md5,69e29702ef01fd8f6c7a5468fc35a16a",
+                "sample1.recal.mosdepth.region.dist.txt:md5,6ec49cd7d510c2eb3d9d90fdb79b783a",
+                "sample1.recal.mosdepth.summary.txt:md5,872e4bfc54580fc3c377804f2f66c738",
+                "sample1.recal.per-base.bed.gz:md5,54c56efaca7431a16b5c82552156ebbd",
+                "sample1.recal.per-base.bed.gz.csi:md5,0db1eda40001fd53b326d0e9903dad4e",
+                "sample1.recal.regions.bed.gz:md5,314ce8d7273eff353072108aa77c327c",
+                "sample1.recal.regions.bed.gz.csi:md5,2c9ca91a9535113038c59b6e408e0818",
+                "sample2.recal.mosdepth.global.dist.txt:md5,f2dcd00a64947c49e8e4b93c2f4fbf27",
+                "sample2.recal.mosdepth.region.dist.txt:md5,39005ffaac22871ffaaf19656fe69c5b",
+                "sample2.recal.mosdepth.summary.txt:md5,5e63321ec1818473e427fcbeaf8781ba",
+                "sample2.recal.per-base.bed.gz:md5,c24ee4c150e228bc868b07b688c61e21",
+                "sample2.recal.per-base.bed.gz.csi:md5,b6d0d89ced0615529e7ab53197da26fa",
+                "sample2.recal.regions.bed.gz:md5,b7561bc56a955f7db0f11e67e2ec0386",
+                "sample2.recal.regions.bed.gz.csi:md5,2c9ca91a9535113038c59b6e408e0818",
+                "sample2_vs_sample1.strelka.variants.FILTER.summary:md5,bded553093b59e5352c5358eb37b0f4a",
+                "sample2_vs_sample1.strelka.variants.TsTv.count:md5,9edb8a49cc4034465655046598a92283",
+                "sample2_vs_sample1.strelka.variants.TsTv.qual:md5,7ba4c156cbc89a4cb662dccd8c589847"
+            ]
+        ],
+        "timestamp": "2026-10-08T09:41:38.555923138",
+        "meta": {
+            "nf-test": "0.9.5",
+            "nextflow": "26.04.3"
+        }
+    }
+}

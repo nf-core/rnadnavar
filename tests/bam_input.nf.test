@@ -1,0 +1,47 @@
+nextflow_pipeline {
+
+    name "Test pipeline with BAM input"
+    script "../main.nf"
+    tag "pipeline"
+    tag "bam_input"
+
+    // Reuses the chr21 reference and intervals of the test_intervals profile, only
+    // swapping the samplesheet for the BAM equivalent of the same two samples.
+    config "conf/test_intervals.config"
+    profile "test_intervals"
+
+    test("Start from BAM at prepare_recalibration") {
+
+        when {
+            params {
+                input  = "${projectDir}/tests/csv/bam_pair_chr21.csv"
+                outdir = "$outputDir"
+            }
+        }
+
+        then {
+            def stable_path = getAllFilesFromDir(params.outdir, relative: true, includeDir: true, ignore: ['pipeline_info/*.{html,json,txt}', 'reports/samtools/**', 'reports/multiqc_data/**', 'reports/multiqc_plots/**', 'reports/multiqc_report.html'])
+            def stable_content = getAllFilesFromDir(params.outdir, ignore: ['reports/samtools/**'], ignoreFile: 'tests/.nftignore')
+
+            assertAll(
+                { assert workflow.success },
+
+                // BAM was converted to CRAM on the way in
+                { assert file("${params.outdir}/preprocessing/converted/sample1/sample1.converted.cram").exists() },
+                { assert file("${params.outdir}/preprocessing/converted/sample2/sample2.converted.cram").exists() },
+
+                // ...and both samples survived as far as base recalibration. Before the fix
+                // the converted CRAMs were never mixed into the BaseRecalibrator channel, so
+                // these outputs were silently absent with no error raised.
+                { assert file("${params.outdir}/preprocessing/recalibrated/sample1/sample1.recal.cram").exists() },
+                { assert file("${params.outdir}/preprocessing/recalibrated/sample2/sample2.recal.cram").exists() },
+
+                { assert snapshot(
+                    removeFromYamlMap("${params.outdir}/pipeline_info/nf_core_rnadnavar_software_mqc_versions.yml", "Workflow"),
+                    stable_path,
+                    stable_content
+                ).match() }
+            )
+        }
+    }
+}

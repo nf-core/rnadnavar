@@ -3,7 +3,7 @@
         "content": [
             {
                 "GATK4_CREATESEQUENCEDICTIONARY": {
-                    "gatk4": "4.6.2.0"
+                    "gatk4": "4.7.0.0"
                 },
                 "SAMTOOLS_FAIDX": {
                     "samtools": "1.23.1"
@@ -25,10 +25,10 @@
                 "reports/consensus/TCRBOA7-T-RNA_vs_TCRBOA7-N.consensus.pdf"
             ]
         ],
-        "timestamp": "2026-06-25T13:32:53.406081",
+        "timestamp": "2026-10-08T09:42:30.969719518",
         "meta": {
             "nf-test": "0.9.5",
-            "nextflow": "26.04.4"
+            "nextflow": "26.04.3"
         }
     }
 }
