@@ -150,10 +150,10 @@
                 "sample2_vs_sample1.strelka.variants.TsTv.qual:md5,7ba4c156cbc89a4cb662dccd8c589847"
             ]
         ],
+        "timestamp": "2026-10-08T09:41:38.555923138",
         "meta": {
-            "nf-test": "0.9.3",
+            "nf-test": "0.9.5",
             "nextflow": "26.04.3"
-        },
-        "timestamp": "2026-10-01T10:00:48.756403178"
+        }
     }
 }

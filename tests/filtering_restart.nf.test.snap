@@ -6,7 +6,7 @@
                     "python": "3.9.13"
                 },
                 "GATK4_CREATESEQUENCEDICTIONARY": {
-                    "gatk4": "4.6.2.0"
+                    "gatk4": "4.7.0.0"
                 },
                 "RNA_FILTERING": {
                     "python": "3.9.19"
@@ -27,10 +27,10 @@
                 "reports/multiqc_data"
             ]
         ],
-        "timestamp": "2026-06-25T12:59:27.793884",
+        "timestamp": "2026-10-08T10:21:16.173943458",
         "meta": {
             "nf-test": "0.9.5",
-            "nextflow": "26.04.4"
+            "nextflow": "26.04.3"
         }
     }
 }

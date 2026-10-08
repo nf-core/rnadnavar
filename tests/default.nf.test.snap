@@ -28,7 +28,7 @@
                     "gatk4": "4.6.2.0"
                 },
                 "GATK4_CREATESEQUENCEDICTIONARY": {
-                    "gatk4": "4.6.2.0"
+                    "gatk4": "4.7.0.0"
                 },
                 "GATK4_MARKDUPLICATES": {
                     "gatk4": "4.6.2.0",
@@ -262,7 +262,7 @@
                 "TCRBOA7-T_vs_TCRBOA7-N.strelka.variants.TsTv.qual:md5,29da677ef4e152719905df4b2b7cb798"
             ]
         ],
-        "timestamp": "2026-06-24T16:27:52.752451937",
+        "timestamp": "2026-10-08T10:19:51.537009271",
         "meta": {
             "nf-test": "0.9.5",
             "nextflow": "26.04.3"
