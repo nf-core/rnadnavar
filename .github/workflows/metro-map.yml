@@ -17,7 +17,7 @@ jobs:
 
       - uses: astral-sh/setup-uv@v6
 
-      - name: Install nf-metro
+      - name: Install nf-metro@1.1.0
         run: uv tool install nf-metro
 
       - name: Render metro map
