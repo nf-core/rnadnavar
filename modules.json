@@ -99,7 +99,7 @@
                     },
                     "gatk4/createsequencedictionary": {
                         "branch": "master",
-                        "git_sha": "6d46786420b4d7bc88eba026eb389c0c5535d120",
+                        "git_sha": "b2bcd8312599aacd849e69721e20ac8138018f83",
                         "installed_by": ["modules"]
                     },
                     "gatk4/filtermutectcalls": {
