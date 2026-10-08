@@ -3,12 +3,15 @@ lint:
     - conf/modules.config
     - conf/test.config
     - conf/test_full.config
+    - .github/workflows/linting_comment.yml
   files_unchanged:
     - .gitignore
     - LICENSE
     - assets/nf-core-rnadnavar_logo_light.png
     - docs/images/nf-core-rnadnavar_logo_dark.png
     - docs/images/nf-core-rnadnavar_logo_light.png
+    - .github/workflows/branch.yml
+    - .github/workflows/linting.yml
   modules_config: false
   template_strings: false
 nf_core_version: 4.0.2
