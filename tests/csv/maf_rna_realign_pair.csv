@@ -1,0 +1,3 @@
+patient,status,sample,normal_id,maf
+TCRBOA7,2,TCRBOA7-T-RNA,TCRBOA7-N,https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/data/tcrb/maf/TCRBOA7-T-RNA.maf
+TCRBOA7,2,TCRBOA7-T-RNA_realign,TCRBOA7-N,https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/data/tcrb/maf/TCRBOA7-T-RNA_realign.maf

@@ -1,0 +1,64 @@
+{
+    "human - stats,tsv - stub": {
+        "content": [
+            {
+                "0": [
+                    [
+                        {
+                            "id": "test",
+                            "single_end": false
+                        },
+                        "test.vcf.gz.stats:md5,d41d8cd98f00b204e9800998ecf8427e"
+                    ]
+                ],
+                "1": [
+                    [
+                        "GATK4_MERGEMUTECTSTATS",
+                        "gatk4",
+                        "4.6.2.0"
+                    ]
+                ],
+                "stats": [
+                    [
+                        {
+                            "id": "test",
+                            "single_end": false
+                        },
+                        "test.vcf.gz.stats:md5,d41d8cd98f00b204e9800998ecf8427e"
+                    ]
+                ],
+                "versions_gatk4": [
+                    [
+                        "GATK4_MERGEMUTECTSTATS",
+                        "gatk4",
+                        "4.6.2.0"
+                    ]
+                ]
+            }
+        ],
+        "meta": {
+            "nf-test": "0.9.3",
+            "nextflow": "25.10.3"
+        },
+        "timestamp": "2026-02-05T16:39:55.220699622"
+    },
+    "human - stats, tsv": {
+        "content": [
+            "statistic\tvalue",
+            {
+                "versions_gatk4": [
+                    [
+                        "GATK4_MERGEMUTECTSTATS",
+                        "gatk4",
+                        "4.6.2.0"
+                    ]
+                ]
+            }
+        ],
+        "meta": {
+            "nf-test": "0.9.3",
+            "nextflow": "25.10.3"
+        },
+        "timestamp": "2026-02-05T16:39:49.550861622"
+    }
+}
