@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `TABIX_KNOWN_SNPS` gating on the `known_indels` parameters instead of `known_snps`
 - Fixed `--tools sage` failing with an opaque `Missing 'fromPath' parameter` when the SAGE resource files are not provided; the pipeline now reports which `--sage_*` parameters are missing
 
+### `Changed`
+
+- Updated template to nf-core/tools version 4.1.0
+
 ## 1.0.0 - [2026-06-29]
 
 Initial release of nf-core/rnadnavar.
