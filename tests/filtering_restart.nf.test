@@ -1,0 +1,38 @@
+nextflow_pipeline {
+
+    name "Test pipeline restart from filtering"
+    script "../main.nf"
+    tag "pipeline"
+    tag "pipeline_restart"
+    tag "filtering"
+
+    config "conf/test.config"
+
+    test("Run from filtering through RNA filtering") {
+
+        when {
+            params {
+                input    = "${projectDir}/tests/csv/maf_rna_single.csv"
+                step     = "filtering"
+                tools    = "filtering,rna_filtering"
+                rnaedits = "https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/resources/rnaedits/hg38/atlas.chr7.hg38.bed"
+                outdir   = "$outputDir"
+            }
+        }
+
+        then {
+            def filtered_maf = file("${params.outdir}/filtering/TCRBOA7-T-RNA/TCRBOA7-T-RNA.filtered.maf")
+            def rna_filt_maf = file("${params.outdir}/filtering/TCRBOA7-T-RNA/TCRBOA7-T-RNA.rna_filt.maf")
+
+            assertAll(
+                { assert workflow.success },
+                { assert filtered_maf.exists() },
+                { assert rna_filt_maf.exists() },
+                { assert snapshot(
+                    removeFromYamlMap("${params.outdir}/pipeline_info/nf_core_rnadnavar_software_mqc_versions.yml", "Workflow"),
+                    getAllFilesFromDir(params.outdir, relative: true, includeDir: true, ignore: ['pipeline_info/*.{html,json,txt}', 'reports/samtools/**', 'reports/multiqc_data/**', 'reports/multiqc_plots/**', 'reports/multiqc_report.html'])
+                ).match() }
+            )
+        }
+    }
+}
