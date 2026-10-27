@@ -7,7 +7,7 @@
     IMPORT FUNCTIONS / MODULES / SUBWORKFLOWS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-
+include { SAMPLESHEET_TO_CHANNEL    } from '../samplesheet_to_channel/main.nf'
 include { UTILS_NFSCHEMA_PLUGIN     } from '../../nf-core/utils_nfschema_plugin'
 include { paramsSummaryMap          } from 'plugin/nf-schema'
 include { samplesheetToList         } from 'plugin/nf-schema'
@@ -24,33 +24,29 @@ include { UTILS_NEXTFLOW_PIPELINE   } from '../../nf-core/utils_nextflow_pipelin
 */
 
 workflow PIPELINE_INITIALISATION {
-
     take:
     version           // boolean: Display version and exit
     validate_params   // boolean: Boolean whether to validate parameters against the schema at runtime
-    monochrome_logs   // boolean: Do not use coloured log outputs
     nextflow_cli_args //   array: List of positional nextflow CLI args
     outdir            //  string: The output directory where the results will be saved
     input             //  string: Path to input samplesheet
     help              // boolean: Display help message and exit
     help_full         // boolean: Show the full help message
     show_hidden       // boolean: Show hidden parameters in the help message
+    monochrome_logs   // boolean: Disable ANSI colour codes in log output
 
     main:
 
-    ch_versions = channel.empty()
+    versions = Channel.empty()
 
-    //
     // Print version and exit if required and dump pipeline parameters to JSON file
-    //
-    UTILS_NEXTFLOW_PIPELINE (
+    UTILS_NEXTFLOW_PIPELINE(
         version,
         true,
         outdir,
-        workflow.profile.tokenize(',').intersect(['conda', 'mamba']).size() >= 1
+        workflow.profile.tokenize(',').intersect(['conda', 'mamba']).size() >= 1,
     )
 
-    //
     // Validate parameters and generate parameter summary to stdout
     //
 
@@ -63,6 +59,10 @@ workflow PIPELINE_INITIALISATION {
 \033[0;34m  |\\ | |__  __ /  ` /  \\ |__) |__         \033[0;33m}  {\033[0m
 \033[0;34m  | \\| |       \\__, \\__/ |  \\ |___     \033[0;32m\\`-._,-`-,\033[0m
                                         \033[0;32m`._,._,\'\033[0m
+\033[1;32m   ___   _  _    _  \033[0;32m  __  _  _    _ \033[1;32m _   _  _    ___  \033[0m
+\033[1;32m  | _ \\ | \\| |  /_\\ \033[0;32m |   \\ \\| |  /_\\\033[1;32m\\ \\ / //_\\  | _ \\ \033[0m
+\033[1;32m  | _ / | \\` | / _ \\ \033[0;32m| | | \\| | / _ \\\033[1;32m\\ \\ // _ \\ | _ /\033[0m
+\033[1;32m  |_|\\_\\|_|\\_|/_/ \\_\\\033[0;32m|___/_|\\_|/_/ \\_\\\033[1;32m\\_//_/ \\_\\|_\\_\\\033[0m
 \033[0;35m  nf-core/rnadnavar ${workflow.manifest.version}\033[0m
 -\033[2m----------------------------------------------------\033[0m-
 """
@@ -92,10 +92,9 @@ workflow PIPELINE_INITIALISATION {
         false
     )
 
-    //
     // Check config provided to the pipeline
     //
-    UTILS_NFCORE_PIPELINE (
+    UTILS_NFCORE_PIPELINE(
         nextflow_cli_args
     )
 
@@ -104,33 +103,57 @@ workflow PIPELINE_INITIALISATION {
     //
     validateInputParameters()
 
-    //
-    // Create channel from input file provided through params.input
-    //
+    // Check input path parameters to see if they exist
+    def checkPathParamList = [
+        params.input,
+        params.fasta,
+        params.fasta_fai,
+        params.dict,
+        params.bwa,
+        params.bwamem2,
+        params.dragmap,
+        params.gtf,
+        params.gff,
+        params.dbsnp,
+        params.dbsnp_tbi,
+        params.known_indels,
+        params.known_indels_tbi,
+        params.germline_resource,
+        params.germline_resource_tbi,
+        params.intervals,
+        params.pon,
+        params.pon_tbi,
+        params.mutect2_alleles,
+        params.mutect2_alleles_tbi,
+        params.multiqc_config,
+        params.vep_cache,
+        params.star_index,
+        params.hisat2_index,
+        params.whitelist,
+    ]
 
-    channel
-        .fromList(samplesheetToList(input, "${projectDir}/assets/schema_input.json"))
-        .map {
-            meta, fastq_1, fastq_2 ->
-                if (!fastq_2) {
-                    return [ meta.id, meta + [ single_end:true ], [ fastq_1 ] ]
-                } else {
-                    return [ meta.id, meta + [ single_end:false ], [ fastq_1, fastq_2 ] ]
-                }
-        }
-        .groupTuple()
-        .map { samplesheet ->
-            validateInputSamplesheet(samplesheet)
-        }
-        .map {
-            meta, fastqs ->
-                return [ meta, fastqs.flatten() ]
-        }
-        .set { ch_samplesheet }
+
+    params.input_restart = retrieveInput((!params.build_only_index && !input), params.step, params.outdir)
+
+    def samplesheet_path = input ?: params.input_restart
+    // Validate sample composition before channel creation so the logic does not depend on
+    // queue-channel consumer order. This is also the intended extension point for a future
+    // tumour-only release mode, while the current release remains tumour-normal matched.
+    def parsed_samplesheet = params.build_only_index
+        ? []
+        : samplesheetToList(samplesheet_path, "${projectDir}/assets/schema_input.json")
+
+    validateSamplesheetComposition(parsed_samplesheet, params.step, params.tools, params.build_only_index)
+
+    ch_from_samplesheet = params.build_only_index
+        ? Channel.empty()
+        : Channel.fromList(parsed_samplesheet)
+
+    SAMPLESHEET_TO_CHANNEL(ch_from_samplesheet)
 
     emit:
-    samplesheet = ch_samplesheet
-    versions    = ch_versions
+    samplesheet = SAMPLESHEET_TO_CHANNEL.out.input_sample
+    versions    = versions
 }
 
 /*
@@ -140,7 +163,6 @@ workflow PIPELINE_INITIALISATION {
 */
 
 workflow PIPELINE_COMPLETION {
-
     take:
     email           //  string: email address
     email_on_fail   //  string: email address sent on pipeline failure
@@ -153,9 +175,7 @@ workflow PIPELINE_COMPLETION {
     summary_params = paramsSummaryMap(workflow, parameters_schema: "nextflow_schema.json")
     def multiqc_reports = multiqc_report.toList()
 
-    //
     // Completion email and summary
-    //
     workflow.onComplete {
         if (email || email_on_fail) {
             completionEmail(
@@ -183,77 +203,297 @@ workflow PIPELINE_COMPLETION {
     FUNCTIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-//
 // Check and validate pipeline parameters
-//
 def validateInputParameters() {
     genomeExistsError()
+    validateMutect2AllelesParameters()
+    validateSageParameters()
 }
 
-//
-// Validate channels from input samplesheet
-//
-def validateInputSamplesheet(input) {
-    def (metas, fastqs) = input[1..2]
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    SAMPLE SHEET VALIDATION
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
 
-    // Check that multiple runs of the same sample are of the same datatype i.e. single-end / paired-end
-    def endedness_ok = metas.collect{ meta -> meta.single_end }.unique().size == 1
-    if (!endedness_ok) {
-        error("Please check input samplesheet -> Multiple runs of a sample must be of the same datatype i.e. single-end or paired-end: ${metas[0].id}")
+// Summarise the global tumour/normal composition of the parsed samplesheet before
+// converting it into a queue channel. Keeping this logic list-based avoids consumer-order
+// bugs and provides one central policy point for future tumour-only enablement.
+def getSamplesheetCompositionState(rows, step, tools, build_only_index) {
+    def requested_tools = normaliseRequestedTools(tools)
+    def sample_type_tools = requested_tools.intersect(['mutect2', 'strelka', 'sage'])
+    def should_validate = !build_only_index && step != 'annotate' && !sample_type_tools.isEmpty()
+
+    def statuses = rows.collect { row ->
+        def meta = row[0]
+        (meta.status == null ? 0 : meta.status) as Integer
+    }
+    def tumor_patients = rows
+        .findAll { row -> ((row[0].status == null ? 0 : row[0].status) as Integer) >= 1 }
+        .collect { row -> row[0].patient }
+        .findAll { patient -> patient != null }
+        .unique()
+        .sort()
+    def normal_patients = rows
+        .findAll { row -> ((row[0].status == null ? 0 : row[0].status) as Integer) == 0 }
+        .collect { row -> row[0].patient }
+        .findAll { patient -> patient != null }
+        .unique()
+        .sort()
+    def patients_missing_normal = tumor_patients.findAll { patient -> !normal_patients.contains(patient) }
+
+    [
+        should_validate       : should_validate,
+        requested_tools       : requested_tools,
+        sample_type_tools     : sample_type_tools,
+        has_tumor             : statuses.any { status -> status >= 1 },
+        has_normal            : statuses.any { status -> status == 0 },
+        tumor_patients        : tumor_patients,
+        normal_patients       : normal_patients,
+        patients_missing_normal: patients_missing_normal,
+    ]
+}
+
+// Enforce the current first-release policy for sample composition. Tumour-only routing
+// exists downstream, but it is intentionally not enabled here yet. When tumour-only mode
+// is supported for a caller, relax the matched-normal branch below instead of reintroducing
+// channel-based validation in downstream subworkflows.
+def validateSamplesheetComposition(rows, step, tools, build_only_index) {
+    def state = getSamplesheetCompositionState(rows, step, tools, build_only_index)
+
+    if (!state.should_validate) {
+        return
     }
 
-    return [ metas[0], fastqs ]
-}
-//
-// Get attribute from genome config file e.g. fasta
-//
-def getGenomeAttribute(attribute) {
-    if (params.genomes && params.genome && params.genomes.containsKey(params.genome)) {
-        if (params.genomes[ params.genome ].containsKey(attribute)) {
-            return params.genomes[ params.genome ][ attribute ]
-        }
+    if (!state.has_tumor) {
+        error('The sample-sheet only contains normal-samples, but the following tools, which were requested with "--tools", expect at least one tumor-sample: ' + state.sample_type_tools.join(", "))
     }
-    return null
+
+    if (!state.has_normal) {
+        error('The sample-sheet only contains tumor-samples, but the following tools, which were requested with "--tools", expect at least one matched normal-sample in the current release: ' + state.sample_type_tools.join(", "))
+    }
+
+    if (!state.patients_missing_normal.isEmpty()) {
+        error('The current release requires a matched normal sample for each tumor patient when running the following tools: ' + state.sample_type_tools.join(", ") + '. Missing matched normal for patient(s): ' + state.patients_missing_normal.join(", "))
+    }
 }
 
-//
+def normaliseRequestedTools(tools) {
+    if (!tools) {
+        return []
+    }
+
+    tools
+        .split(',')
+        .collect { tool -> tool.trim() }
+        .findAll { tool -> tool }
+        .unique()
+}
+
+// Keep optional force-calling inputs as a single top-level pipeline feature.
+// The Mutect2 module requires both the VCF and its index together, so reject
+// partial configuration here before workflow channels are created.
+def validateMutect2AllelesParameters() {
+    if ((params.mutect2_alleles && !params.mutect2_alleles_tbi) || (!params.mutect2_alleles && params.mutect2_alleles_tbi)) {
+        error('Please provide both `--mutect2_alleles` and `--mutect2_alleles_tbi`, or leave both unset.')
+    }
+}
+
+// SAGE dereferences these resource params directly with `Channel.fromPath`, so leaving any of
+// them unset fails deep inside the subworkflow with an opaque "Missing `fromPath` parameter".
+// Reject the incomplete configuration up front instead.
+// `--sage_ensembl_dir` is deliberately not required: both the subworkflow and the module
+// treat it as optional and simply omit `-ensembl_data_dir` when it is not set.
+def validateSageParameters() {
+    if (!params.tools || !params.tools.split(',').collect { tool -> tool.trim() }.contains('sage')) {
+        return
+    }
+
+    def required = [
+        sage_high_confidence : '--sage_high_confidence',
+        sage_actionable_panel: '--sage_actionable_panel',
+        sage_known_hotspots  : '--sage_known_hotspots',
+    ]
+    def missing = required.findAll { param, _flag -> !params[param] }.collect { _param, flag -> flag }
+
+    if (missing) {
+        error(
+            "`--tools sage` requires the SAGE resource files, but the following are not set: ${missing.join(", ")}.\n" +
+            "  Provide all of them, or drop `sage` from `--tools`.\n" +
+            "  See https://nf-co.re/rnadnavar/parameters for details."
+        )
+    }
+}
+
 // Exit pipeline if incorrect --genome key provided
-//
 def genomeExistsError() {
     if (params.genomes && params.genome && !params.genomes.containsKey(params.genome)) {
-        def error_string = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n" +
-            "  Genome '${params.genome}' not found in any config files provided to the pipeline.\n" +
-            "  Currently, the available genome keys are:\n" +
-            "  ${params.genomes.keySet().join(", ")}\n" +
-            "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+        def error_string = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n" + "  Genome '${params.genome}' not found in any config files provided to the pipeline.\n" + "  Currently, the available genome keys are:\n" + "  ${params.genomes.keySet().join(", ")}\n" + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
         error(error_string)
     }
 }
+
 //
 // Generate methods description for MultiQC
 //
 def toolCitationText() {
-    // TODO nf-core: Optionally add in-text citation tools to this list.
-    // Can use ternary operators to dynamically construct based conditions, e.g. params["run_xyz"] ? "Tool (Foo et al. 2023)" : "",
-    // Uncomment function in methodsDescriptionText to render in MultiQC report
+    def text_qc = [
+        "Read quality control and alignment-level quality assessment were performed with FastQC (Andrews 2010)",
+        params.trim_fastq || params.split_fastq > 0 ? "fastp (Chen et al. 2018)," : "",
+        "SAMtools (Li et al. 2009)",
+        !(params.skip_tools && params.skip_tools.contains("mosdepth")) ? "and Mosdepth (Pedersen & Quinlan 2018)." : "."
+    ].join(' ').trim().replaceAll(",\\s+and", " and")
+
+    def text_alignment_parts = []
+    if (params.dna) {
+        def dna_aligner = [
+            "bwa-mem" : "BWA-MEM (Li 2013)",
+            "bwa-mem2": "BWA-MEM2 (Vasimuddin et al. 2019)",
+            "dragmap" : "DragMap",
+        ][params.aligner] ?: params.aligner
+        text_alignment_parts << "DNA read alignment was performed with ${dna_aligner}."
+    }
+    if (params.rna) {
+        text_alignment_parts << "RNA read alignment was performed with STAR (Dobin et al. 2013)."
+    }
+    if (params.tools && params.tools.contains("realignment")) {
+        text_alignment_parts << "Realignment used HISAT2 (Kim et al. 2019)."
+    }
+    def text_alignment = text_alignment_parts.join(' ').trim()
+
+    def text_gatk_preprocessing = [
+        (!(params.skip_tools && params.skip_tools.contains("markduplicates")) && !(params.skip_tools && params.skip_tools.contains("baserecalibrator"))) ? "GATK preprocessing including base quality score recalibration and duplicate marking was performed (McKenna et al. 2010)." : ""
+    ].join(' ').trim()
+
+    def variant_callers = []
+    if (params.tools && params.tools.contains("mutect2")) {
+        variant_callers << "GATK Mutect2 (McKenna et al. 2010)"
+    }
+    if (params.tools && params.tools.contains("manta")) {
+        variant_callers << "Manta (Chen et al. 2016)"
+    }
+    if (params.tools && params.tools.contains("strelka")) {
+        variant_callers << "Strelka2 (Kim et al. 2018)"
+    }
+    if (params.tools && params.tools.contains("sage")) {
+        variant_callers << "SAGE"
+    }
+    def text_variant_calling = variant_callers.isEmpty()
+        ? ""
+        : "Somatic variant calling was performed with ${variant_callers.join(', ').replaceFirst(/, ([^,]+)$/, ' and $1')}, with consensus calling when multiple callers were used."
+
+    def text_variant_processing = [
+        "Variant normalization and downstream VCF processing were performed with VT (Tan et al. 2015)",
+        !(params.skip_tools && params.skip_tools.contains("bcftools")) ? "BCFtools (Li 2011)," : "",
+        "and VCFtools (Danecek et al. 2011)."
+    ].join(' ').trim()
+
+    def text_consensus_filtering = [
+        (params.tools && (params.tools.contains("consensus") || params.tools.contains("filtering") || params.tools.contains("rna_filtering") || params.tools.contains("realignment"))) ? "Consensus generation and downstream filtering were performed with custom R and Python scripts bundled with the pipeline." : ""
+    ].join(' ').trim()
+
+    def text_annotation = [
+        (params.tools && (params.tools.contains("vep") || params.tools.contains("realignment"))) ? "Variant annotation was performed with Ensembl VEP (McLaren et al. 2016)" : "",
+        (params.tools && (params.tools.contains("consensus") || params.tools.contains("filtering") || params.tools.contains("rna_filtering") || params.tools.contains("realignment"))) ? "and conversion to MAF format with vcf2maf (Kandoth et al. 2018)." : "."
+    ].join(' ').trim()
+
+    // Combine all sections
     def citation_text = [
-            "Tools used in the workflow included:",
-            "FastQC (Andrews 2010),",
-            "MultiQC (Ewels et al. 2016)",
-            "."
-        ].join(' ').trim()
+        "Tools used in the workflow included:",
+        text_qc,
+        text_alignment,
+        text_gatk_preprocessing,
+        text_variant_calling,
+        text_variant_processing,
+        text_consensus_filtering,
+        text_annotation,
+        "Pipeline results statistics were summarized with MultiQC (Ewels et al. 2016)."
+    ].join(' ').trim().replaceAll("\\s+", " ").replaceAll("[,|.] +\\.", ".")
 
     return citation_text
 }
 
+
 def toolBibliographyText() {
-    // TODO nf-core: Optionally add bibliographic entries to this list.
-    // Can use ternary operators to dynamically construct based conditions, e.g. params["run_xyz"] ? "<li>Author (2023) Pub name, Journal, DOI</li>" : "",
-    // Uncomment function in methodsDescriptionText to render in MultiQC report
-    def reference_text = [
-            "<li>Andrews S, (2010) FastQC, URL: https://www.bioinformatics.babraham.ac.uk/projects/fastqc/).</li>",
-            "<li>Ewels, P., Magnusson, M., Lundin, S., & Käller, M. (2016). MultiQC: summarize analysis results for multiple tools and samples in a single report. Bioinformatics , 32(19), 3047–3048. doi: /10.1093/bioinformatics/btw354</li>"
-        ].join(' ').trim()
+    // Core framework citations (always included)
+    def core_citations = [
+        "<li>Ewels PA, Peltzer A, Fillinger S, Patel H, Alneberg J, Wilm A, Garcia MU, Di Tommaso P, Nahnsen S. The nf-core framework for community-curated bioinformatics pipelines. Nat Biotechnol. 2020 Mar;38(3):276-278. <a href=\"https://doi.org/10.1038/s41587-020-0439-x\">10.1038/s41587-020-0439-x</a></li>",
+        "<li>Di Tommaso P, Chatzou M, Floden EW, Barja PP, Palumbo E, Notredame C. Nextflow enables reproducible computational workflows. Nat Biotechnol. 2017 Apr 11;35(4):316-319. <a href=\"https://doi.org/10.1038/nbt.3820\">10.1038/nbt.3820</a></li>"
+    ].join(' ')
+
+    // Quality control and preprocessing
+    def qc_preprocessing_citations = [
+        "<li>Andrews, S. (2010). FastQC: A Quality Control Tool for High Throughput Sequence Data [Online]. Available: https://www.bioinformatics.babraham.ac.uk/projects/fastqc/</li>",
+        params.trim_fastq || params.split_fastq > 0 ? "<li>Chen S, Zhou Y, Chen Y, Gu J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics. 2018 Sep 1;34(17):i884-i890. <a href=\"https://doi.org/10.1093/bioinformatics/bty560\">10.1093/bioinformatics/bty560</a></li>" : ""
+    ].join(' ').trim()
+
+    // Alignment tools
+    def alignment_citations = [
+        params.rna ? "<li>Dobin A, Davis CA, Schlesinger F, Drenkow J, Zaleski C, Jha S, Batut P, Chaisson M, Gingeras TR. STAR: ultrafast universal RNA-seq aligner Bioinformatics. 2013 Jan 1;29(1):15-21. <a href=\"https://doi.org/10.1093/bioinformatics/bts635\">10.1093/bioinformatics/bts635</a></li>" : "",
+        params.dna && params.aligner == "bwa-mem" ? "<li>Li H: Aligning sequence reads, clone sequences and assembly contigs with BWA-MEM. arXiv 2013. <a href=\"https://doi.org/10.48550/arXiv.1303.3997\">10.48550/arXiv.1303.3997</a></li>" : "",
+        params.dna && params.aligner == "bwa-mem2" ? "<li>M. Vasimuddin, S. Misra, H. Li and S. Aluru, \"Efficient Architecture-Aware Acceleration of BWA-MEM for Multicore Systems,\" 2019 IEEE International Parallel and Distributed Processing Symposium (IPDPS), 2019, pp. 314-324. <a href=\"https://doi.org/10.1109/IPDPS.2019.00041\">10.1109/IPDPS.2019.00041</a></li>" : "",
+        (params.tools && params.tools.contains("realignment")) ? "<li>Kim D, Paggi JM, Park C, Bennett C, Salzberg SL. Graph-based genome alignment and genotyping with HISAT2 and HISAT-genotype Graph-based genome alignment and genotyping with HISAT2 and HISAT-genotype. Nat Biotechnol. 2019 Aug;37(8):907-915. <a href=\"https://doi.org/10.1038/s41587-019-0201-4\">10.1038/s41587-019-0201-4</a></li>" : ""
+    ].join(' ').trim()
+
+    // Alignment processing
+    def alignment_processing_citations = [
+        "<li>Li H, Handsaker B, Wysoker A, Fennell T, Ruan J, Homer N, Marth G, Abecasis G, Durbin R; 1000 Genome Project Data Processing Subgroup. The Sequence Alignment/Map format and SAMtools. Bioinformatics. 2009 Aug 15;25(16):2078-9. <a href=\"https://doi.org/10.1093/bioinformatics/btp352\">10.1093/bioinformatics/btp352</a></li>",
+        !(params.skip_tools && params.skip_tools.contains("mosdepth")) ? "<li>Brent S Pedersen, Aaron R Quinlan, Mosdepth: quick coverage calculation for genomes and exomes, Bioinformatics, Volume 34, Issue 5, 01 March 2018, Pages 867–868. <a href=\"https://doi.org/10.1093/bioinformatics/btx699\">10.1093/bioinformatics/btx699</a></li>" : ""
+    ].join(' ').trim()
+
+    // GATK preprocessing
+    def gatk_citations = [
+        (!(params.skip_tools && params.skip_tools.contains("markduplicates")) && !(params.skip_tools && params.skip_tools.contains("baserecalibrator"))) ? "<li>McKenna A, Hanna M, Banks E, et al.: The Genome Analysis Toolkit: a MapReduce framework for analyzing next-generation DNA sequencing data. Genome Res. 2010 Sep;20(9):1297-303. <a href=\"https://doi.org/10.1101/gr.107524.110\">10.1101/gr.107524.110</a></li>" : ""
+    ].join(' ').trim()
+
+    // Variant calling
+    def variant_calling_citations = [
+        params.tools && params.tools.contains("mutect2") ? "<li>McKenna A, Hanna M, Banks E, et al.: The Genome Analysis Toolkit: a MapReduce framework for analyzing next-generation DNA sequencing data. Genome Res. 2010 Sep;20(9):1297-303. <a href=\"https://doi.org/10.1101/gr.107524.110\">10.1101/gr.107524.110</a></li>" : "",
+        params.tools && params.tools.contains("manta") ? "<li>Chen X, Schulz-Trieglaff O, Shaw R, et al. Manta: rapid detection of structural variants and indels for germline and cancer sequencing applications. Bioinformatics. 2016 Apr 15;32(8):1220-1222. <a href=\"https://doi.org/10.1093/bioinformatics/btv710\">10.1093/bioinformatics/btv710</a></li>" : "",
+        params.tools && params.tools.contains("strelka") ? "<li>Kim S, Scheffler K, Halpern AL, et al.: Strelka2: fast and accurate calling of germline and somatic variants. Nat Methods. 2018 Aug;15(8):591-594. <a href=\"https://doi.org/10.1038/s41592-018-0051-x\">10.1038/s41592-018-0051-x</a></li>" : "",
+        params.tools && params.tools.contains("sage") ? "<li>SAGE is a precise and highly sensitive somatic SNV, MNV and INDEL caller developed by Hartwig Medical Foundation. Available: https://github.com/hartwigmedical/hmftools/blob/master/sage/README.md</li>" : ""
+    ].join(' ').trim()
+
+    // Variant processing and annotation
+    def variant_processing_citations = [
+        "<li>Tan A, Abecasis GR, Kang HM. Unified representation of genetic variants. Bioinformatics. 2015 Jul 1;31(13):2202-4. <a href=\"https://doi.org/10.1093/bioinformatics/btv112\">10.1093/bioinformatics/btv112</a></li>",
+        !(params.skip_tools && params.skip_tools.contains("bcftools")) ? "<li>Li H: A statistical framework for SNP calling, mutation discovery, association mapping and population genetical parameter estimation from sequencing data. Bioinformatics. 2011 Nov 1;27(21):2987-93. <a href=\"https://doi.org/10.1093/bioinformatics/btr509\">10.1093/bioinformatics/btr509</a></li>" : "",
+        "<li>Danecek P, Auton A, Abecasis G, et al. The variant call format and VCFtools. Bioinformatics. 2011 Aug 1;27(15):2156-2158. <a href=\"https://doi.org/10.1093/bioinformatics/btr330\">10.1093/bioinformatics/btr330</a></li>",
+        (params.tools && (params.tools.contains("vep") || params.tools.contains("realignment"))) ? "<li>McLaren W, Gil L, Hunt SE, et al.: The Ensembl Variant Effect Predictor. Genome Biol. 2016 Jun 6;17(1):122. <a href=\"https://doi.org/10.1186/s13059-016-0974-4\">10.1186/s13059-016-0974-4</a></li>" : "",
+        (params.tools && (params.tools.contains("consensus") || params.tools.contains("filtering") || params.tools.contains("rna_filtering") || params.tools.contains("realignment"))) ? "<li>Kandoth C, Gao J, Qwangmsk, Mattioni M, Struck A, Boursin Y, Penson A, Chavan S (2018) mskcc/vcf2maf: vcf2maf v1.6.16 (v1.6.16). Zenodo. <a href=\"https://doi.org/10.5281/zenodo.593251\">10.5281/zenodo.593251</a></li>" : ""
+    ].join(' ').trim()
+
+    // Local scripts
+    def scripts_citations = [
+        (params.tools && (params.tools.contains("consensus") || params.tools.contains("filtering") || params.tools.contains("rna_filtering") || params.tools.contains("realignment"))) ? "<li>R Core Team (2025). R: A language and environment for statistical computing. R Foundation for Statistical Computing, Vienna, Austria. Available: https://www.R-project.org/</li>" : "",
+        (params.tools && (params.tools.contains("consensus") || params.tools.contains("filtering") || params.tools.contains("rna_filtering") || params.tools.contains("realignment"))) ? "<li>Python Software Foundation. Python Language Reference, version 3. Available: https://www.python.org/</li>" : ""
+    ].join(' ').trim()
+
+    // MultiQC (always included)
+    def multiqc_citation = "<li>Ewels P, Magnusson M, Lundin S, Käller M. MultiQC: summarize analysis results for multiple tools and samples in a single report. Bioinformatics. 2016 Oct 1;32(19):3047-8. <a href=\"https://doi.org/10.1093/bioinformatics/btw354\">10.1093/bioinformatics/btw354</a></li>"
+
+    // Software packaging tools (always included)
+    def packaging_citations = [
+        "<li>Anaconda Software Distribution. Computer software. Vers. 2-2.4.0. Anaconda, Nov. 2016. Web.</li>",
+        "<li>Grüning B, Dale R, Sjödin A, Chapman BA, Rowe J, Tomkins-Tinch CH, Valieris R, Köster J; Bioconda Team. Bioconda: sustainable and comprehensive software distribution for the life sciences. Nat Methods. 2018 Jul;15(7):475-476. <a href=\"https://doi.org/10.1038/s41592-018-0046-7\">10.1038/s41592-018-0046-7</a></li>",
+        "<li>da Veiga Leprevost F, Grüning B, Aflitos SA, Röst HL, Uszkoreit J, Barsnes H, Vaudel M, Moreno P, Gatto L, Weber J, Bai M, Jimenez RC, Sachsenberg T, Pfeuffer J, Alvarez RV, Griss J, Nesvizhskii AI, Perez-Riverol Y. BioContainers: an open-source and community-driven framework for software standardization. Bioinformatics. 2017 Aug 15;33(16):2580-2582. <a href=\"https://doi.org/10.1093/bioinformatics/btx192\">10.1093/bioinformatics/btx192</a></li>",
+        "<li>Merkel, D. (2014). Docker: lightweight linux containers for consistent development and deployment. Linux Journal, 2014(239), 2.</li>",
+        "<li>Kurtzer GM, Sochat V, Bauer MW. Singularity: Scientific containers for mobility of compute. PLoS One. 2017 May 11;12(5):e0177459. <a href=\"https://doi.org/10.1371/journal.pone.0177459\">10.1371/journal.pone.0177459</a></li>"
+    ].join(' ')
+
+    def reference_sections = [
+        "<li><strong>Workflow framework:</strong></li> ${core_citations}",
+        "<li><strong>Quality control and alignment processing:</strong></li> ${qc_preprocessing_citations} ${alignment_processing_citations}",
+        alignment_citations ? "<li><strong>Read alignment:</strong></li> ${alignment_citations}" : "",
+        gatk_citations ? "<li><strong>GATK preprocessing:</strong></li> ${gatk_citations}" : "",
+        variant_calling_citations ? "<li><strong>Somatic variant calling:</strong></li> ${variant_calling_citations}" : "",
+        "<li><strong>Variant processing and annotation:</strong></li> ${variant_processing_citations}",
+        scripts_citations ? "<li><strong>Custom consensus and filtering scripts:</strong></li> ${scripts_citations}" : "",
+        "<li><strong>Reporting:</strong></li> ${multiqc_citation}",
+        "<li><strong>Software environments:</strong></li> ${packaging_citations}",
+    ]
+
+    def reference_text = reference_sections.findAll { section -> section }.join(' ').trim()
 
     return reference_text
 }
@@ -275,22 +515,56 @@ def methodsDescriptionText(mqc_methods_yaml) {
             temp_doi_ref += "(doi: <a href=\'https://doi.org/${doi_ref.replace("https://doi.org/", "").replace(" ", "")}\'>${doi_ref.replace("https://doi.org/", "").replace(" ", "")}</a>), "
         }
         meta["doi_text"] = temp_doi_ref.substring(0, temp_doi_ref.length() - 2)
-    } else meta["doi_text"] = ""
-    meta["nodoi_text"] = meta.manifest_map.doi ? "" : "<li>If available, make sure to update the text to include the Zenodo DOI of version of the pipeline used. </li>"
+    }
+    else {
+        meta["doi_text"] = ""
+    }
+    meta["nodoi_text"] = meta.manifest_map.doi ? "" : "<li>If available, make sure to update the text to include the Zenodo DOI of the pipeline version used. </li>"
 
     // Tool references
-    meta["tool_citations"] = ""
-    meta["tool_bibliography"] = ""
-
-    // TODO nf-core: Only uncomment below if logic in toolCitationText/toolBibliographyText has been filled!
-    // meta["tool_citations"] = toolCitationText().replaceAll(", \\.", ".").replaceAll("\\. \\.", ".").replaceAll(", \\.", ".")
-    // meta["tool_bibliography"] = toolBibliographyText()
+    meta["tool_citations"]    = toolCitationText().replaceAll(", \\.", ".").replaceAll("\\. \\.", ".").replaceAll(", \\.", ".")
+    meta["tool_bibliography"] = toolBibliographyText()
 
 
     def methods_text = mqc_methods_yaml.text
 
-    def engine =  new groovy.text.SimpleTemplateEngine()
+    def engine = new groovy.text.SimpleTemplateEngine()
     def description_html = engine.createTemplate(methods_text).make(meta)
 
     return description_html.toString()
+}
+
+// retrieveInput
+def retrieveInput(need_input, step, outdir) {
+    def input = null
+    if (need_input) {
+        if (step == 'mapping') {
+            error("Can't start ${step} step without samplesheet")
+        }
+        else if (step == 'markduplicates') {
+            log.warn("Using file ${outdir}/csv/mapped.csv")
+            input = outdir + "/csv/mapped.csv"
+        }
+        else if (step == 'prepare_recalibration') {
+            log.warn("Using file ${outdir}/csv/markduplicates_no_table.csv")
+            input = outdir + "/csv/markduplicates_no_table.csv"
+        }
+        else if (step == 'recalibrate') {
+            log.warn("Using file ${outdir}/csv/markduplicates.csv")
+            input = outdir + "/csv/markduplicates.csv"
+        }
+        else if (step == 'variant_calling') {
+            log.warn("Using file ${outdir}/csv/recalibrated.csv")
+            input = outdir + "/csv/recalibrated.csv"
+        }
+        else if (step == 'annotate') {
+            log.warn("Using file ${outdir}/csv/variantcalled.csv")
+            input = outdir + "/csv/variantcalled.csv"
+        }
+        else {
+            log.warn("Please provide an input samplesheet to the pipeline e.g. '--input samplesheet.csv'")
+            error("Unknown step ${step}")
+        }
+    }
+    return input
 }
