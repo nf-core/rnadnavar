@@ -6,7 +6,16 @@ results/
 testing/
 testing*
 *.pyc
+.idea/
+null/
+test/
+res-test
+node_modules/
+.nf-test*
+.vscode*
 null/
 .lineage/
 .nf-test/
 .nf-test.log
+rnadnavar_test/
+rnadnavar_ful_test/
