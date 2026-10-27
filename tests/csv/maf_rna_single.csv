@@ -1,0 +1,2 @@
+patient,status,sample,maf
+TCRBOA7,2,TCRBOA7-T-RNA,https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/data/tcrb/maf/TCRBOA7-T-RNA.maf

@@ -1,0 +1,20 @@
+Changes in component 'nf-core/strelka/somatic'
+'modules/nf-core/strelka/somatic/environment.yml' is unchanged
+'modules/nf-core/strelka/somatic/meta.yml' is unchanged
+Changes in 'strelka/somatic/main.nf':
+--- modules/nf-core/strelka/somatic/main.nf
++++ modules/nf-core/strelka/somatic/main.nf
+@@ -10,7 +10,7 @@
+ 
+     input:
+     tuple val(meta), path(input_normal), path(input_index_normal), path(input_tumor), path(input_index_tumor),  path(manta_candidate_small_indels), path(manta_candidate_small_indels_tbi), path(target_bed), path(target_bed_index)
+-    path  fasta
++    tuple val(meta2), path(fasta)
+     path  fai
+ 
+     output:
+
+'modules/nf-core/strelka/somatic/tests/main.nf.test.snap' is unchanged
+'modules/nf-core/strelka/somatic/tests/nextflow.config' is unchanged
+'modules/nf-core/strelka/somatic/tests/main.nf.test' is unchanged
+************************************************************
