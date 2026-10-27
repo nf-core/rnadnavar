@@ -1,0 +1,80 @@
+//
+// BAM/CRAM to FASTQ conversion, paired end only
+//
+
+include { SAMTOOLS_VIEW         as SAMTOOLS_VIEW_MAP_MAP     } from '../../../modules/nf-core/samtools/view'
+include { SAMTOOLS_VIEW         as SAMTOOLS_VIEW_UNMAP_UNMAP } from '../../../modules/nf-core/samtools/view'
+include { SAMTOOLS_VIEW         as SAMTOOLS_VIEW_UNMAP_MAP   } from '../../../modules/nf-core/samtools/view'
+include { SAMTOOLS_VIEW         as SAMTOOLS_VIEW_MAP_UNMAP   } from '../../../modules/nf-core/samtools/view'
+include { SAMTOOLS_MERGE        as SAMTOOLS_MERGE_UNMAP      } from '../../../modules/nf-core/samtools/merge'
+include { SAMTOOLS_COLLATEFASTQ as COLLATE_FASTQ_UNMAP       } from '../../../modules/nf-core/samtools/collatefastq'
+include { SAMTOOLS_COLLATEFASTQ as COLLATE_FASTQ_MAP         } from '../../../modules/nf-core/samtools/collatefastq'
+include { CAT_FASTQ                                          } from '../../../modules/nf-core/cat/fastq'
+
+workflow BAM_CONVERT_SAMTOOLS {
+    take:
+    input       // channel: [ meta, alignment (BAM or CRAM), index (optional) ]
+    fasta       // channel: [mandatory] [ meta, fasta ] (when reference-backed conversion is needed)
+    fasta_fai   // channel: [mandatory] fasta_fai (when reference-backed conversion is needed)
+    interleaved // value: true/false
+
+    main:
+    versions = Channel.empty()
+    fasta_with_fai = fasta.combine(fasta_fai).map { meta, fa, fai -> [meta, fa, fai] }.first()
+    fasta_with_fai_gzi = fasta.combine(fasta_fai).map { meta, fa, fai -> [meta, fa, fai, []] }.first()
+
+    // Index File if not PROVIDED -> this also requires updates to samtools view possibly URGH
+
+    // MAP - MAP
+    SAMTOOLS_VIEW_MAP_MAP(input, fasta_with_fai, [[id:''], []], [[id:''], []], '')
+
+    // UNMAP - UNMAP
+    SAMTOOLS_VIEW_UNMAP_UNMAP(input, fasta_with_fai, [[id:''], []], [[id:''], []], '')
+
+    // UNMAP - MAP
+    SAMTOOLS_VIEW_UNMAP_MAP(input, fasta_with_fai, [[id:''], []], [[id:''], []], '')
+
+    // MAP - UNMAP
+    SAMTOOLS_VIEW_MAP_UNMAP(input, fasta_with_fai, [[id:''], []], [[id:''], []], '')
+
+    // Merge UNMAP
+    all_unmapped_bam = SAMTOOLS_VIEW_UNMAP_UNMAP.out.bam
+        .join(SAMTOOLS_VIEW_UNMAP_MAP.out.bam, failOnDuplicate: true, remainder: true)
+        .join(SAMTOOLS_VIEW_MAP_UNMAP.out.bam, failOnDuplicate: true, remainder: true)
+        // The updated nf-core samtools/merge module expects both input files and an
+        // index-files slot. BAM indexes are not needed for the merge itself here, so
+        // pass an explicit empty list to satisfy the module interface.
+        .map{ meta, unmap_unmap, unmap_map, map_unmap -> [ meta, [ unmap_unmap, unmap_map, map_unmap ], [] ] }
+    SAMTOOLS_MERGE_UNMAP(all_unmapped_bam, fasta_with_fai_gzi)
+
+    // Collate & convert unmapped
+    COLLATE_FASTQ_UNMAP(SAMTOOLS_MERGE_UNMAP.out.bam, fasta_with_fai, interleaved)
+
+    // Collate & convert mapped
+    COLLATE_FASTQ_MAP(SAMTOOLS_VIEW_MAP_MAP.out.bam, fasta_with_fai, interleaved)
+
+    // join Mapped & unmapped fastq
+
+    reads_to_concat = COLLATE_FASTQ_MAP.out.fastq
+        .join(COLLATE_FASTQ_UNMAP.out.fastq, failOnDuplicate: true, failOnMismatch: true)
+        .map{ meta, mapped_reads, unmapped_reads -> [ meta, [ mapped_reads[0], mapped_reads[1], unmapped_reads[0], unmapped_reads[1] ] ] }
+
+    // Concatenate Mapped_R1 with Unmapped_R1 and Mapped_R2 with Unmapped_R2
+    CAT_FASTQ(reads_to_concat)
+    reads = CAT_FASTQ.out.reads
+
+    // Gather versions of all tools used
+    versions = versions.mix(CAT_FASTQ.out.versions_cat)
+    versions = versions.mix(COLLATE_FASTQ_MAP.out.versions_samtools)
+    versions = versions.mix(COLLATE_FASTQ_UNMAP.out.versions_samtools)
+    versions = versions.mix(SAMTOOLS_MERGE_UNMAP.out.versions_samtools)
+    versions = versions.mix(SAMTOOLS_VIEW_MAP_MAP.out.versions_samtools)
+    versions = versions.mix(SAMTOOLS_VIEW_MAP_UNMAP.out.versions_samtools)
+    versions = versions.mix(SAMTOOLS_VIEW_UNMAP_MAP.out.versions_samtools)
+    versions = versions.mix(SAMTOOLS_VIEW_UNMAP_UNMAP.out.versions_samtools)
+
+    emit:
+    reads
+
+    versions
+}

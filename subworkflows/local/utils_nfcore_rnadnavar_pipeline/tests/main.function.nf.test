@@ -1,0 +1,94 @@
+nextflow_function {
+
+    name "Test Functions"
+    script "../main.nf"
+    tag "subworkflows"
+    tag "utils_nfcore_rnadnavar_pipeline"
+    tag "subworkflows/utils_nfcore_rnadnavar_pipeline"
+
+    test("Test Function getSamplesheetCompositionState with paired samples") {
+
+        function "getSamplesheetCompositionState"
+
+        when {
+            function {
+                """
+                input[0] = [
+                    [['patient':'PT1', 'sample':'N1',     'status':0], [], [], [], [], [], [], [], [], [], []],
+                    [['patient':'PT1', 'sample':'RNA_T1', 'status':2], [], [], [], [], [], [], [], [], [], []],
+                    [['patient':'PT2', 'sample':'DNA_N',  'status':0], [], [], [], [], [], [], [], [], [], []],
+                    [['patient':'PT2', 'sample':'DNA_T',  'status':1], [], [], [], [], [], [], [], [], [], []]
+                ]
+                input[1] = 'variant_calling'
+                input[2] = 'strelka,sage,mutect2'
+                input[3] = false
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert function.success },
+                { assert function.result.should_validate },
+                { assert function.result.has_tumor },
+                { assert function.result.has_normal },
+                { assert function.result.sample_type_tools == ['strelka', 'sage', 'mutect2'] },
+                { assert function.result.patients_missing_normal.isEmpty() }
+            )
+        }
+    }
+
+    test("Test Function getSamplesheetCompositionState with tumour-only samples") {
+
+        function "getSamplesheetCompositionState"
+
+        when {
+            function {
+                """
+                input[0] = [
+                    [['patient':'PT1', 'sample':'RNA_T1', 'status':2], [], [], [], [], [], [], [], [], [], []]
+                ]
+                input[1] = 'variant_calling'
+                input[2] = 'strelka'
+                input[3] = false
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert function.success },
+                { assert function.result.should_validate },
+                { assert function.result.has_tumor },
+                { assert !function.result.has_normal },
+                { assert function.result.patients_missing_normal == ['PT1'] }
+            )
+        }
+    }
+
+    test("Test Function getSamplesheetCompositionState bypass for annotate") {
+
+        function "getSamplesheetCompositionState"
+
+        when {
+            function {
+                """
+                input[0] = [
+                    [['patient':'PT1', 'sample':'RNA_T1', 'status':2], [], [], [], [], [], [], [], [], [], []]
+                ]
+                input[1] = 'annotate'
+                input[2] = 'strelka'
+                input[3] = false
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert function.success },
+                { assert !function.result.should_validate },
+                { assert function.result.sample_type_tools == ['strelka'] }
+            )
+        }
+    }
+}

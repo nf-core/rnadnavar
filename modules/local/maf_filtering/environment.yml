@@ -1,0 +1,6 @@
+name: maf_filtering
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - conda-forge::pandas=1.4.3
