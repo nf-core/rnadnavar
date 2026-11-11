@@ -230,7 +230,7 @@ def filtering(maf, gnomad_thr, whitelist, blacklist, filters):
         maf["whitelist"] = maf["DNAchange"].isin(whitelist)  # whitelist
     if not blacklist.empty:
         maf = remove_muts_in_range(df=maf, blacklist=blacklist)  # blacklist
-    maf["ingnomAD"] = maf["MAX_AF"] >= gnomad_thr  # gnomad
+    maf["ingnomAD"] = pd.to_numeric(maf["MAX_AF"], errors="coerce") >= gnomad_thr  # gnomad
 
     return maf
 
